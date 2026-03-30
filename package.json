@@ -1,0 +1,33 @@
+{
+  "name": "claudex-setup",
+  "version": "0.1.0",
+  "description": "Audit and optimize any project for Claude Code. Powered by 972 verified techniques.",
+  "main": "src/index.js",
+  "bin": {
+    "claudex-setup": "bin/cli.js"
+  },
+  "scripts": {
+    "start": "node bin/cli.js",
+    "test": "node test/run.js"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "ai",
+    "developer-tools",
+    "productivity",
+    "audit",
+    "setup",
+    "cli"
+  ],
+  "author": "CLAUDEX Project",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/DnaFin/claudex-setup"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
