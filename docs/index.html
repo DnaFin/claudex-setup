@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>claudex-setup — Optimize any project for Claude Code</title>
-    <meta name="description" content="One command to audit and optimize your project for Claude Code. Powered by 972 verified techniques.">
+    <meta name="description" content="One command to audit and optimize your project for Claude Code. Powered by 1,107 verified techniques.">
     <meta property="og:title" content="claudex-setup — Optimize any project for Claude Code">
-    <meta property="og:description" content="Score your project 0-100 and auto-fix with one command. 972 verified techniques.">
+    <meta property="og:description" content="Score your project 0-100 and auto-fix with one command. 1,107 verified techniques.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://dnafin.github.io/claudex/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -427,10 +427,10 @@
         <section class="hero">
             <div class="hero-eyebrow">
                 <span class="dot"></span>
-                v0.1.0 &mdash; Free &amp; Open Source
+                v0.2.0 &mdash; Free &amp; Open Source
             </div>
             <h1>Your project is running<br>Claude Code at <em>10%</em></h1>
-            <p class="hero-sub">One command to find out what you're missing. Auto-fix everything. Built from 972 verified techniques.</p>
+            <p class="hero-sub">One command to find out what you're missing. Auto-fix everything. Built from 1,107 verified techniques.</p>
 
             <div class="install-box mono" onclick="navigator.clipboard.writeText('npx claudex-setup');this.querySelector('.copy-icon').textContent='Copied!'">
                 <span class="prompt">$</span>
@@ -442,19 +442,19 @@
 
         <section class="numbers">
             <div class="number-card">
-                <div class="val purple">972</div>
+                <div class="val purple">1,107</div>
                 <div class="label">Techniques</div>
             </div>
             <div class="number-card">
-                <div class="val green">773</div>
+                <div class="val green">954</div>
                 <div class="label">Tested</div>
             </div>
             <div class="number-card">
-                <div class="val blue">12</div>
+                <div class="val blue">54</div>
                 <div class="label">Audit Checks</div>
             </div>
             <div class="number-card">
-                <div class="val yellow">12</div>
+                <div class="val yellow">18</div>
                 <div class="label">Stacks</div>
             </div>
         </section>
@@ -503,19 +503,22 @@
 <br><span class="t-dim">  ═════════════════════════════════════</span>
 <br><span class="t-blue">  Detected: React, TypeScript</span>
 <br><br>
-<span class="t-green">  ██████████████</span><span class="t-dim">░░░░░░</span> <span class="t-bold">71/100</span>
+<span class="t-green">  ████████████████</span><span class="t-dim">░░░░</span> <span class="t-bold">78/100</span>
 <br><br>
 <span class="t-green">  ✅ Passing</span>
 <br><span class="t-dim">     CLAUDE.md project instructions</span>
-<br><span class="t-dim">     Hooks for automation</span>
-<br><span class="t-dim">     Custom slash commands</span>
-<br><span class="t-dim">     Path-specific rules</span>
+<br><span class="t-dim">     Mermaid architecture diagram</span>
+<br><span class="t-dim">     Hooks for automation (PreToolUse + PostToolUse)</span>
+<br><span class="t-dim">     Custom slash commands (5 commands)</span>
+<br><span class="t-dim">     XML tags for structured prompts</span>
+<br><span class="t-dim">     Secrets protection configured</span>
 <br><br>
-<span class="t-red">  🔴 Critical</span>
-<br>     <span class="t-bold">Mermaid architecture diagram</span>
-<br><span class="t-dim">     → Saves 73% tokens vs prose</span>
+<span class="t-yellow">  🟡 High Impact</span>
+<br>     <span class="t-bold">CI pipeline configured</span>
+<br><span class="t-dim">     → Add .github/workflows/ for automated testing</span>
 <br><br>
 <span class="t-dim">  ─────────────────────────────────────</span>
+<br>  <span class="t-bold">42/54</span> checks passing
 <br>  Run <span class="t-green">npx claudex-setup setup</span> to fix
                 </div>
             </div>
@@ -523,7 +526,7 @@
 
         <section class="checks-section">
             <h2>What gets checked</h2>
-            <p>12 critical best practices from the CLAUDEX research catalog.</p>
+            <p>54 best practices across 13 categories from the CLAUDEX research catalog.</p>
             <div class="checks-grid">
                 <div class="check-item">
                     <span class="check-icon">📋</span>
@@ -588,6 +591,48 @@
                         <p>On-demand domain knowledge</p>
                     </div>
                 </div>
+                <div class="check-item">
+                    <span class="check-icon">🔒</span>
+                    <div class="check-info">
+                        <h4>Secrets Protection <span class="check-tag tag-critical">Critical</span></h4>
+                        <p>Block .env reads, deny rules for sensitive files</p>
+                    </div>
+                </div>
+                <div class="check-item">
+                    <span class="check-icon">🔍</span>
+                    <div class="check-info">
+                        <h4>Security Review <span class="check-tag tag-high">High</span></h4>
+                        <p>Built-in OWASP Top 10 scanning command</p>
+                    </div>
+                </div>
+                <div class="check-item">
+                    <span class="check-icon">🐳</span>
+                    <div class="check-info">
+                        <h4>DevOps <span class="check-tag tag-medium">Medium</span></h4>
+                        <p>Dockerfile, docker-compose, CI pipeline, Terraform</p>
+                    </div>
+                </div>
+                <div class="check-item">
+                    <span class="check-icon">🪝</span>
+                    <div class="check-info">
+                        <h4>Hook System <span class="check-tag tag-high">High</span></h4>
+                        <p>Pre/PostToolUse, SessionStart automation</p>
+                    </div>
+                </div>
+                <div class="check-item">
+                    <span class="check-icon">🧪</span>
+                    <div class="check-info">
+                        <h4>Quality Gates <span class="check-tag tag-high">High</span></h4>
+                        <p>Test, lint, and build commands in CLAUDE.md</p>
+                    </div>
+                </div>
+                <div class="check-item">
+                    <span class="check-icon">🔌</span>
+                    <div class="check-info">
+                        <h4>MCP Servers <span class="check-tag tag-medium">Medium</span></h4>
+                        <p>Context7, database, and API integrations</p>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -606,6 +651,12 @@
                 <span class="stack-pill">Rust</span>
                 <span class="stack-pill">Go</span>
                 <span class="stack-pill">Docker</span>
+                <span class="stack-pill">Svelte</span>
+                <span class="stack-pill">Flutter</span>
+                <span class="stack-pill">Ruby</span>
+                <span class="stack-pill">Java</span>
+                <span class="stack-pill">Kotlin</span>
+                <span class="stack-pill">Swift</span>
             </div>
         </div>
 
@@ -623,7 +674,7 @@
         </section>
 
         <footer>
-            Built from <a href="https://github.com/DnaFin/claudex">CLAUDEX</a> &mdash; 972 verified Claude Code techniques, 773 tested with evidence.
+            Built from <a href="https://github.com/DnaFin/claudex">CLAUDEX</a> &mdash; 1,107 verified Claude Code techniques, 954 tested with evidence.
         </footer>
     </div>
 </body>
