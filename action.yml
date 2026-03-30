@@ -1,0 +1,27 @@
+name: 'CLAUDEX Audit'
+description: 'Audit your project for Claude Code best practices. Powered by 1,107 verified techniques.'
+inputs:
+  threshold:
+    description: 'Minimum score to pass (0-100)'
+    required: false
+    default: '50'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run CLAUDEX Audit
+      shell: bash
+      run: |
+        RESULT=$(npx claudex-setup --json 2>/dev/null)
+        SCORE=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).score)")
+        PASSED=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).passed)")
+        TOTAL=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');const r=JSON.parse(d);console.log(r.passed+r.failed)")
+        echo "score=$SCORE" >> $GITHUB_OUTPUT
+        echo "passed=$PASSED" >> $GITHUB_OUTPUT
+        echo "total=$TOTAL" >> $GITHUB_OUTPUT
+        echo "## CLAUDEX Audit: $SCORE/100" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "$PASSED/$TOTAL checks passing" >> $GITHUB_STEP_SUMMARY
+        if [ "$SCORE" -lt "${{ inputs.threshold }}" ]; then
+          echo "::warning::CLAUDEX score $SCORE is below threshold ${{ inputs.threshold }}"
+        fi
+      id: audit

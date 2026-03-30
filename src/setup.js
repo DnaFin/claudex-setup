@@ -1,5 +1,6 @@
 /**
  * Setup engine - applies recommended Claude Code configuration to a project.
+ * v0.3.0 - Smart CLAUDE.md generation with project analysis.
  */
 
 const fs = require('fs');
@@ -8,47 +9,127 @@ const { TECHNIQUES, STACKS } = require('./techniques');
 const { ProjectContext } = require('./context');
 const { audit } = require('./audit');
 
-const TEMPLATES = {
-  'claude-md': (stacks) => {
-    const stackNames = stacks.map(s => s.label).join(', ') || 'General';
-    const stackKeys = stacks.map(s => s.key);
-    const hasJS = stackKeys.some(k => ['typescript', 'react', 'vue', 'angular', 'nextjs', 'node'].includes(k));
-    const hasPython = stackKeys.includes('python');
-
-    let buildCommands = '# Add your build command\n# Add your test command\n# Add your lint command';
-    if (hasJS) {
-      buildCommands = `npm run build        # or: npx tsc --noEmit
-npm test             # or: npx jest / npx vitest
-npm run lint         # or: npx eslint .`;
-    } else if (hasPython) {
-      buildCommands = `python -m pytest     # run tests
-python -m mypy .     # type checking
-ruff check .         # lint`;
+// ============================================================
+// Helper: detect project scripts from package.json
+// ============================================================
+function detectScripts(ctx) {
+  const pkg = ctx.jsonFile('package.json');
+  if (!pkg || !pkg.scripts) return {};
+  const relevant = ['test', 'build', 'lint', 'dev', 'start', 'format', 'typecheck', 'check'];
+  const found = {};
+  for (const key of relevant) {
+    if (pkg.scripts[key]) {
+      found[key] = pkg.scripts[key];
     }
+  }
+  return found;
+}
 
-    let stackSection = '';
-    if (hasJS) {
-      stackSection = `
-## Stack-Specific
-- Prefer functional components with hooks (React)
-- Use TypeScript interfaces over \`type\` where possible
-- Use \`async/await\` over raw Promises
-- Import order: stdlib > external > internal > relative
-`;
-    } else if (hasPython) {
-      stackSection = `
-## Stack-Specific
-- Use type hints on all function signatures
-- Follow PEP 8 conventions; use f-strings for formatting
-- Prefer pathlib over os.path
-- Use dataclasses or pydantic for structured data
-`;
+// ============================================================
+// Helper: detect main directories
+// ============================================================
+function detectMainDirs(ctx) {
+  const candidates = ['src', 'lib', 'app', 'pages', 'components', 'api', 'routes', 'utils', 'helpers', 'services', 'models', 'controllers', 'views', 'public', 'assets', 'config', 'tests', 'test', '__tests__', 'spec', 'scripts', 'prisma', 'db', 'middleware'];
+  const found = [];
+  for (const dir of candidates) {
+    if (ctx.hasDir(dir)) {
+      const files = ctx.dirFiles(dir);
+      found.push({ name: dir, fileCount: files.length, files: files.slice(0, 10) });
     }
+  }
+  return found;
+}
 
-    return `# Project Instructions
+// ============================================================
+// Helper: generate Mermaid diagram from directory structure
+// ============================================================
+function generateMermaid(dirs, stacks) {
+  const stackKeys = stacks.map(s => s.key);
+  const dirNames = dirs.map(d => d.name);
 
-## Architecture
-\`\`\`mermaid
+  // Build nodes based on what exists
+  const nodes = [];
+  const edges = [];
+  let nodeId = 0;
+  const ids = {};
+
+  function addNode(label, shape) {
+    const id = String.fromCharCode(65 + nodeId++); // A, B, C...
+    ids[label] = id;
+    if (shape === 'db') return `    ${id}[(${label})]`;
+    if (shape === 'round') return `    ${id}(${label})`;
+    return `    ${id}[${label}]`;
+  }
+
+  // Entry point
+  nodes.push(addNode('Entry Point', 'round'));
+
+  // Detect layers
+  if (dirNames.includes('app') || dirNames.includes('pages')) {
+    nodes.push(addNode('Pages / Routes', 'default'));
+    edges.push(`    ${ids['Entry Point']} --> ${ids['Pages / Routes']}`);
+  }
+
+  if (dirNames.includes('components')) {
+    nodes.push(addNode('Components', 'default'));
+    const parent = ids['Pages / Routes'] || ids['Entry Point'];
+    edges.push(`    ${parent} --> ${ids['Components']}`);
+  }
+
+  if (dirNames.includes('src')) {
+    nodes.push(addNode('src/', 'default'));
+    const parent = ids['Pages / Routes'] || ids['Entry Point'];
+    edges.push(`    ${parent} --> ${ids['src/']}`);
+  }
+
+  if (dirNames.includes('lib')) {
+    nodes.push(addNode('lib/', 'default'));
+    const parent = ids['src/'] || ids['Entry Point'];
+    edges.push(`    ${parent} --> ${ids['lib/']}`);
+  }
+
+  if (dirNames.includes('api') || dirNames.includes('routes') || dirNames.includes('controllers')) {
+    const label = dirNames.includes('api') ? 'API Layer' : 'Routes';
+    nodes.push(addNode(label, 'default'));
+    const parent = ids['src/'] || ids['Entry Point'];
+    edges.push(`    ${parent} --> ${ids[label]}`);
+  }
+
+  if (dirNames.includes('services')) {
+    nodes.push(addNode('Services', 'default'));
+    const parent = ids['API Layer'] || ids['Routes'] || ids['src/'] || ids['Entry Point'];
+    edges.push(`    ${parent} --> ${ids['Services']}`);
+  }
+
+  if (dirNames.includes('models') || dirNames.includes('prisma') || dirNames.includes('db')) {
+    nodes.push(addNode('Data Layer', 'default'));
+    const parent = ids['Services'] || ids['API Layer'] || ids['Routes'] || ids['src/'] || ids['Entry Point'];
+    edges.push(`    ${parent} --> ${ids['Data Layer']}`);
+    nodes.push(addNode('Database', 'db'));
+    edges.push(`    ${ids['Data Layer']} --> ${ids['Database']}`);
+  }
+
+  if (dirNames.includes('utils') || dirNames.includes('helpers')) {
+    nodes.push(addNode('Utils', 'default'));
+    const parent = ids['src/'] || ids['Services'] || ids['Entry Point'];
+    edges.push(`    ${parent} --> ${ids['Utils']}`);
+  }
+
+  if (dirNames.includes('middleware')) {
+    nodes.push(addNode('Middleware', 'default'));
+    const parent = ids['API Layer'] || ids['Routes'] || ids['Entry Point'];
+    edges.push(`    ${parent} --> ${ids['Middleware']}`);
+  }
+
+  if (dirNames.includes('tests') || dirNames.includes('test') || dirNames.includes('__tests__') || dirNames.includes('spec')) {
+    nodes.push(addNode('Tests', 'round'));
+    const parent = ids['src/'] || ids['Entry Point'];
+    edges.push(`    ${ids['Tests']} -.-> ${parent}`);
+  }
+
+  // Fallback: if we only have Entry Point, make a generic diagram
+  if (nodes.length <= 1) {
+    return `\`\`\`mermaid
 graph TD
     A[Entry Point] --> B[Core Logic]
     B --> C[Data Layer]
@@ -56,14 +137,221 @@ graph TD
     C --> E[(Database)]
     D --> F[External Services]
 \`\`\`
-<!-- Replace with your actual project architecture -->
+<!-- Update this diagram to match your actual architecture -->`;
+  }
 
+  return '```mermaid\ngraph TD\n' + nodes.join('\n') + '\n' + edges.join('\n') + '\n```';
+}
+
+// ============================================================
+// Helper: framework-specific instructions
+// ============================================================
+function getFrameworkInstructions(stacks) {
+  const stackKeys = stacks.map(s => s.key);
+  const sections = [];
+
+  if (stackKeys.includes('nextjs')) {
+    sections.push(`### Next.js
+- Use App Router conventions (app/ directory) when applicable
+- Prefer Server Components by default; add 'use client' only when needed
+- Use next/image for images, next/link for navigation
+- API routes go in app/api/ (App Router) or pages/api/ (Pages Router)
+- Use loading.tsx, error.tsx, and not-found.tsx for route-level UX`);
+  } else if (stackKeys.includes('react')) {
+    sections.push(`### React
+- Use functional components with hooks exclusively
+- Prefer named exports over default exports
+- Keep components under 150 lines; extract sub-components
+- Use custom hooks to share stateful logic
+- Colocate styles, tests, and types with components`);
+  }
+
+  if (stackKeys.includes('vue')) {
+    sections.push(`### Vue
+- Use Composition API with \`<script setup>\` syntax
+- Prefer defineProps/defineEmits macros
+- Keep components under 200 lines
+- Use composables for shared logic`);
+  }
+
+  if (stackKeys.includes('angular')) {
+    sections.push(`### Angular
+- Use standalone components when possible
+- Follow Angular style guide naming conventions
+- Use reactive forms over template-driven forms
+- Keep services focused on a single responsibility`);
+  }
+
+  if (stackKeys.includes('typescript')) {
+    sections.push(`### TypeScript
+- Use \`interface\` for object shapes, \`type\` for unions/intersections
+- Enable strict mode in tsconfig.json
+- Avoid \`any\` — use \`unknown\` and narrow with type guards
+- Prefer \`as const\` assertions over enum when practical
+- Export types alongside their implementations`);
+  }
+
+  if (stackKeys.includes('django')) {
+    sections.push(`### Django
+- Follow fat models, thin views pattern
+- Use class-based views for complex logic, function views for simple
+- Always use Django ORM; avoid raw SQL unless necessary
+- Keep business logic in models or services, not views`);
+  } else if (stackKeys.includes('fastapi')) {
+    sections.push(`### FastAPI
+- Use Pydantic models for request/response validation
+- Use dependency injection for shared logic
+- Keep route handlers thin; delegate to service functions
+- Use async def for I/O-bound endpoints`);
+  }
+
+  if (stackKeys.includes('python') || stackKeys.includes('django') || stackKeys.includes('fastapi')) {
+    sections.push(`### Python
+- Use type hints on all function signatures and return types
+- Follow PEP 8; use f-strings for formatting
+- Prefer pathlib over os.path
+- Use dataclasses or pydantic for structured data
+- Raise specific exceptions; never bare \`except:\``);
+  }
+
+  if (stackKeys.includes('rust')) {
+    sections.push(`### Rust
+- Prefer Result<T, E> over unwrap/expect in library code
+- Use clippy warnings as errors
+- Derive common traits (Debug, Clone, PartialEq) where appropriate
+- Use modules to organize code; keep lib.rs/main.rs thin`);
+  }
+
+  if (stackKeys.includes('go')) {
+    sections.push(`### Go
+- Follow standard project layout conventions
+- Handle all errors explicitly; no blank _ for errors
+- Use interfaces for testability and abstraction
+- Keep packages focused; avoid circular dependencies`);
+  }
+
+  const hasJS = stackKeys.some(k => ['react', 'vue', 'angular', 'nextjs', 'node', 'svelte'].includes(k));
+  if (hasJS && !stackKeys.includes('typescript')) {
+    sections.push(`### JavaScript
+- Use \`const\` by default, \`let\` when reassignment needed; never \`var\`
+- Use \`async/await\` over raw Promises
+- Use named exports over default exports
+- Import order: stdlib > external > internal > relative`);
+  }
+
+  return sections.join('\n\n');
+}
+
+// ============================================================
+// TEMPLATES
+// ============================================================
+
+const TEMPLATES = {
+  'claude-md': (stacks, ctx) => {
+    const stackNames = stacks.map(s => s.label).join(', ') || 'General';
+    const stackKeys = stacks.map(s => s.key);
+
+    // --- Detect project details ---
+    const scripts = detectScripts(ctx);
+    const mainDirs = detectMainDirs(ctx);
+    const hasTS = stackKeys.includes('typescript') || ctx.files.includes('tsconfig.json');
+    const hasPython = stackKeys.includes('python') || stackKeys.includes('django') || stackKeys.includes('fastapi');
+    const hasJS = stackKeys.some(k => ['react', 'vue', 'angular', 'nextjs', 'node', 'svelte'].includes(k));
+
+    // --- Build commands section ---
+    let buildSection = '';
+    if (Object.keys(scripts).length > 0) {
+      const lines = [];
+      if (scripts.dev) lines.push(`npm run dev          # ${scripts.dev}`);
+      if (scripts.start) lines.push(`npm start            # ${scripts.start}`);
+      if (scripts.build) lines.push(`npm run build        # ${scripts.build}`);
+      if (scripts.test) lines.push(`npm test             # ${scripts.test}`);
+      if (scripts.lint) lines.push(`npm run lint         # ${scripts.lint}`);
+      if (scripts.format) lines.push(`npm run format       # ${scripts.format}`);
+      if (scripts.typecheck) lines.push(`npm run typecheck    # ${scripts.typecheck}`);
+      if (scripts.check) lines.push(`npm run check        # ${scripts.check}`);
+      buildSection = lines.join('\n');
+    } else if (hasPython) {
+      buildSection = `python -m pytest     # run tests
+python -m mypy .     # type checking
+ruff check .         # lint`;
+    } else if (hasJS) {
+      buildSection = `npm run build        # or: npx tsc --noEmit
+npm test             # or: npx jest / npx vitest
+npm run lint         # or: npx eslint .`;
+    } else {
+      buildSection = '# Add your build command\n# Add your test command\n# Add your lint command';
+    }
+
+    // --- Architecture description ---
+    const mermaid = generateMermaid(mainDirs, stacks);
+
+    let dirDescription = '';
+    if (mainDirs.length > 0) {
+      dirDescription = '\n### Directory Structure\n';
+      for (const dir of mainDirs) {
+        const suffix = dir.fileCount > 0 ? ` (${dir.fileCount} files)` : '';
+        dirDescription += `- \`${dir.name}/\`${suffix}\n`;
+      }
+    }
+
+    // --- Framework-specific instructions ---
+    const frameworkInstructions = getFrameworkInstructions(stacks);
+    const stackSection = frameworkInstructions
+      ? `\n## Stack-Specific Guidelines\n\n${frameworkInstructions}\n`
+      : '';
+
+    // --- TypeScript-specific additions ---
+    let tsSection = '';
+    if (hasTS) {
+      const tsconfig = ctx.jsonFile('tsconfig.json');
+      if (tsconfig) {
+        const strict = tsconfig.compilerOptions && tsconfig.compilerOptions.strict;
+        tsSection = `
+## TypeScript Configuration
+- Strict mode: ${strict ? '**enabled**' : '**disabled** (consider enabling)'}
+- Always fix type errors before committing — do not use \`@ts-ignore\`
+- Run type checking: \`${scripts.typecheck ? 'npm run typecheck' : 'npx tsc --noEmit'}\`
+`;
+      }
+    }
+
+    // --- Verification criteria based on detected commands ---
+    const verificationSteps = [];
+    verificationSteps.push('1. All existing tests still pass');
+    verificationSteps.push('2. New code has test coverage');
+    if (scripts.lint || hasPython) {
+      verificationSteps.push(`3. No linting errors (\`${scripts.lint ? 'npm run lint' : 'ruff check .'}\`)`);
+    } else if (hasJS) {
+      verificationSteps.push('3. No linting errors (`npx eslint .`)');
+    } else {
+      verificationSteps.push('3. No linting errors introduced');
+    }
+    if (scripts.build) {
+      verificationSteps.push(`4. Build succeeds (\`npm run build\`)`);
+    }
+    if (hasTS) {
+      verificationSteps.push(`${verificationSteps.length + 1}. No TypeScript errors (\`${scripts.typecheck ? 'npm run typecheck' : 'npx tsc --noEmit'}\`)`);
+    }
+    verificationSteps.push(`${verificationSteps.length + 1}. Changes match the requested scope (no gold-plating)`);
+
+    // --- Read package.json for project name/description ---
+    const pkg = ctx.jsonFile('package.json');
+    const projectName = (pkg && pkg.name) ? pkg.name : path.basename(ctx.dir);
+    const projectDesc = (pkg && pkg.description) ? ` — ${pkg.description}` : '';
+
+    // --- Assemble the final CLAUDE.md ---
+    return `# ${projectName}${projectDesc}
+
+## Architecture
+${mermaid}
+${dirDescription}
 ## Stack
 ${stackNames}
-${stackSection}
+${stackSection}${tsSection}
 ## Build & Test
 \`\`\`bash
-${buildCommands}
+${buildSection}
 \`\`\`
 
 ## Code Style
@@ -72,21 +360,18 @@ ${buildCommands}
 - Keep functions small and focused (< 50 lines)
 - Use descriptive variable names; avoid abbreviations
 
-## Constraints
 <constraints>
 - Never commit secrets, API keys, or .env files
 - Always run tests before marking work complete
 - Prefer editing existing files over creating new ones
 - When uncertain about architecture, ask before implementing
+${hasTS ? '- Do not use @ts-ignore or @ts-expect-error without a tracking issue\n' : ''}\
+${hasJS ? '- Use const by default; never use var\n' : ''}\
 </constraints>
 
-## Verification
 <verification>
 Before completing any task, confirm:
-1. All existing tests still pass
-2. New code has test coverage
-3. No linting errors introduced
-4. Changes match the requested scope (no gold-plating)
+${verificationSteps.join('\n')}
 </verification>
 
 ## Workflow
@@ -126,6 +411,28 @@ esac
 
 exit 0
 `,
+    'log-changes.sh': `#!/bin/bash
+# PostToolUse hook - logs all file changes with timestamps
+# Appends to .claude/logs/file-changes.log
+
+INPUT=$(cat -)
+TOOL_NAME=$(echo "$INPUT" | grep -oP '"tool_name"\\s*:\\s*"\\K[^"]+' 2>/dev/null || echo "unknown")
+FILE_PATH=$(echo "$INPUT" | grep -oP '"file_path"\\s*:\\s*"\\K[^"]+' 2>/dev/null || echo "")
+
+if [ -z "$FILE_PATH" ]; then
+  exit 0
+fi
+
+LOG_DIR=".claude/logs"
+LOG_FILE="$LOG_DIR/file-changes.log"
+
+mkdir -p "$LOG_DIR"
+
+TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+echo "[$TIMESTAMP] $TOOL_NAME: $FILE_PATH" >> "$LOG_FILE"
+
+exit 0
+`,
   }),
 
   'commands': () => ({
@@ -158,6 +465,16 @@ exit 0
 3. Run the deployment command
 4. Verify deployment succeeded (health check / smoke test)
 5. Tag the release: \`git tag -a vX.Y.Z -m "Release vX.Y.Z"\`
+`,
+    'fix.md': `Fix the issue described: $ARGUMENTS
+
+## Steps:
+1. Understand the issue — read relevant code and error messages
+2. Identify the root cause (not just the symptom)
+3. Implement the minimal fix
+4. Write or update tests to cover the fix
+5. Run the full test suite to verify no regressions
+6. Summarize what was wrong and how the fix addresses it
 `,
   }),
 
@@ -260,7 +577,8 @@ async function setup(options) {
     const template = TEMPLATES[technique.template];
     if (!template) continue;
 
-    const result = template(stacks);
+    // Pass ctx as second argument — only claude-md uses it
+    const result = template(stacks, ctx);
 
     if (typeof result === 'string') {
       // Single file template (like CLAUDE.md)

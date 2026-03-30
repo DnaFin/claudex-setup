@@ -18,6 +18,7 @@ const HELP = `
     npx claudex-setup audit        Same as above
     npx claudex-setup setup        Apply recommended configuration
     npx claudex-setup setup --auto Apply all recommendations without prompts
+    npx claudex-setup badge        Generate shields.io badge markdown
 
   Options:
     --verbose    Show detailed analysis
@@ -45,7 +46,14 @@ async function main() {
   };
 
   try {
-    if (command === 'setup') {
+    if (command === 'badge') {
+      const { getBadgeMarkdown } = require('../src/badge');
+      const result = await audit({ ...options, silent: true });
+      console.log(getBadgeMarkdown(result.score));
+      console.log('');
+      console.log('Add this to your README.md');
+      process.exit(0);
+    } else if (command === 'setup') {
       await setup(options);
     } else {
       await audit(options);

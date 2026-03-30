@@ -4,6 +4,7 @@
 
 const { TECHNIQUES, STACKS } = require('./techniques');
 const { ProjectContext } = require('./context');
+const { getBadgeMarkdown } = require('./badge');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -27,7 +28,24 @@ function progressBar(score, max = 100, width = 20) {
   return colorize('█'.repeat(filled), color) + colorize('░'.repeat(empty), 'dim');
 }
 
+const EFFORT_ORDER = { critical: 0, high: 1, medium: 2 };
+
+function getQuickWins(failed) {
+  // Quick wins = medium impact items first (easiest), then high, sorted by name length (shorter = simpler)
+  return [...failed]
+    .sort((a, b) => {
+      const effortA = EFFORT_ORDER[a.impact] ?? 3;
+      const effortB = EFFORT_ORDER[b.impact] ?? 3;
+      // Prefer medium (easiest to fix), then high, then critical
+      if (effortA !== effortB) return effortB - effortA;
+      // Tie-break by fix length (shorter fix description = likely simpler)
+      return (a.fix || '').length - (b.fix || '').length;
+    })
+    .slice(0, 3);
+}
+
 async function audit(options) {
+  const silent = options.silent || false;
   const ctx = new ProjectContext(options.dir);
   const stacks = ctx.detectStacks(STACKS);
   const results = [];
@@ -54,9 +72,14 @@ async function audit(options) {
   const earnedScore = passed.reduce((sum, r) => sum + (weights[r.impact] || 5), 0);
   const score = Math.round((earnedScore / maxScore) * 100);
 
+  // Silent mode: skip all output, just return result
+  if (silent) {
+    return { score, passed: passed.length, failed: failed.length, stacks, results };
+  }
+
   if (options.json) {
     console.log(JSON.stringify({ score, stacks, passed: passed.length, failed: failed.length, results }, null, 2));
-    return;
+    return { score, passed: passed.length, failed: failed.length, stacks, results };
   }
 
   // Display results
@@ -115,6 +138,18 @@ async function audit(options) {
     console.log('');
   }
 
+  // Quick wins
+  if (failed.length > 0) {
+    const quickWins = getQuickWins(failed);
+    console.log(colorize('  ⚡ Quick wins (easiest fixes first)', 'magenta'));
+    for (let i = 0; i < quickWins.length; i++) {
+      const r = quickWins[i];
+      console.log(`     ${i + 1}. ${colorize(r.name, 'bold')}`);
+      console.log(colorize(`        → ${r.fix}`, 'dim'));
+    }
+    console.log('');
+  }
+
   // Summary
   console.log(colorize('  ─────────────────────────────────────', 'dim'));
   console.log(`  ${colorize(`${passed.length}/${results.length}`, 'bold')} checks passing`);
@@ -124,11 +159,13 @@ async function audit(options) {
   }
 
   console.log('');
+  console.log(`  Add to README: ${getBadgeMarkdown(score)}`);
+  console.log('');
   console.log(colorize('  Powered by CLAUDEX - 1,107 verified Claude Code techniques', 'dim'));
   console.log(colorize('  https://github.com/naorp/claudex-setup', 'dim'));
   console.log('');
 
-  return { score, passed: passed.length, failed: failed.length, stacks };
+  return { score, passed: passed.length, failed: failed.length, stacks, results };
 }
 
 module.exports = { audit };
