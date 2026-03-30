@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>claudex-setup — Optimize any project for Claude Code</title>
+    <meta name="description" content="One command to audit and optimize your project for Claude Code. Powered by 972 verified techniques.">
+    <meta property="og:title" content="claudex-setup — Optimize any project for Claude Code">
+    <meta property="og:description" content="Score your project 0-100 and auto-fix with one command. 972 verified techniques.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://dnafin.github.io/claudex/">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0a0a0b;
+            --surface: #141416;
+            --border: #2a2a2e;
+            --text: #e4e4e7;
+            --text-dim: #71717a;
+            --accent: #c084fc;
+            --accent-dim: #7c3aed;
+            --green: #4ade80;
+            --red: #f87171;
+            --yellow: #fbbf24;
+            --blue: #38bdf8;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+
+        /* Hero */
+        .hero {
+            padding: 80px 0 60px;
+            text-align: center;
+        }
+        .hero-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--accent-dim);
+            color: white;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+        }
+        .hero h1 {
+            font-size: clamp(32px, 5vw, 48px);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 16px;
+        }
+        .hero h1 span { color: var(--accent); }
+        .hero p {
+            color: var(--text-dim);
+            font-size: 16px;
+            max-width: 500px;
+            margin: 0 auto 32px;
+        }
+
+        /* Install box */
+        .install {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .install-cmd {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 24px;
+            font-size: 18px;
+            color: var(--green);
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .install-cmd:hover { border-color: var(--accent); }
+        .install-cmd .dollar { color: var(--text-dim); }
+        .install-hint { color: var(--text-dim); font-size: 12px; }
+
+        /* Stats */
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 40px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .stat { text-align: center; }
+        .stat-num { font-size: 28px; font-weight: 700; color: var(--accent); }
+        .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+        /* Terminal demo */
+        .terminal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin: 48px 0;
+            overflow: hidden;
+        }
+        .terminal-bar {
+            display: flex;
+            gap: 6px;
+            padding: 12px 16px;
+            background: #1a1a1e;
+            border-bottom: 1px solid var(--border);
+        }
+        .terminal-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+        }
+        .terminal-dot.red { background: #ff5f57; }
+        .terminal-dot.yellow { background: #febc2e; }
+        .terminal-dot.green { background: #28c840; }
+        .terminal-body {
+            padding: 20px;
+            font-size: 13px;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+        .t-dim { color: var(--text-dim); }
+        .t-green { color: var(--green); }
+        .t-red { color: var(--red); }
+        .t-yellow { color: var(--yellow); }
+        .t-blue { color: var(--blue); }
+        .t-accent { color: var(--accent); }
+        .t-bold { font-weight: 700; }
+
+        /* Features */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            padding: 48px 0;
+        }
+        .feature {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+            transition: border-color 0.2s;
+        }
+        .feature:hover { border-color: var(--accent-dim); }
+        .feature-icon { font-size: 24px; margin-bottom: 12px; }
+        .feature h3 { font-size: 14px; margin-bottom: 6px; }
+        .feature p { font-size: 12px; color: var(--text-dim); }
+
+        /* CTA */
+        .cta {
+            text-align: center;
+            padding: 60px 0;
+            border-top: 1px solid var(--border);
+        }
+        .cta h2 { font-size: 24px; margin-bottom: 8px; }
+        .cta p { color: var(--text-dim); margin-bottom: 24px; font-size: 14px; }
+        .btn {
+            display: inline-block;
+            padding: 12px 32px;
+            background: var(--accent-dim);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: var(--accent); color: var(--bg); }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 24px 0;
+            color: var(--text-dim);
+            font-size: 12px;
+            border-top: 1px solid var(--border);
+        }
+        footer a { color: var(--accent); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="hero">
+            <div class="hero-badge">v0.1.0 — FREE & OPEN SOURCE</div>
+            <h1>Optimize any project<br>for <span>Claude Code</span></h1>
+            <p>One command. 972 verified techniques. Score your project 0-100 and auto-fix what's missing.</p>
+
+            <div class="install">
+                <div class="install-cmd" onclick="navigator.clipboard.writeText('npx claudex-setup');this.style.borderColor='#4ade80'">
+                    <span class="dollar">$ </span>npx claudex-setup
+                </div>
+            </div>
+            <div class="install-hint">click to copy — works with any Node.js 18+ project</div>
+        </section>
+
+        <section class="stats">
+            <div class="stat">
+                <div class="stat-num">972</div>
+                <div class="stat-label">Verified Techniques</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">773</div>
+                <div class="stat-label">Tested with Evidence</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">12</div>
+                <div class="stat-label">Audit Checks</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num">12</div>
+                <div class="stat-label">Stacks Detected</div>
+            </div>
+        </section>
+
+        <section class="terminal">
+            <div class="terminal-bar">
+                <div class="terminal-dot red"></div>
+                <div class="terminal-dot yellow"></div>
+                <div class="terminal-dot green"></div>
+            </div>
+            <div class="terminal-body">
+<span class="t-dim">$</span> <span class="t-green">npx claudex-setup</span>
+<br><br>
+<span class="t-bold">  claudex-setup audit</span>
+<br><span class="t-dim">  ═══════════════════════════════════════</span>
+<br><span class="t-blue">  Detected: React, TypeScript</span>
+<br><br>
+<span class="t-green">  ██████████████</span><span class="t-dim">░░░░░░</span> <span class="t-bold">71/100</span>
+<br><br>
+<span class="t-green">  ✅ Passing</span>
+<br><span class="t-dim">     CLAUDE.md project instructions</span>
+<br><span class="t-dim">     Hooks for automation</span>
+<br><span class="t-dim">     Custom slash commands</span>
+<br><span class="t-dim">     Custom skills</span>
+<br><span class="t-dim">     Path-specific rules</span>
+<br><br>
+<span class="t-red">  🔴 Critical</span>
+<br><span class="t-bold">     Mermaid architecture diagram</span>
+<br><span class="t-dim">     → Saves 73% tokens vs prose description</span>
+<br><br>
+<span class="t-yellow">  🟡 High Impact</span>
+<br><span class="t-bold">     XML tags for structured prompts</span>
+<br><span class="t-dim">     → Use &lt;constraints&gt;, &lt;validation&gt; for clarity</span>
+<br><br>
+<span class="t-dim">  ─────────────────────────────────────</span>
+<br>  Run <span class="t-bold">npx claudex-setup setup</span> to fix automatically
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="feature">
+                <div class="feature-icon">🔍</div>
+                <h3>Smart Audit</h3>
+                <p>Scores your project against 12 critical best practices. Shows what's missing and why it matters.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">⚡</div>
+                <h3>Auto Setup</h3>
+                <p>Creates CLAUDE.md, hooks, commands, skills, agents, and rules tailored to your stack.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎯</div>
+                <h3>Stack Detection</h3>
+                <p>Detects React, Vue, Python, TypeScript, Rust, Go, Docker and 6 more. Tailors recommendations.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <h3>972 Techniques</h3>
+                <p>Built from CLAUDEX — the most comprehensive verified catalog of Claude Code capabilities.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <h3>Zero Dependencies</h3>
+                <p>Pure Node.js. No API keys needed. No data sent anywhere. Runs entirely on your machine.</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🚀</div>
+                <h3>3-5x Productivity</h3>
+                <p>Proper CLAUDE.md + hooks + skills = dramatically better Claude Code output quality.</p>
+            </div>
+        </section>
+
+        <section class="cta">
+            <h2>Ready to optimize?</h2>
+            <p>Takes 10 seconds. No signup required.</p>
+            <a href="https://github.com/DnaFin/claudex" class="btn">View on GitHub</a>
+        </section>
+
+        <footer>
+            Built with <a href="https://github.com/DnaFin/claudex">CLAUDEX</a> — 972 verified Claude Code techniques
+        </footer>
+    </div>
+</body>
+</html>
