@@ -9,123 +9,231 @@
     <meta property="og:description" content="Score your project 0-100 and auto-fix with one command. 972 verified techniques.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://dnafin.github.io/claudex/">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg: #0a0a0b;
-            --surface: #141416;
-            --border: #2a2a2e;
-            --text: #e4e4e7;
-            --text-dim: #71717a;
-            --accent: #c084fc;
-            --accent-dim: #7c3aed;
-            --green: #4ade80;
+            --bg: #08080a;
+            --surface: #111114;
+            --surface-2: #19191e;
+            --border: #25252b;
+            --border-hover: #3a3a44;
+            --text: #ececf0;
+            --text-secondary: #9494a0;
+            --text-dim: #5c5c6a;
+            --accent: #a78bfa;
+            --accent-bright: #c4b5fd;
+            --accent-bg: rgba(167,139,250,0.08);
+            --accent-border: rgba(167,139,250,0.2);
+            --green: #34d399;
+            --green-dim: rgba(52,211,153,0.15);
             --red: #f87171;
+            --red-dim: rgba(248,113,113,0.15);
             --yellow: #fbbf24;
-            --blue: #38bdf8;
+            --yellow-dim: rgba(251,191,36,0.15);
+            --blue: #60a5fa;
         }
 
         body {
-            font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+            font-family: 'Space Grotesk', -apple-system, sans-serif;
             background: var(--bg);
             color: var(--text);
-            line-height: 1.6;
-            min-height: 100vh;
+            line-height: 1.65;
+            overflow-x: hidden;
         }
 
-        .container { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+        .container { max-width: 900px; margin: 0 auto; padding: 0 28px; }
+        code, .mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Gradient mesh background */
+        .bg-mesh {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: -1;
+            background:
+                radial-gradient(ellipse 600px 400px at 20% 10%, rgba(167,139,250,0.06), transparent),
+                radial-gradient(ellipse 500px 500px at 80% 60%, rgba(52,211,153,0.04), transparent),
+                radial-gradient(ellipse 800px 300px at 50% 100%, rgba(96,165,250,0.03), transparent);
+        }
+
+        /* Nav */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-brand {
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--accent-bright);
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+        .nav-links { display: flex; gap: 24px; }
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--text); }
 
         /* Hero */
         .hero {
-            padding: 80px 0 60px;
+            padding: 100px 0 80px;
             text-align: center;
         }
-        .hero-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            background: var(--accent-dim);
-            color: white;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 24px;
-            letter-spacing: 0.5px;
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: var(--accent-bg);
+            border: 1px solid var(--accent-border);
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--accent-bright);
+            margin-bottom: 32px;
+        }
+        .hero-eyebrow .dot {
+            width: 6px; height: 6px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
         }
         .hero h1 {
-            font-size: clamp(32px, 5vw, 48px);
+            font-size: clamp(36px, 6vw, 56px);
             font-weight: 700;
             line-height: 1.1;
-            margin-bottom: 16px;
+            letter-spacing: -1.5px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--text) 0%, var(--text-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .hero h1 span { color: var(--accent); }
-        .hero p {
-            color: var(--text-dim);
-            font-size: 16px;
-            max-width: 500px;
-            margin: 0 auto 32px;
+        .hero h1 em {
+            font-style: normal;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-bright) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-
-        /* Install box */
-        .install {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-        .install-cmd {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 14px 24px;
+        .hero-sub {
             font-size: 18px;
-            color: var(--green);
-            cursor: pointer;
-            transition: border-color 0.2s;
+            color: var(--text-secondary);
+            max-width: 520px;
+            margin: 0 auto 40px;
+            line-height: 1.7;
         }
-        .install-cmd:hover { border-color: var(--accent); }
-        .install-cmd .dollar { color: var(--text-dim); }
-        .install-hint { color: var(--text-dim); font-size: 12px; }
 
-        /* Stats */
-        .stats {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            padding: 40px 0;
-            border-bottom: 1px solid var(--border);
-        }
-        .stat { text-align: center; }
-        .stat-num { font-size: 28px; font-weight: 700; color: var(--accent); }
-        .stat-label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
-
-        /* Terminal demo */
-        .terminal {
+        /* Install */
+        .install-box {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 12px;
-            margin: 48px 0;
+            padding: 16px 28px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 10px;
+        }
+        .install-box:hover {
+            border-color: var(--accent-border);
+            background: var(--surface-2);
+        }
+        .install-box .prompt { color: var(--text-dim); font-size: 18px; }
+        .install-box .cmd { color: var(--green); font-size: 18px; font-weight: 600; }
+        .install-box .copy-icon { color: var(--text-dim); font-size: 14px; transition: color 0.2s; }
+        .install-box:hover .copy-icon { color: var(--accent); }
+        .install-hint {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 8px;
+        }
+
+        /* Numbers */
+        .numbers {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            margin: 64px 0;
+        }
+        .number-card {
+            background: var(--surface);
+            padding: 28px 20px;
+            text-align: center;
+        }
+        .number-card .val {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 4px;
+        }
+        .number-card .val.purple { color: var(--accent); }
+        .number-card .val.green { color: var(--green); }
+        .number-card .val.blue { color: var(--blue); }
+        .number-card .val.yellow { color: var(--yellow); }
+        .number-card .label {
+            font-size: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        /* Terminal */
+        .terminal-section { margin: 48px 0 64px; }
+        .terminal-section h2 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+        .terminal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
             overflow: hidden;
         }
-        .terminal-bar {
+        .terminal-header {
             display: flex;
-            gap: 6px;
-            padding: 12px 16px;
-            background: #1a1a1e;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 18px;
+            background: var(--surface-2);
             border-bottom: 1px solid var(--border);
         }
-        .terminal-dot {
-            width: 10px; height: 10px;
-            border-radius: 50%;
+        .terminal-header .dots { display: flex; gap: 6px; }
+        .terminal-header .dot { width: 10px; height: 10px; border-radius: 50%; }
+        .terminal-header .dot-r { background: #ff5f57; }
+        .terminal-header .dot-y { background: #febc2e; }
+        .terminal-header .dot-g { background: #28c840; }
+        .terminal-header .title {
+            flex: 1;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-dim);
         }
-        .terminal-dot.red { background: #ff5f57; }
-        .terminal-dot.yellow { background: #febc2e; }
-        .terminal-dot.green { background: #28c840; }
         .terminal-body {
-            padding: 20px;
+            padding: 24px;
             font-size: 13px;
-            line-height: 1.8;
+            line-height: 2;
             overflow-x: auto;
         }
         .t-dim { color: var(--text-dim); }
@@ -134,104 +242,265 @@
         .t-yellow { color: var(--yellow); }
         .t-blue { color: var(--blue); }
         .t-accent { color: var(--accent); }
-        .t-bold { font-weight: 700; }
+        .t-bold { font-weight: 600; color: var(--text); }
 
-        /* Features */
-        .features {
+        /* Before/After */
+        .comparison {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 20px;
-            padding: 48px 0;
+            margin: 48px 0;
         }
-        .feature {
+        .comp-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 28px;
+        }
+        .comp-card.before { border-top: 3px solid var(--red); }
+        .comp-card.after { border-top: 3px solid var(--green); }
+        .comp-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .comp-card.before .comp-label { color: var(--red); }
+        .comp-card.after .comp-label { color: var(--green); }
+        .comp-score {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -2px;
+            margin-bottom: 4px;
+        }
+        .comp-card.before .comp-score { color: var(--red); }
+        .comp-card.after .comp-score { color: var(--green); }
+        .comp-detail {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+        .comp-detail .missing { color: var(--red); }
+        .comp-detail .added { color: var(--green); }
+
+        /* Checks grid */
+        .checks-section { margin: 64px 0; }
+        .checks-section h2 {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+        .checks-section p {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            font-size: 15px;
+        }
+        .checks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 12px;
+        }
+        .check-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px;
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 10px;
-            padding: 20px;
             transition: border-color 0.2s;
         }
-        .feature:hover { border-color: var(--accent-dim); }
-        .feature-icon { font-size: 24px; margin-bottom: 12px; }
-        .feature h3 { font-size: 14px; margin-bottom: 6px; }
-        .feature p { font-size: 12px; color: var(--text-dim); }
+        .check-item:hover { border-color: var(--border-hover); }
+        .check-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .check-info h4 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+        .check-info p { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+        .check-tag {
+            display: inline-block;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .tag-critical { background: var(--red-dim); color: var(--red); }
+        .tag-high { background: var(--yellow-dim); color: var(--yellow); }
+        .tag-medium { background: var(--accent-bg); color: var(--accent); }
+
+        /* Stacks */
+        .stacks {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 48px 0;
+        }
+        .stack-pill {
+            padding: 8px 18px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        .stack-pill:hover {
+            border-color: var(--accent-border);
+            color: var(--accent-bright);
+            background: var(--accent-bg);
+        }
 
         /* CTA */
         .cta {
             text-align: center;
-            padding: 60px 0;
+            padding: 80px 0;
             border-top: 1px solid var(--border);
         }
-        .cta h2 { font-size: 24px; margin-bottom: 8px; }
-        .cta p { color: var(--text-dim); margin-bottom: 24px; font-size: 14px; }
+        .cta h2 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+        }
+        .cta p {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            font-size: 16px;
+        }
+        .cta-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
         .btn {
-            display: inline-block;
-            padding: 12px 32px;
-            background: var(--accent-dim);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 10px;
             font-weight: 600;
             font-size: 14px;
-            transition: background 0.2s;
+            text-decoration: none;
+            transition: all 0.2s;
         }
-        .btn:hover { background: var(--accent); color: var(--bg); }
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+        }
+        .btn-primary:hover { background: var(--accent-bright); }
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { border-color: var(--accent-border); }
 
         /* Footer */
         footer {
             text-align: center;
-            padding: 24px 0;
+            padding: 28px 0;
             color: var(--text-dim);
             font-size: 12px;
             border-top: 1px solid var(--border);
         }
         footer a { color: var(--accent); text-decoration: none; }
+
+        @media (max-width: 640px) {
+            .numbers { grid-template-columns: repeat(2, 1fr); }
+            .comparison { grid-template-columns: 1fr; }
+            .checks-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <section class="hero">
-            <div class="hero-badge">v0.1.0 — FREE & OPEN SOURCE</div>
-            <h1>Optimize any project<br>for <span>Claude Code</span></h1>
-            <p>One command. 972 verified techniques. Score your project 0-100 and auto-fix what's missing.</p>
+    <div class="bg-mesh"></div>
 
-            <div class="install">
-                <div class="install-cmd" onclick="navigator.clipboard.writeText('npx claudex-setup');this.style.borderColor='#4ade80'">
-                    <span class="dollar">$ </span>npx claudex-setup
+    <div class="container">
+        <nav>
+            <a href="/" class="nav-brand">claudex-setup</a>
+            <div class="nav-links">
+                <a href="https://github.com/DnaFin/claudex">GitHub</a>
+                <a href="https://www.npmjs.com/package/claudex-setup">npm</a>
+                <a href="https://dev.to/claudex">Blog</a>
+            </div>
+        </nav>
+
+        <section class="hero">
+            <div class="hero-eyebrow">
+                <span class="dot"></span>
+                v0.1.0 &mdash; Free &amp; Open Source
+            </div>
+            <h1>Your project is running<br>Claude Code at <em>10%</em></h1>
+            <p class="hero-sub">One command to find out what you're missing. Auto-fix everything. Built from 972 verified techniques.</p>
+
+            <div class="install-box mono" onclick="navigator.clipboard.writeText('npx claudex-setup');this.querySelector('.copy-icon').textContent='Copied!'">
+                <span class="prompt">$</span>
+                <span class="cmd">npx claudex-setup</span>
+                <span class="copy-icon">Copy</span>
+            </div>
+            <div class="install-hint">No install needed. Node.js 18+. Zero dependencies.</div>
+        </section>
+
+        <section class="numbers">
+            <div class="number-card">
+                <div class="val purple">972</div>
+                <div class="label">Techniques</div>
+            </div>
+            <div class="number-card">
+                <div class="val green">773</div>
+                <div class="label">Tested</div>
+            </div>
+            <div class="number-card">
+                <div class="val blue">12</div>
+                <div class="label">Audit Checks</div>
+            </div>
+            <div class="number-card">
+                <div class="val yellow">12</div>
+                <div class="label">Stacks</div>
+            </div>
+        </section>
+
+        <section class="comparison">
+            <div class="comp-card before">
+                <div class="comp-label">Before</div>
+                <div class="comp-score">10</div>
+                <div class="comp-detail">
+                    <span class="missing">&#10007;</span> No CLAUDE.md<br>
+                    <span class="missing">&#10007;</span> No hooks<br>
+                    <span class="missing">&#10007;</span> No commands<br>
+                    <span class="missing">&#10007;</span> No verification<br>
+                    <span class="missing">&#10007;</span> No architecture diagram
                 </div>
             </div>
-            <div class="install-hint">click to copy — works with any Node.js 18+ project</div>
-        </section>
-
-        <section class="stats">
-            <div class="stat">
-                <div class="stat-num">972</div>
-                <div class="stat-label">Verified Techniques</div>
-            </div>
-            <div class="stat">
-                <div class="stat-num">773</div>
-                <div class="stat-label">Tested with Evidence</div>
-            </div>
-            <div class="stat">
-                <div class="stat-num">12</div>
-                <div class="stat-label">Audit Checks</div>
-            </div>
-            <div class="stat">
-                <div class="stat-num">12</div>
-                <div class="stat-label">Stacks Detected</div>
+            <div class="comp-card after">
+                <div class="comp-label">After setup</div>
+                <div class="comp-score">71</div>
+                <div class="comp-detail">
+                    <span class="added">&#10003;</span> CLAUDE.md with build commands<br>
+                    <span class="added">&#10003;</span> Auto-lint hooks<br>
+                    <span class="added">&#10003;</span> /test, /review commands<br>
+                    <span class="added">&#10003;</span> Security reviewer agent<br>
+                    <span class="added">&#10003;</span> Stack-specific rules
+                </div>
             </div>
         </section>
 
-        <section class="terminal">
-            <div class="terminal-bar">
-                <div class="terminal-dot red"></div>
-                <div class="terminal-dot yellow"></div>
-                <div class="terminal-dot green"></div>
-            </div>
-            <div class="terminal-body">
+        <section class="terminal-section">
+            <h2>See it in action</h2>
+            <div class="terminal">
+                <div class="terminal-header">
+                    <div class="dots">
+                        <div class="dot dot-r"></div>
+                        <div class="dot dot-y"></div>
+                        <div class="dot dot-g"></div>
+                    </div>
+                    <div class="title mono">~/my-project</div>
+                    <div></div>
+                </div>
+                <div class="terminal-body mono">
 <span class="t-dim">$</span> <span class="t-green">npx claudex-setup</span>
 <br><br>
 <span class="t-bold">  claudex-setup audit</span>
-<br><span class="t-dim">  ═══════════════════════════════════════</span>
+<br><span class="t-dim">  ═════════════════════════════════════</span>
 <br><span class="t-blue">  Detected: React, TypeScript</span>
 <br><br>
 <span class="t-green">  ██████████████</span><span class="t-dim">░░░░░░</span> <span class="t-bold">71/100</span>
@@ -240,63 +509,121 @@
 <br><span class="t-dim">     CLAUDE.md project instructions</span>
 <br><span class="t-dim">     Hooks for automation</span>
 <br><span class="t-dim">     Custom slash commands</span>
-<br><span class="t-dim">     Custom skills</span>
 <br><span class="t-dim">     Path-specific rules</span>
 <br><br>
 <span class="t-red">  🔴 Critical</span>
-<br><span class="t-bold">     Mermaid architecture diagram</span>
-<br><span class="t-dim">     → Saves 73% tokens vs prose description</span>
-<br><br>
-<span class="t-yellow">  🟡 High Impact</span>
-<br><span class="t-bold">     XML tags for structured prompts</span>
-<br><span class="t-dim">     → Use &lt;constraints&gt;, &lt;validation&gt; for clarity</span>
+<br>     <span class="t-bold">Mermaid architecture diagram</span>
+<br><span class="t-dim">     → Saves 73% tokens vs prose</span>
 <br><br>
 <span class="t-dim">  ─────────────────────────────────────</span>
-<br>  Run <span class="t-bold">npx claudex-setup setup</span> to fix automatically
+<br>  Run <span class="t-green">npx claudex-setup setup</span> to fix
+                </div>
             </div>
         </section>
 
-        <section class="features">
-            <div class="feature">
-                <div class="feature-icon">🔍</div>
-                <h3>Smart Audit</h3>
-                <p>Scores your project against 12 critical best practices. Shows what's missing and why it matters.</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">⚡</div>
-                <h3>Auto Setup</h3>
-                <p>Creates CLAUDE.md, hooks, commands, skills, agents, and rules tailored to your stack.</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">🎯</div>
-                <h3>Stack Detection</h3>
-                <p>Detects React, Vue, Python, TypeScript, Rust, Go, Docker and 6 more. Tailors recommendations.</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">📊</div>
-                <h3>972 Techniques</h3>
-                <p>Built from CLAUDEX — the most comprehensive verified catalog of Claude Code capabilities.</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">🔒</div>
-                <h3>Zero Dependencies</h3>
-                <p>Pure Node.js. No API keys needed. No data sent anywhere. Runs entirely on your machine.</p>
-            </div>
-            <div class="feature">
-                <div class="feature-icon">🚀</div>
-                <h3>3-5x Productivity</h3>
-                <p>Proper CLAUDE.md + hooks + skills = dramatically better Claude Code output quality.</p>
+        <section class="checks-section">
+            <h2>What gets checked</h2>
+            <p>12 critical best practices from the CLAUDEX research catalog.</p>
+            <div class="checks-grid">
+                <div class="check-item">
+                    <span class="check-icon">📋</span>
+                    <div class="check-info">
+                        <h4>CLAUDE.md <span class="check-tag tag-critical">Critical</span></h4>
+                        <p>Project instructions Claude reads every session</p>
+                    </div>
+                </div>
+                <div class="check-item">
+                    <span class="check-icon">✅</span>
+                    <div class="check-info">
+                        <h4>Verification <span class="check-tag tag-critical">Critical</span></h4>
+                        <p>Test/lint commands so Claude checks its own work</p>
+                    </div>
+                </div>
+                <div class="check-item">
+                    <span class="check-icon">⚡</span>
+                    <div class="check-info">
+                        <h4>Hooks <span class="check-tag tag-high">High</span></h4>
+                        <p>Auto-lint, auto-test on every file edit</p>
+                    </div>
+                </div>
+                <div class="check-item">
+                    <span class="check-icon">🔷</span>
+                    <div class="check-info">
+                        <h4>Mermaid Diagram <span class="check-tag tag-high">High</span></h4>
+                        <p>Architecture visualization. 73% token savings</p>
+                    </div>
+                </div>
+                <div class="check-item">
+                    <span class="check-icon">🏷️</span>
+                    <div class="check-info">
+                        <h4>XML Tags <span class="check-tag tag-high">High</span></h4>
+                        <p>Structured prompts. 30% quality boost</p>
+                    </div>
+                </div>
+                <div class="check-item">
+                    <span class="check-icon">⌘</span>
+                    <div class="check-info">
+                        <h4>Commands <span class="check-tag tag-high">High</span></h4>
+                        <p>Custom /test, /deploy, /review workflows</p>
+                    </div>
+                </div>
+                <div class="check-item">
+                    <span class="check-icon">🛡️</span>
+                    <div class="check-info">
+                        <h4>Agents <span class="check-tag tag-medium">Medium</span></h4>
+                        <p>Security reviewer, test writer subagents</p>
+                    </div>
+                </div>
+                <div class="check-item">
+                    <span class="check-icon">📐</span>
+                    <div class="check-info">
+                        <h4>Rules <span class="check-tag tag-medium">Medium</span></h4>
+                        <p>Path-specific conventions per file type</p>
+                    </div>
+                </div>
+                <div class="check-item">
+                    <span class="check-icon">🧩</span>
+                    <div class="check-info">
+                        <h4>Skills <span class="check-tag tag-medium">Medium</span></h4>
+                        <p>On-demand domain knowledge</p>
+                    </div>
+                </div>
             </div>
         </section>
+
+        <div style="text-align:center">
+            <h2 style="font-size:14px;text-transform:uppercase;letter-spacing:2px;color:var(--text-dim);margin-bottom:16px;font-weight:500">Auto-detects your stack</h2>
+            <div class="stacks">
+                <span class="stack-pill">React</span>
+                <span class="stack-pill">Vue</span>
+                <span class="stack-pill">Angular</span>
+                <span class="stack-pill">Next.js</span>
+                <span class="stack-pill">Python</span>
+                <span class="stack-pill">Django</span>
+                <span class="stack-pill">FastAPI</span>
+                <span class="stack-pill">Node.js</span>
+                <span class="stack-pill">TypeScript</span>
+                <span class="stack-pill">Rust</span>
+                <span class="stack-pill">Go</span>
+                <span class="stack-pill">Docker</span>
+            </div>
+        </div>
 
         <section class="cta">
-            <h2>Ready to optimize?</h2>
-            <p>Takes 10 seconds. No signup required.</p>
-            <a href="https://github.com/DnaFin/claudex" class="btn">View on GitHub</a>
+            <h2>10 seconds to a better setup</h2>
+            <p>No signup. No API keys. Runs entirely on your machine.</p>
+            <div class="cta-buttons">
+                <a href="https://github.com/DnaFin/claudex" class="btn btn-primary">
+                    View on GitHub
+                </a>
+                <a href="https://www.npmjs.com/package/claudex-setup" class="btn btn-secondary">
+                    npm package
+                </a>
+            </div>
         </section>
 
         <footer>
-            Built with <a href="https://github.com/DnaFin/claudex">CLAUDEX</a> — 972 verified Claude Code techniques
+            Built from <a href="https://github.com/DnaFin/claudex">CLAUDEX</a> &mdash; 972 verified Claude Code techniques, 773 tested with evidence.
         </footer>
     </div>
 </body>
