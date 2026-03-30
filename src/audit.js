@@ -124,7 +124,7 @@ async function audit(options) {
   }
 
   console.log('');
-  console.log(colorize('  Powered by CLAUDEX - 972 verified Claude Code techniques', 'dim'));
+  console.log(colorize('  Powered by CLAUDEX - 1,107 verified Claude Code techniques', 'dim'));
   console.log(colorize('  https://github.com/naorp/claudex-setup', 'dim'));
   console.log('');
 

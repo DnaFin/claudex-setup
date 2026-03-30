@@ -11,28 +11,89 @@ const { audit } = require('./audit');
 const TEMPLATES = {
   'claude-md': (stacks) => {
     const stackNames = stacks.map(s => s.label).join(', ') || 'General';
+    const stackKeys = stacks.map(s => s.key);
+    const hasJS = stackKeys.some(k => ['typescript', 'react', 'vue', 'angular', 'nextjs', 'node'].includes(k));
+    const hasPython = stackKeys.includes('python');
+
+    let buildCommands = '# Add your build command\n# Add your test command\n# Add your lint command';
+    if (hasJS) {
+      buildCommands = `npm run build        # or: npx tsc --noEmit
+npm test             # or: npx jest / npx vitest
+npm run lint         # or: npx eslint .`;
+    } else if (hasPython) {
+      buildCommands = `python -m pytest     # run tests
+python -m mypy .     # type checking
+ruff check .         # lint`;
+    }
+
+    let stackSection = '';
+    if (hasJS) {
+      stackSection = `
+## Stack-Specific
+- Prefer functional components with hooks (React)
+- Use TypeScript interfaces over \`type\` where possible
+- Use \`async/await\` over raw Promises
+- Import order: stdlib > external > internal > relative
+`;
+    } else if (hasPython) {
+      stackSection = `
+## Stack-Specific
+- Use type hints on all function signatures
+- Follow PEP 8 conventions; use f-strings for formatting
+- Prefer pathlib over os.path
+- Use dataclasses or pydantic for structured data
+`;
+    }
+
     return `# Project Instructions
 
 ## Architecture
-<!-- Add a Mermaid diagram of your project structure -->
+\`\`\`mermaid
+graph TD
+    A[Entry Point] --> B[Core Logic]
+    B --> C[Data Layer]
+    B --> D[API / Routes]
+    C --> E[(Database)]
+    D --> F[External Services]
+\`\`\`
+<!-- Replace with your actual project architecture -->
 
 ## Stack
 ${stackNames}
-
+${stackSection}
 ## Build & Test
 \`\`\`bash
-# Add your build command
-# Add your test command
-# Add your lint command
+${buildCommands}
 \`\`\`
 
 ## Code Style
 - Follow existing patterns in the codebase
 - Write tests for new features
+- Keep functions small and focused (< 50 lines)
+- Use descriptive variable names; avoid abbreviations
+
+## Constraints
+<constraints>
+- Never commit secrets, API keys, or .env files
+- Always run tests before marking work complete
+- Prefer editing existing files over creating new ones
+- When uncertain about architecture, ask before implementing
+</constraints>
+
+## Verification
+<verification>
+Before completing any task, confirm:
+1. All existing tests still pass
+2. New code has test coverage
+3. No linting errors introduced
+4. Changes match the requested scope (no gold-plating)
+</verification>
 
 ## Workflow
 - Verify changes with tests before committing
-- Use descriptive commit messages
+- Use descriptive commit messages (why, not what)
+- Create focused PRs — one concern per PR
+- Document non-obvious decisions in code comments
 `;
   },
 
@@ -42,6 +103,28 @@ ${stackNames}
 # Customize the linter command for your project
 TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
 echo "[$TIMESTAMP] File changed: $(cat -)" >> .claude/logs/changes.txt
+`,
+    'protect-secrets.sh': `#!/bin/bash
+# PreToolUse hook - warn before touching sensitive files
+# Prevents accidental reads/writes to files containing secrets
+
+INPUT=$(cat -)
+FILE=$(echo "$INPUT" | grep -oP '"file_path"\\s*:\\s*"\\K[^"]+' 2>/dev/null || echo "")
+
+if [ -z "$FILE" ]; then
+  exit 0
+fi
+
+BASENAME=$(basename "$FILE")
+
+case "$BASENAME" in
+  .env|.env.*|*.pem|*.key|credentials.json|secrets.yaml|secrets.yml)
+    echo "WARN: Attempting to access sensitive file: $BASENAME"
+    echo "This file may contain secrets. Proceed with caution."
+    ;;
+esac
+
+exit 0
 `,
   }),
 
@@ -59,6 +142,22 @@ echo "[$TIMESTAMP] File changed: $(cat -)" >> .claude/logs/changes.txt
 1. Run \`git diff\` to see all changes
 2. Check for: bugs, security issues, missing tests, code style
 3. Provide actionable feedback
+`,
+    'deploy.md': `Pre-deployment checklist and deployment steps.
+
+## Pre-deploy checks:
+1. Run \`git status\` — working tree must be clean
+2. Run full test suite — all tests must pass
+3. Run linter — no errors allowed
+4. Check for TODO/FIXME/HACK comments in changed files
+5. Verify no secrets in staged changes (\`git diff --cached\`)
+
+## Deploy steps:
+1. Confirm target environment (staging vs production)
+2. Review the diff since last deploy tag
+3. Run the deployment command
+4. Verify deployment succeeded (health check / smoke test)
+5. Tag the release: \`git tag -a vX.Y.Z -m "Release vX.Y.Z"\`
 `,
   }),
 
@@ -83,19 +182,33 @@ Fix the GitHub issue: $ARGUMENTS
     const hasPython = stacks.some(s => s.key === 'python');
 
     if (hasTS || stacks.some(s => ['react', 'vue', 'angular', 'nextjs', 'node'].includes(s.key))) {
-      rules['frontend.md'] = `When editing frontend files (*.tsx, *.jsx, *.vue):
-- Use functional components with hooks
-- Follow existing component patterns
-- Add prop types or TypeScript interfaces
+      rules['frontend.md'] = `When editing JavaScript/TypeScript files (*.ts, *.tsx, *.js, *.jsx, *.vue):
+- Use functional components with hooks (React/Vue 3)
+- Add TypeScript interfaces for all props and function params
+- Prefer \`const\` over \`let\`; never use \`var\`
+- Use named exports over default exports
+- Handle errors explicitly — no empty catch blocks
+- Keep component files under 200 lines; extract sub-components
 `;
     }
     if (hasPython) {
-      rules['python.md'] = `When editing Python files:
-- Use type hints for function signatures
-- Follow PEP 8 conventions
-- Use f-strings for formatting
+      rules['python.md'] = `When editing Python files (*.py):
+- Use type hints for all function signatures and return types
+- Follow PEP 8 conventions; max line length 88 (black default)
+- Use f-strings for string formatting
+- Prefer pathlib.Path over os.path
+- Use \`if __name__ == "__main__":\` guard in scripts
+- Raise specific exceptions, never bare \`except:\`
 `;
     }
+    rules['tests.md'] = `When writing or editing test files:
+- Each test must have a clear, descriptive name (test_should_X_when_Y)
+- Follow Arrange-Act-Assert (AAA) pattern
+- One assertion per test when practical
+- Never skip or disable tests without a tracking issue
+- Mock external dependencies, not internal logic
+- Include both happy path and edge case tests
+`;
     return rules;
   },
 
@@ -113,6 +226,16 @@ Review code for security issues:
 - Insecure data handling
 `,
   }),
+
+  'mermaid': () => `\`\`\`mermaid
+graph TD
+    A[Entry Point] --> B[Core Logic]
+    B --> C[Data Layer]
+    B --> D[API / Routes]
+    C --> E[(Database)]
+    D --> F[External Services]
+\`\`\`
+`,
 };
 
 async function setup(options) {

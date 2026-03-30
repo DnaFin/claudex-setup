@@ -1,7 +1,7 @@
 {
   "name": "claudex-setup",
-  "version": "0.1.0",
-  "description": "Audit and optimize any project for Claude Code. Powered by 972 verified techniques.",
+  "version": "0.2.0",
+  "description": "Audit and optimize any project for Claude Code. Powered by 1107 verified techniques.",
   "main": "src/index.js",
   "bin": {
     "claudex-setup": "bin/cli.js"
