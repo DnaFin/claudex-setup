@@ -1,0 +1,29 @@
+{
+  "project": "claudex-setup",
+  "launched": "2026-03-30",
+  "version": "0.1.0",
+  "metrics": {
+    "npm_downloads_total": 0,
+    "github_stars": 0,
+    "devto_views": 0,
+    "devto_reactions": 0,
+    "newsletter_subs": 0,
+    "revenue": 0
+  },
+  "platforms": {
+    "npm": "live",
+    "github": "live",
+    "devto": "live",
+    "landing_page": "live",
+    "n8n_workflow": "active",
+    "reddit": "pending_api_approval",
+    "hackernews": "pending_account_maturity"
+  },
+  "content": {
+    "devto_articles_published": 1,
+    "reddit_posts": 1,
+    "launch_posts_ready": 5
+  },
+  "last_session": "2026-03-30",
+  "sessions_total": 1
+}
