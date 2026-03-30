@@ -6,6 +6,12 @@
   "bin": {
     "claudex-setup": "bin/cli.js"
   },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "start": "node bin/cli.js",
     "test": "node test/run.js"
@@ -25,7 +31,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DnaFin/claudex"
+    "url": "git+https://github.com/DnaFin/claudex.git"
   },
   "engines": {
     "node": ">=18.0.0"

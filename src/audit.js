@@ -162,7 +162,7 @@ async function audit(options) {
   console.log(`  Add to README: ${getBadgeMarkdown(score)}`);
   console.log('');
   console.log(colorize('  Powered by CLAUDEX - 1,107 verified Claude Code techniques', 'dim'));
-  console.log(colorize('  https://github.com/naorp/claudex-setup', 'dim'));
+  console.log(colorize('  https://github.com/DnaFin/claudex', 'dim'));
   console.log('');
 
   return { score, passed: passed.length, failed: failed.length, stacks, results };
