@@ -29,17 +29,17 @@ function progressBar(score, max = 100, width = 20) {
   return colorize('█'.repeat(filled), color) + colorize('░'.repeat(empty), 'dim');
 }
 
-const EFFORT_ORDER = { critical: 0, high: 1, medium: 2 };
+const IMPACT_ORDER = { critical: 3, high: 2, medium: 1, low: 0 };
 
 function getQuickWins(failed) {
-  // Quick wins = medium impact items first (easiest), then high, sorted by name length (shorter = simpler)
-  return [...failed]
+  const prioritized = failed.filter(r => !(r.category === 'hygiene' && r.impact === 'low'));
+  const pool = prioritized.length > 0 ? prioritized : failed;
+
+  return [...pool]
     .sort((a, b) => {
-      const effortA = EFFORT_ORDER[a.impact] ?? 3;
-      const effortB = EFFORT_ORDER[b.impact] ?? 3;
-      // Prefer medium (easiest to fix), then high, then critical
-      if (effortA !== effortB) return effortB - effortA;
-      // Tie-break by fix length (shorter fix description = likely simpler)
+      const impactA = IMPACT_ORDER[a.impact] ?? 0;
+      const impactB = IMPACT_ORDER[b.impact] ?? 0;
+      if (impactA !== impactB) return impactB - impactA;
       return (a.fix || '').length - (b.fix || '').length;
     })
     .slice(0, 3);
@@ -90,10 +90,23 @@ async function audit(options) {
   const scaffoldedPassed = passed.filter(r => scaffoldedKeys.has(r.key));
   const organicEarned = organicPassed.reduce((sum, r) => sum + (weights[r.impact] || 5), 0);
   const organicScore = maxScore > 0 ? Math.round((organicEarned / maxScore) * 100) : 0;
+  const quickWins = getQuickWins(failed);
+  const result = {
+    score,
+    organicScore,
+    isScaffolded,
+    passed: passed.length,
+    failed: failed.length,
+    skipped: skipped.length,
+    checkCount: applicable.length,
+    stacks,
+    results,
+    quickWins: quickWins.map(({ key, name, impact, fix, category }) => ({ key, name, impact, category, fix })),
+  };
 
   // Silent mode: skip all output, just return result
   if (silent) {
-    return { score, passed: passed.length, failed: failed.length, stacks, results };
+    return result;
   }
 
   if (options.json) {
@@ -101,15 +114,9 @@ async function audit(options) {
     console.log(JSON.stringify({
       version,
       timestamp: new Date().toISOString(),
-      score,
-      stacks,
-      passed: passed.length,
-      failed: failed.length,
-      skipped: skipped.length,
-      checkCount: applicable.length,
-      results
+      ...result
     }, null, 2));
-    return { score, passed: passed.length, failed: failed.length, stacks, results };
+    return result;
   }
 
   // Display results
@@ -173,8 +180,7 @@ async function audit(options) {
 
   // Quick wins
   if (failed.length > 0) {
-    const quickWins = getQuickWins(failed);
-    console.log(colorize('  ⚡ Quick wins (easiest fixes first)', 'magenta'));
+    console.log(colorize('  ⚡ Best next fixes', 'magenta'));
     for (let i = 0; i < quickWins.length; i++) {
       const r = quickWins[i];
       console.log(`     ${i + 1}. ${colorize(r.name, 'bold')}`);
@@ -211,7 +217,6 @@ async function audit(options) {
   console.log('');
 
   // Send anonymous insights (opt-in, privacy-first, fire-and-forget)
-  const result = { score, passed: passed.length, failed: failed.length, stacks, results };
   sendInsights(result);
 
   return result;

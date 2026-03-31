@@ -41,8 +41,8 @@ async function interactive(options) {
   for (const [key, technique] of Object.entries(TECHNIQUES)) {
     results.push({ key, ...technique, passed: technique.check(ctx) });
   }
-  const failed = results.filter(r => !r.passed);
-  const passed = results.filter(r => r.passed);
+  const failed = results.filter(r => r.passed === false);
+  const passed = results.filter(r => r.passed === true);
 
   console.log(`  ${c(`${passed.length}/${results.length}`, 'bold')} checks already passing.`);
   console.log(`  ${c(String(failed.length), 'yellow')} improvements available.`);

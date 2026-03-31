@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>claudex-setup — Optimize any project for Claude Code</title>
-    <meta name="description" content="One command to audit and optimize your project for Claude Code. Backed by systematic research across 1,107 cataloged Claude Code entries.">
-    <meta property="og:title" content="claudex-setup — Your Claude Code project scores 10/100">
-    <meta property="og:description" content="Score your project 0-100 and auto-fix with one command. Backed by systematic research across 1,107 cataloged Claude Code entries.">
+    <title>claudex-setup — Discover, plan, govern, and benchmark Claude Code setup</title>
+    <meta name="description" content="Audit your repo for Claude Code readiness, export proposal bundles, apply safe starter changes with rollback, and benchmark impact in an isolated temp copy.">
+    <meta property="og:title" content="claudex-setup — Discover, plan, and benchmark Claude Code setup">
+    <meta property="og:description" content="Score your project 0-100, export proposal bundles, apply safe starter changes, and benchmark impact without touching your live repo.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://dnafin.github.io/claudex-setup/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -175,17 +175,17 @@
         <section class="hero">
             <div class="hero-eyebrow">
                 <span class="dot"></span>
-                v1.6.0 &mdash; Free &amp; Open Source
+                v1.7.0 &mdash; Free &amp; Open Source
             </div>
             <h1>Is your project ready<br>for <em>Claude Code</em>?</h1>
-            <p class="hero-sub">One command scores your project 0-100 for Claude Code optimization. Smart auto-fix generates framework-aware CLAUDE.md, hooks, and commands. Never overwrites your existing config.</p>
+            <p class="hero-sub">Audit your repo, export proposal bundles, apply safe starter changes with rollback, and benchmark impact in an isolated temp copy. Existing config is preserved by default.</p>
 
             <div class="install-box mono" onclick="navigator.clipboard.writeText('npx claudex-setup');this.querySelector('.copy-icon').textContent='Copied!'">
                 <span class="prompt">$</span>
                 <span class="cmd">npx claudex-setup</span>
                 <span class="copy-icon">Copy</span>
             </div>
-            <div class="install-hint">No install needed. Node.js 18+. Zero dependencies. 100% local &mdash; no data sent.</div>
+            <div class="install-hint">No install needed. Node.js 18+. Zero dependencies. 100% local &mdash; benchmark runs on an isolated temp copy.</div>
         </section>
 
         <section class="numbers">
@@ -197,25 +197,25 @@
 
         <section class="how-section">
             <h2>How it works</h2>
-            <p>Three steps to a fully optimized Claude Code project.</p>
+            <p>Three steps to a safer Claude Code rollout.</p>
             <div class="steps">
                 <div class="step">
                     <div class="step-num">1</div>
-                    <h3>Audit</h3>
-                    <p>Scans your project against 63 best practices. Detects your framework, TypeScript, Docker, and more.</p>
+                    <h3>Discover</h3>
+                    <p>Scan the repo, score readiness, and see the highest-value next actions before changing anything.</p>
                     <code>npx claudex-setup</code>
                 </div>
                 <div class="step">
                     <div class="step-num">2</div>
-                    <h3>Setup</h3>
-                    <p>Generates smart CLAUDE.md with Mermaid diagrams, hooks, commands, agents, and rules &mdash; all tailored to your stack.</p>
-                    <code>npx claudex-setup setup</code>
+                    <h3>Plan</h3>
+                    <p>Export proposal bundles with file previews, rationale, risk labels, and create vs manual-review classification.</p>
+                    <code>npx claudex-setup plan</code>
                 </div>
                 <div class="step">
                     <div class="step-num">3</div>
-                    <h3>Watch</h3>
-                    <p>Monitors your project live. Re-audits on every change and shows score delta in real time.</p>
-                    <code>npx claudex-setup watch</code>
+                    <h3>Apply</h3>
+                    <p>Apply only the proposal bundles you want and get rollback + activity artifacts for every write batch.</p>
+                    <code>npx claudex-setup apply</code>
                 </div>
             </div>
         </section>
@@ -288,18 +288,28 @@
         </section>
 
         <section class="features-section">
-            <h2>Seven modes. One tool.</h2>
-            <p>Every way you might want to optimize your Claude Code experience.</p>
+            <h2>Discover, start, and augment safely.</h2>
+            <p>Use the mode that fits your repo maturity instead of forcing one workflow on every project.</p>
             <div class="features-grid">
                 <div class="feature-card">
                     <h3>🔍 Audit</h3>
-                    <p>Score 0-100 against 63 checks. Detects framework, TypeScript, Docker. Shows critical, high, and quick wins.</p>
+                    <p>Score 0-100 against 63 checks. Detects framework, TypeScript, Docker. Shows critical issues, high-impact fixes, and best next actions.</p>
                     <code>npx claudex-setup</code>
                 </div>
                 <div class="feature-card">
+                    <h3>🧩 Proposal Bundles</h3>
+                    <p>Export plan files with rationale, file previews, diff-style output, and create vs manual-review classification.</p>
+                    <code>npx claudex-setup plan</code>
+                </div>
+                <div class="feature-card">
                     <h3>🛠️ Smart Setup</h3>
-                    <p>Generates CLAUDE.md that detects your scripts, creates Mermaid diagrams from your directory structure, adds framework-specific rules.</p>
+                    <p>Generates CLAUDE.md from your scripts and stack, reads pyproject.toml for Python projects, creates Mermaid diagrams, and adds safer defaults.</p>
                     <code>npx claudex-setup setup</code>
+                </div>
+                <div class="feature-card">
+                    <h3>✅ Selective Apply</h3>
+                    <p>Apply only the ready proposal bundles you want. Every batch emits rollback and activity artifacts under <code>.claude/claudex-setup/</code>.</p>
+                    <code>npx claudex-setup apply</code>
                 </div>
                 <div class="feature-card">
                     <h3>🧙 Interactive Wizard</h3>
@@ -320,6 +330,16 @@
                     <h3>🧠 Deep Review</h3>
                     <p>Claude reads your actual config and gives intelligent, specific feedback. Not pattern matching &mdash; real AI analysis. Requires API key.</p>
                     <code>npx claudex-setup deep-review</code>
+                </div>
+                <div class="feature-card">
+                    <h3>🛡️ Governance</h3>
+                    <p>Permission profiles, hook registry, policy packs, and a pilot rollout kit for security-conscious teams.</p>
+                    <code>npx claudex-setup governance</code>
+                </div>
+                <div class="feature-card">
+                    <h3>📈 Benchmark</h3>
+                    <p>Measure before/after impact in an isolated temp copy and export a markdown or JSON report.</p>
+                    <code>npx claudex-setup benchmark</code>
                 </div>
                 <div class="feature-card">
                     <h3>🔄 CI Action</h3>
@@ -351,7 +371,7 @@
                 </div>
                 <div class="smart-card">
                     <h4>XML constraint blocks</h4>
-                    <p>Adds &lt;constraints&gt; and &lt;verification&gt; blocks with context-aware rules. 30% quality improvement.</p>
+                    <p>Adds &lt;constraints&gt; and &lt;verification&gt; blocks with context-aware rules.</p>
                 </div>
                 <div class="smart-card">
                     <h4>Verification criteria</h4>
@@ -361,7 +381,7 @@
         </section>
 
         <section class="checks-section">
-            <h2>63 checks across 13 categories</h2>
+            <h2>63 checks across 14 categories</h2>
             <p>Every check is backed by tested research from the CLAUDEX catalog.</p>
             <div class="checks-grid">
                 <div class="check-item"><span class="check-icon">📋</span><div class="check-info"><h4>CLAUDE.md <span class="check-tag tag-critical">Critical</span></h4><p>Project instructions Claude reads every session</p></div></div>
@@ -416,7 +436,7 @@
                 </details>
                 <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
                     <summary style="font-weight:600;cursor:pointer;color:var(--text);font-size:15px">What's the real impact on productivity?</summary>
-                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7">Based on our research: Mermaid diagrams are more token-efficient than prose descriptions (per Anthropic docs). Hooks enforce rules at 100% (vs ~80% for CLAUDE.md instructions alone). Verification loops are Anthropic's #1 recommended best practice. The impact depends on your project and workflow.</p>
+                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7">Use <code>benchmark</code> for the real answer on your repo. It runs a baseline audit, applies starter-safe changes in an isolated temp copy, and reports before/after deltas plus a case-study style summary.</p>
                 </details>
                 <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
                     <summary style="font-weight:600;cursor:pointer;color:var(--text);font-size:15px">Does it work with Cursor, Codex, or other AI tools?</summary>
@@ -471,7 +491,7 @@
                 <a href="https://github.com/DnaFin/claudex-setup/blob/main/LICENSE">MIT License</a>
                 <a href="https://github.com/DnaFin/claudex-setup/blob/main/CONTRIBUTING.md">Contribute</a>
             </div>
-            v0.3.0 &mdash; Backed by CLAUDEX &mdash; 1,107 cataloged Claude Code entries, 954 verified with evidence.
+            v1.7.0 &mdash; Backed by CLAUDEX &mdash; 1,107 cataloged Claude Code entries, 954 verified with evidence.
         </footer>
     </div>
 </body>

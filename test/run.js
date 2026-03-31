@@ -1,10 +1,15 @@
 const assert = require('assert');
+const { spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
 const { audit } = require('../src/audit');
 const { setup } = require('../src/setup');
+const { analyzeProject } = require('../src/analyze');
+const { buildProposalBundle, applyProposalBundle } = require('../src/plans');
+const { getGovernanceSummary } = require('../src/governance');
+const { runBenchmark } = require('../src/benchmark');
 const { TECHNIQUES, STACKS } = require('../src/techniques');
 const { ProjectContext } = require('../src/context');
 const { getBadgeUrl, getBadgeMarkdown } = require('../src/badge');
@@ -17,6 +22,13 @@ function writeJson(dir, file, value) {
 function mkFixture(name) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), `claudex-test-${name}-`));
   return dir;
+}
+
+function runCli(args, cwd) {
+  return spawnSync(process.execPath, [path.join(__dirname, '..', 'bin', 'cli.js'), ...args], {
+    cwd,
+    encoding: 'utf8',
+  });
 }
 
 let passed = 0;
@@ -99,6 +111,17 @@ async function main() {
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
+  await testAsync('Python project skips node_modules hygiene check', async () => {
+    const dir = mkFixture('python-node-modules');
+    try {
+      fs.writeFileSync(path.join(dir, 'requirements.txt'), 'fastapi\npytest\n');
+      fs.writeFileSync(path.join(dir, '.gitignore'), '.env\n');
+      const result = await audit({ dir, silent: true });
+      const nodeModulesCheck = result.results.find(r => r.key === 'gitIgnoreNodeModules');
+      assert.equal(nodeModulesCheck.passed, null, 'node_modules check should be skipped for non-Node projects');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
   // ============================================================
   // Unit tests: Next.js project
   // ============================================================
@@ -148,6 +171,37 @@ async function main() {
       await setup({ dir, auto: true });
       const deploy = fs.readFileSync(path.join(dir, '.claude/commands/deploy.md'), 'utf8');
       assert.ok(deploy.includes('Next.js') || deploy.includes('Vercel') || deploy.includes('next'), 'Deploy should be Next.js-specific');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Setup uses pyproject.toml metadata when package.json is absent', async () => {
+    const dir = mkFixture('pyproject-meta');
+    try {
+      fs.writeFileSync(path.join(dir, 'pyproject.toml'), [
+        '[project]',
+        'name = "ai-copilot"',
+        'description = "Python workflow assistant"',
+        ''
+      ].join('\n'));
+      fs.writeFileSync(path.join(dir, 'requirements.txt'), 'fastapi\npytest\n');
+      fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
+      await setup({ dir, auto: true });
+      const md = fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8');
+      assert.ok(md.startsWith('# ai-copilot — Python workflow assistant'), 'Should use pyproject metadata for heading');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Next.js App Router Mermaid diagram does not contain undefined edges', async () => {
+    const dir = mkFixture('next-mermaid');
+    try {
+      writeJson(dir, 'package.json', { name: 'app', dependencies: { next: '16', react: '19' } });
+      fs.writeFileSync(path.join(dir, 'next.config.js'), 'module.exports = {}');
+      fs.mkdirSync(path.join(dir, 'app', 'api'), { recursive: true });
+      fs.mkdirSync(path.join(dir, 'components'), { recursive: true });
+      fs.mkdirSync(path.join(dir, 'tests'), { recursive: true });
+      await setup({ dir, auto: true });
+      const md = fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8');
+      assert.ok(!md.includes('undefined'), 'Mermaid diagram should not contain undefined node references');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
@@ -229,6 +283,191 @@ async function main() {
       const md = fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8');
       assert.ok(md.includes('claudex-setup'), 'Should reference claudex-setup');
       assert.ok(md.includes('hand-crafted') || md.includes('Customize'), 'Should have honesty disclaimer');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Audit result includes organic score and quick wins', async () => {
+    const dir = mkFixture('audit-shape');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const result = await audit({ dir, silent: true });
+      assert.equal(typeof result.organicScore, 'number', 'organicScore should be included');
+      assert.ok(Array.isArray(result.quickWins), 'quickWins should be included');
+      assert.equal(typeof result.checkCount, 'number', 'checkCount should be included');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  // ============================================================
+  // Analysis / mode tests
+  // ============================================================
+  console.log('\n  --- Analysis ---');
+
+  await testAsync('Augment analysis returns structured report', async () => {
+    const dir = mkFixture('augment-report');
+    try {
+      writeJson(dir, 'package.json', { name: 'app', scripts: { test: 'jest' }, dependencies: { next: '16', react: '19' } });
+      fs.writeFileSync(path.join(dir, '.gitignore'), '.env\nnode_modules\n');
+      fs.writeFileSync(path.join(dir, 'next.config.js'), 'module.exports = {}');
+      fs.mkdirSync(path.join(dir, 'app', 'api'), { recursive: true });
+      const report = await analyzeProject({ dir, mode: 'augment' });
+      assert.equal(report.mode, 'augment');
+      assert.equal(report.writeBehavior, 'No files are written in this mode.');
+      assert.ok(report.projectSummary);
+      assert.ok(Array.isArray(report.topNextActions));
+      assert.ok(Array.isArray(report.recommendedImprovements));
+      assert.ok(Array.isArray(report.suggestedRolloutOrder));
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Proposal bundle includes templated changes with file previews', async () => {
+    const dir = mkFixture('plan-bundle');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const bundle = await buildProposalBundle({ dir });
+      assert.ok(bundle.proposals.length > 0, 'Expected at least one proposal bundle');
+      const claudeMdProposal = bundle.proposals.find(item => item.id === 'claude-md');
+      assert.ok(claudeMdProposal, 'Expected a CLAUDE.md proposal');
+      assert.ok(claudeMdProposal.files.some(file => file.path === 'CLAUDE.md'), 'CLAUDE.md proposal should preview the generated file');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Apply proposal bundle creates rollback and activity artifacts', async () => {
+    const dir = mkFixture('apply-bundle');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const result = await applyProposalBundle({ dir, only: ['claude-md', 'hooks'], dryRun: false });
+      assert.ok(result.createdFiles.includes('CLAUDE.md'), 'Should create CLAUDE.md');
+      assert.ok(result.rollbackArtifact, 'Should emit rollback artifact');
+      assert.ok(result.activityArtifact, 'Should emit activity artifact');
+      assert.ok(fs.existsSync(path.join(dir, result.rollbackArtifact)), 'Rollback artifact should exist on disk');
+      assert.ok(fs.existsSync(path.join(dir, result.activityArtifact)), 'Activity artifact should exist on disk');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('Governance summary exposes profiles and hook registry', () => {
+    const summary = getGovernanceSummary();
+    assert.ok(Array.isArray(summary.permissionProfiles), 'permissionProfiles should be an array');
+    assert.ok(summary.permissionProfiles.some(item => item.key === 'safe-write'), 'Should include safe-write profile');
+    assert.ok(Array.isArray(summary.hookRegistry), 'hookRegistry should be an array');
+    assert.ok(summary.hookRegistry.some(item => item.key === 'protect-secrets'), 'Should include protect-secrets hook');
+  });
+
+  await testAsync('Benchmark runs on isolated copy without modifying original repo', async () => {
+    const dir = mkFixture('benchmark');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const report = await runBenchmark({ dir });
+      assert.equal(typeof report.delta.score, 'number', 'Benchmark should report score delta');
+      assert.ok(report.after.score >= report.before.score, 'Benchmark should not regress readiness on starter apply');
+      assert.ok(!fs.existsSync(path.join(dir, '.claude')), 'Original repo should remain untouched');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  // ============================================================
+  // CLI tests
+  // ============================================================
+  console.log('\n  --- CLI ---');
+
+  test('CLI rejects unknown commands with suggestion', () => {
+    const result = runCli(['setpu'], path.join(__dirname, '..'));
+    assert.notEqual(result.status, 0, 'Unknown command should fail');
+    assert.ok(result.stderr.includes("Unknown command 'setpu'"), 'Should explain the unknown command');
+    assert.ok(result.stderr.includes("Did you mean 'setup'?"), 'Should suggest the closest command');
+  });
+
+  test('CLI threshold fails when score is too low', () => {
+    const dir = mkFixture('cli-threshold-low');
+    try {
+      const result = runCli(['--threshold', '50'], dir);
+      assert.equal(result.status, 1, 'Threshold failure should exit with code 1');
+      assert.ok(result.stderr.includes('Threshold failed'), 'Should report threshold failure');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI threshold passes after setup improves score', () => {
+    const dir = mkFixture('cli-threshold-pass');
+    try {
+      writeJson(dir, 'package.json', { name: 'app', scripts: { test: 'jest', lint: 'eslint .' } });
+      fs.writeFileSync(path.join(dir, '.gitignore'), '.env\nnode_modules\n');
+      fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
+      const setupResult = runCli(['setup', '--auto'], dir);
+      assert.equal(setupResult.status, 0, 'Setup should succeed');
+      const auditResult = runCli(['--threshold', '40'], dir);
+      assert.equal(auditResult.status, 0, 'Threshold should pass after setup');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI suggest-only returns JSON report', () => {
+    const dir = mkFixture('cli-suggest-json');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const result = runCli(['suggest-only', '--json'], dir);
+      assert.equal(result.status, 0, 'suggest-only --json should succeed');
+      const payload = JSON.parse(result.stdout);
+      assert.equal(payload.mode, 'suggest-only');
+      assert.ok(payload.projectSummary, 'JSON report should include projectSummary');
+      assert.ok(Array.isArray(payload.topNextActions), 'JSON report should include topNextActions');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI discover alias still works', () => {
+    const dir = mkFixture('cli-discover');
+    try {
+      const result = runCli(['discover', '--json'], dir);
+      assert.equal(result.status, 0, 'discover should behave like audit');
+      const payload = JSON.parse(result.stdout);
+      assert.equal(typeof payload.score, 'number');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI plan exports file and activity artifact', () => {
+    const dir = mkFixture('cli-plan');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const outFile = path.join(dir, 'claudex-plan.json');
+      const result = runCli(['plan', '--out', outFile], dir);
+      assert.equal(result.status, 0, 'plan should succeed');
+      assert.ok(fs.existsSync(outFile), 'Plan file should be created');
+      assert.ok(fs.existsSync(path.join(dir, '.claude', 'claudex-setup', 'activity')), 'Plan export should create an activity artifact');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI governance returns JSON summary', () => {
+    const dir = mkFixture('cli-governance');
+    try {
+      const result = runCli(['governance', '--json'], dir);
+      assert.equal(result.status, 0, 'governance --json should succeed');
+      const payload = JSON.parse(result.stdout);
+      assert.ok(Array.isArray(payload.permissionProfiles), 'JSON should include permissionProfiles');
+      assert.ok(Array.isArray(payload.hookRegistry), 'JSON should include hookRegistry');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI benchmark can export markdown report', () => {
+    const dir = mkFixture('cli-benchmark');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const outFile = path.join(dir, 'benchmark.md');
+      const result = runCli(['benchmark', '--out', outFile], dir);
+      assert.equal(result.status, 0, 'benchmark should succeed');
+      assert.ok(fs.existsSync(outFile), 'benchmark should write the markdown report');
+      const content = fs.readFileSync(outFile, 'utf8');
+      assert.ok(content.includes('Benchmark Report'), 'markdown report should be readable');
+      assert.ok(!fs.existsSync(path.join(dir, '.claude')), 'benchmark should not modify the source repo');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI apply can consume an exported plan file', () => {
+    const dir = mkFixture('cli-apply-plan');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const planFile = path.join(dir, 'claudex-plan.json');
+      const exportResult = runCli(['plan', '--out', planFile], dir);
+      assert.equal(exportResult.status, 0, 'plan export should succeed');
+      const applyResult = runCli(['apply', '--plan', planFile, '--only', 'claude-md,hooks'], dir);
+      assert.equal(applyResult.status, 0, 'apply should succeed with exported plan');
+      assert.ok(fs.existsSync(path.join(dir, 'CLAUDE.md')), 'apply should create CLAUDE.md from plan file');
+      assert.ok(fs.existsSync(path.join(dir, '.claude', 'claudex-setup', 'rollbacks')), 'apply should create rollback artifacts');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 

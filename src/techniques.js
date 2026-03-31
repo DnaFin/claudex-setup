@@ -170,6 +170,10 @@ const TECHNIQUES = {
     id: 91701,
     name: '.gitignore blocks node_modules',
     check: (ctx) => {
+      const hasNodeSignals = ctx.files.includes('package.json') ||
+        ctx.files.includes('tsconfig.json') ||
+        ctx.files.some(f => /package-lock\.json|pnpm-lock\.yaml|yarn\.lock|next\.config|vite\.config/i.test(f));
+      if (!hasNodeSignals) return null;
       const gitignore = ctx.fileContent('.gitignore') || '';
       return gitignore.includes('node_modules');
     },
@@ -603,6 +607,10 @@ const TECHNIQUES = {
     id: 5002,
     name: 'Node version pinned',
     check: (ctx) => {
+      const hasNodeSignals = ctx.files.includes('package.json') ||
+        ctx.files.includes('tsconfig.json') ||
+        ctx.files.some(f => /package-lock\.json|pnpm-lock\.yaml|yarn\.lock|next\.config|vite\.config/i.test(f));
+      if (!hasNodeSignals) return null;
       if (ctx.files.includes('.nvmrc') || ctx.files.includes('.node-version')) return true;
       const pkg = ctx.jsonFile('package.json');
       return pkg && pkg.engines && pkg.engines.node;

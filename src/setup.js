@@ -1,6 +1,6 @@
 /**
  * Setup engine - applies recommended Claude Code configuration to a project.
- * v0.3.0 - Smart CLAUDE.md generation with project analysis.
+ * v1.7.0 - Starter-safe setup engine with reusable planning primitives.
  */
 
 const fs = require('fs');
@@ -248,9 +248,9 @@ function detectDependencies(ctx) {
 // Helper: detect main directories
 // ============================================================
 function detectMainDirs(ctx) {
-  const candidates = ['src', 'lib', 'app', 'pages', 'components', 'api', 'routes', 'utils', 'helpers', 'services', 'models', 'controllers', 'views', 'public', 'assets', 'config', 'tests', 'test', '__tests__', 'spec', 'scripts', 'prisma', 'db', 'middleware', 'hooks'];
+  const candidates = ['src', 'lib', 'app', 'pages', 'components', 'api', 'routes', 'utils', 'helpers', 'services', 'models', 'controllers', 'views', 'public', 'assets', 'config', 'tests', 'test', '__tests__', 'spec', 'scripts', 'prisma', 'db', 'middleware', 'hooks', 'agents', 'chains', 'workers', 'jobs', 'dags', 'macros', 'migrations'];
   // Also check inside src/ for nested structure (common in Next.js, React)
-  const srcNested = ['src/components', 'src/app', 'src/pages', 'src/api', 'src/lib', 'src/hooks', 'src/utils', 'src/services', 'src/models', 'src/middleware', 'src/app/api', 'app/api'];
+  const srcNested = ['src/components', 'src/app', 'src/pages', 'src/api', 'src/lib', 'src/hooks', 'src/utils', 'src/services', 'src/models', 'src/middleware', 'src/app/api', 'app/api', 'src/agents', 'src/chains', 'src/workers', 'src/jobs', 'models/staging', 'models/marts'];
   const found = [];
   const seenNames = new Set();
 
@@ -265,6 +265,55 @@ function detectMainDirs(ctx) {
     }
   }
   return found;
+}
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractTomlSection(content, sectionName) {
+  const pattern = new RegExp(`\\[${escapeRegex(sectionName)}\\]([\\s\\S]*?)(?:\\n\\s*\\[|$)`);
+  const match = content.match(pattern);
+  return match ? match[1] : null;
+}
+
+function extractTomlValue(sectionContent, key) {
+  if (!sectionContent) return null;
+  const pattern = new RegExp(`^\\s*${escapeRegex(key)}\\s*=\\s*["']([^"']+)["']`, 'm');
+  const match = sectionContent.match(pattern);
+  return match ? match[1].trim() : null;
+}
+
+function detectProjectMetadata(ctx) {
+  const pkg = ctx.jsonFile('package.json');
+  if (pkg && (pkg.name || pkg.description)) {
+    return {
+      name: pkg.name || path.basename(ctx.dir),
+      description: pkg.description || '',
+    };
+  }
+
+  const pyproject = ctx.fileContent('pyproject.toml') || '';
+  if (pyproject) {
+    const projectSection = extractTomlSection(pyproject, 'project');
+    const poetrySection = extractTomlSection(pyproject, 'tool.poetry');
+    const name = extractTomlValue(projectSection, 'name') ||
+      extractTomlValue(poetrySection, 'name');
+    const description = extractTomlValue(projectSection, 'description') ||
+      extractTomlValue(poetrySection, 'description');
+
+    if (name || description) {
+      return {
+        name: name || path.basename(ctx.dir),
+        description: description || '',
+      };
+    }
+  }
+
+  return {
+    name: path.basename(ctx.dir),
+    description: '',
+  };
 }
 
 // ============================================================
@@ -295,6 +344,11 @@ function generateMermaid(dirs, stacks) {
   const hasSrcComponents = dirNames.includes('src/components') || dirNames.includes('components');
   const hasSrcHooks = dirNames.includes('src/hooks') || dirNames.includes('hooks');
   const hasSrcLib = dirNames.includes('src/lib') || dirNames.includes('lib');
+  const hasSrcNode = dirNames.includes('src');
+  const hasAgents = dirNames.includes('src/agents') || dirNames.includes('agents');
+  const hasChains = dirNames.includes('src/chains') || dirNames.includes('chains');
+  const hasWorkers = dirNames.includes('src/workers') || dirNames.includes('workers') || dirNames.includes('jobs');
+  const hasPipelines = dirNames.includes('dags') || dirNames.includes('macros');
 
   // Smart entry point based on framework
   const isNextJs = stackKeys.includes('nextjs');
@@ -312,6 +366,7 @@ function generateMermaid(dirs, stacks) {
   }
 
   const root = ids['Next.js'] || ids['Django'] || ids['FastAPI'] || ids['Entry Point'];
+  const pickNodeId = (...labels) => labels.map(label => ids[label]).find(Boolean) || root;
 
   // Detect layers
   if (hasAppRouter || hasPages) {
@@ -340,9 +395,9 @@ function generateMermaid(dirs, stacks) {
 
   if (hasSrcLib) {
     nodes.push(addNode('lib/', 'default'));
-    const parent = ids['API Routes'] || ids['Hooks'] || ids['Components'] || root;
+    const parent = pickNodeId('API Routes', 'Hooks', 'Components');
     edges.push(`    ${parent} --> ${ids['lib/']}`);
-  } else if (dirNames.includes('src') && !hasAppRouter && !hasPages) {
+  } else if (hasSrcNode && !hasAppRouter && !hasPages) {
     nodes.push(addNode('src/', 'default'));
     edges.push(`    ${root} --> ${ids['src/']}`);
   }
@@ -350,19 +405,19 @@ function generateMermaid(dirs, stacks) {
   if (dirNames.includes('api') || dirNames.includes('routes') || dirNames.includes('controllers')) {
     const label = dirNames.includes('api') ? 'API Layer' : 'Routes';
     nodes.push(addNode(label, 'default'));
-    const parent = ids['src/'] || ids['Entry Point'];
+    const parent = pickNodeId('src/', 'App Router', 'Pages');
     edges.push(`    ${parent} --> ${ids[label]}`);
   }
 
   if (dirNames.includes('services')) {
     nodes.push(addNode('Services', 'default'));
-    const parent = ids['API Layer'] || ids['Routes'] || ids['src/'] || ids['Entry Point'];
+    const parent = pickNodeId('API Layer', 'Routes', 'src/', 'App Router', 'Pages');
     edges.push(`    ${parent} --> ${ids['Services']}`);
   }
 
   if (dirNames.includes('models') || dirNames.includes('prisma') || dirNames.includes('db')) {
     nodes.push(addNode('Data Layer', 'default'));
-    const parent = ids['Services'] || ids['API Layer'] || ids['Routes'] || ids['src/'] || ids['Entry Point'];
+    const parent = pickNodeId('Services', 'API Layer', 'Routes', 'src/', 'App Router', 'Pages');
     edges.push(`    ${parent} --> ${ids['Data Layer']}`);
     nodes.push(addNode('Database', 'db'));
     edges.push(`    ${ids['Data Layer']} --> ${ids['Database']}`);
@@ -370,19 +425,43 @@ function generateMermaid(dirs, stacks) {
 
   if (dirNames.includes('utils') || dirNames.includes('helpers')) {
     nodes.push(addNode('Utils', 'default'));
-    const parent = ids['src/'] || ids['Services'] || ids['Entry Point'];
+    const parent = pickNodeId('src/', 'Services', 'lib/', 'Components');
     edges.push(`    ${parent} --> ${ids['Utils']}`);
   }
 
   if (dirNames.includes('middleware')) {
     nodes.push(addNode('Middleware', 'default'));
-    const parent = ids['API Layer'] || ids['Routes'] || ids['Entry Point'];
+    const parent = pickNodeId('API Layer', 'Routes', 'App Router', 'Pages');
     edges.push(`    ${parent} --> ${ids['Middleware']}`);
+  }
+
+  if (hasChains) {
+    nodes.push(addNode('Chains', 'default'));
+    const parent = pickNodeId('Services', 'src/', 'lib/', 'API Layer');
+    edges.push(`    ${parent} --> ${ids['Chains']}`);
+  }
+
+  if (hasAgents) {
+    nodes.push(addNode('Agents', 'default'));
+    const parent = pickNodeId('Chains', 'Services', 'src/', 'lib/');
+    edges.push(`    ${parent} --> ${ids['Agents']}`);
+  }
+
+  if (hasWorkers) {
+    nodes.push(addNode('Workers', 'default'));
+    const parent = pickNodeId('Services', 'API Layer', 'src/');
+    edges.push(`    ${parent} --> ${ids['Workers']}`);
+  }
+
+  if (hasPipelines) {
+    nodes.push(addNode('Pipelines', 'default'));
+    const parent = pickNodeId('Services', 'Data Layer', 'src/');
+    edges.push(`    ${parent} --> ${ids['Pipelines']}`);
   }
 
   if (dirNames.includes('tests') || dirNames.includes('test') || dirNames.includes('__tests__') || dirNames.includes('spec')) {
     nodes.push(addNode('Tests', 'round'));
-    const parent = ids['src/'] || ids['Entry Point'];
+    const parent = pickNodeId('src/', 'App Router', 'Pages', 'Services', 'Components');
     edges.push(`    ${ids['Tests']} -.-> ${parent}`);
   }
 
@@ -416,13 +495,9 @@ function getFrameworkInstructions(stacks) {
 - Use next/image for images, next/link for navigation
 - API routes go in app/api/ (App Router) or pages/api/ (Pages Router)
 - Use loading.tsx, error.tsx, and not-found.tsx for route-level UX
-
-### Next.js App Router
-- Default to Server Components. Add 'use client' only when needed (hooks, events, browser APIs)
-- Use Server Actions for mutations. Validate with Zod, call revalidatePath after writes
-- Route handlers in app/api/ export named functions: GET, POST, PUT, DELETE
-- Use loading.tsx, error.tsx, not-found.tsx for route-level UI states
-- Middleware in middleware.ts for auth checks, redirects, headers`);
+- If app/ exists, use Server Actions for mutations, validate with Zod, and call revalidatePath after writes
+- Route handlers in app/api/ should export named functions: GET, POST, PUT, DELETE
+- Middleware in middleware.ts should handle auth checks, redirects, and headers`);
   } else if (stackKeys.includes('react')) {
     sections.push(`### React
 - Use functional components with hooks exclusively
@@ -655,10 +730,10 @@ ${depGuidelines.join('\n')}
     }
     verificationSteps.push(`${verificationSteps.length + 1}. Changes match the requested scope (no gold-plating)`);
 
-    // --- Read package.json for project name/description ---
-    const pkg = ctx.jsonFile('package.json');
-    const projectName = (pkg && pkg.name) ? pkg.name : path.basename(ctx.dir);
-    const projectDesc = (pkg && pkg.description) ? ` — ${pkg.description}` : '';
+    // --- Read project metadata from package.json or pyproject.toml ---
+    const projectMeta = detectProjectMetadata(ctx);
+    const projectName = projectMeta.name;
+    const projectDesc = projectMeta.description ? ` — ${projectMeta.description}` : '';
 
     // --- Assemble the final CLAUDE.md ---
     return `# ${projectName}${projectDesc}
@@ -674,11 +749,10 @@ ${stackSection}${tsSection}${depSection}
 ${buildSection}
 \`\`\`
 
-## Code Style
-- Follow existing patterns in the codebase
-- Write tests for new features
-- Keep functions small and focused (< 50 lines)
-- Use descriptive variable names; avoid abbreviations
+## Working Notes
+- You are a careful engineer working inside this repository. Preserve its existing architecture and naming patterns unless the task requires a change
+- Prefer extending existing modules over creating parallel abstractions
+- Keep changes scoped to the requested task and verify them before marking work complete
 
 <constraints>
 - Never commit secrets, API keys, or .env files
@@ -699,12 +773,6 @@ ${verificationSteps.join('\n')}
 - Prefer focused sessions — one task per conversation
 - If a session gets too long, start fresh with /clear
 - Use subagents for research tasks to keep main context clean
-
-## Workflow
-- Verify changes with tests before committing
-- Use descriptive commit messages (why, not what)
-- Create focused PRs — one concern per PR
-- Document non-obvious decisions in code comments
 
 ---
 *Generated by [claudex-setup](https://github.com/DnaFin/claudex-setup) v${require('../package.json').version} on ${new Date().toISOString().split('T')[0]}. Customize this file for your project — a hand-crafted CLAUDE.md will always be better than a generated one.*
@@ -992,15 +1060,24 @@ graph TD
 async function setup(options) {
   const ctx = new ProjectContext(options.dir);
   const stacks = ctx.detectStacks(STACKS);
+  const silent = options.silent === true;
+  const writtenFiles = [];
+  const preservedFiles = [];
 
-  console.log('');
-  console.log('\x1b[1m  claudex-setup\x1b[0m');
-  console.log('\x1b[2m  ═══════════════════════════════════════\x1b[0m');
+  function log(message = '') {
+    if (!silent) {
+      console.log(message);
+    }
+  }
+
+  log('');
+  log('\x1b[1m  claudex-setup\x1b[0m');
+  log('\x1b[2m  ═══════════════════════════════════════\x1b[0m');
 
   if (stacks.length > 0) {
-    console.log(`\x1b[36m  Detected: ${stacks.map(s => s.label).join(', ')}\x1b[0m`);
+    log(`\x1b[36m  Detected: ${stacks.map(s => s.label).join(', ')}\x1b[0m`);
   }
-  console.log('');
+  log('');
 
   let created = 0;
   let skipped = 0;
@@ -1038,10 +1115,12 @@ async function setup(options) {
 
       if (!fs.existsSync(fullPath)) {
         fs.writeFileSync(fullPath, result, 'utf8');
-        console.log(`  \x1b[32m✅\x1b[0m Created ${filePath}`);
+        writtenFiles.push(filePath);
+        log(`  \x1b[32m✅\x1b[0m Created ${filePath}`);
         created++;
       } else {
-        console.log(`  \x1b[2m⏭️  Skipped ${filePath} (already exists — your version is kept)\x1b[0m`);
+        preservedFiles.push(filePath);
+        log(`  \x1b[2m⏭️  Skipped ${filePath} (already exists — your version is kept)\x1b[0m`);
         skipped++;
       }
     } else if (typeof result === 'object') {
@@ -1068,9 +1147,11 @@ async function setup(options) {
         }
         if (!fs.existsSync(filePath)) {
           fs.writeFileSync(filePath, content, 'utf8');
-          console.log(`  \x1b[32m✅\x1b[0m Created ${path.relative(options.dir, filePath)}`);
+          writtenFiles.push(path.relative(options.dir, filePath));
+          log(`  \x1b[32m✅\x1b[0m Created ${path.relative(options.dir, filePath)}`);
           created++;
         } else {
+          preservedFiles.push(path.relative(options.dir, filePath));
           skipped++;
         }
       }
@@ -1084,6 +1165,18 @@ async function setup(options) {
     const hookFiles = fs.readdirSync(hooksDir).filter(f => f.endsWith('.sh'));
     if (hookFiles.length > 0) {
       const settings = {
+        permissions: {
+          defaultMode: "acceptEdits",
+          deny: [
+            "Read(./.env*)",
+            "Read(./secrets/**)",
+            "Bash(rm -rf *)",
+            "Bash(git reset --hard *)",
+            "Bash(git checkout -- *)",
+            "Bash(git clean *)",
+            "Bash(git push --force *)"
+          ]
+        },
         hooks: {
           PostToolUse: [{
             matcher: "Write|Edit",
@@ -1107,26 +1200,35 @@ async function setup(options) {
         }];
       }
       fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
-      console.log(`  \x1b[32m✅\x1b[0m Created .claude/settings.json (hooks registered)`);
+      writtenFiles.push('.claude/settings.json');
+      log(`  \x1b[32m✅\x1b[0m Created .claude/settings.json (hooks registered)`);
       created++;
     }
   }
 
-  console.log('');
+  log('');
   if (created === 0 && skipped > 0) {
-    console.log('  \x1b[32m✅\x1b[0m Your project is already well configured!');
-    console.log(`  \x1b[2m  ${skipped} files already exist and were preserved.\x1b[0m`);
-    console.log('  \x1b[2m  We never overwrite your existing config — your setup is kept.\x1b[0m');
+    log('  \x1b[32m✅\x1b[0m Your project is already well configured!');
+    log(`  \x1b[2m  ${skipped} files already exist and were preserved.\x1b[0m`);
+    log('  \x1b[2m  We never overwrite your existing config — your setup is kept.\x1b[0m');
   } else if (created > 0) {
-    console.log(`  \x1b[1m${created} files created.\x1b[0m`);
+    log(`  \x1b[1m${created} files created.\x1b[0m`);
     if (skipped > 0) {
-      console.log(`  \x1b[2m${skipped} existing files preserved (not overwritten).\x1b[0m`);
+      log(`  \x1b[2m${skipped} existing files preserved (not overwritten).\x1b[0m`);
     }
   }
 
-  console.log('');
-  console.log('  Run \x1b[1mnpx claudex-setup audit\x1b[0m to check your score.');
-  console.log('');
+  log('');
+  log('  Run \x1b[1mnpx claudex-setup audit\x1b[0m to check your score.');
+  log('');
+
+  return {
+    created,
+    skipped,
+    writtenFiles,
+    preservedFiles,
+    stacks,
+  };
 }
 
-module.exports = { setup };
+module.exports = { setup, TEMPLATES };

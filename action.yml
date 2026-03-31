@@ -22,6 +22,7 @@ runs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "$PASSED/$TOTAL checks passing" >> $GITHUB_STEP_SUMMARY
         if [ "$SCORE" -lt "${{ inputs.threshold }}" ]; then
-          echo "::warning::CLAUDEX score $SCORE is below threshold ${{ inputs.threshold }}"
+          echo "::error::CLAUDEX score $SCORE is below threshold ${{ inputs.threshold }}"
+          exit 1
         fi
       id: audit
