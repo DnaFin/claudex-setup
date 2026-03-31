@@ -92,7 +92,7 @@ const TECHNIQUES = {
   },
 
   testCommand: {
-    id: 93,
+    id: 93001,
     name: 'CLAUDE.md contains a test command',
     check: (ctx) => {
       const md = ctx.fileContent('CLAUDE.md') || '';
@@ -106,7 +106,7 @@ const TECHNIQUES = {
   },
 
   lintCommand: {
-    id: 93,
+    id: 93002,
     name: 'CLAUDE.md contains a lint command',
     check: (ctx) => {
       const md = ctx.fileContent('CLAUDE.md') || '';
@@ -120,7 +120,7 @@ const TECHNIQUES = {
   },
 
   buildCommand: {
-    id: 93,
+    id: 93003,
     name: 'CLAUDE.md contains a build command',
     check: (ctx) => {
       const md = ctx.fileContent('CLAUDE.md') || '';
@@ -167,7 +167,7 @@ const TECHNIQUES = {
   },
 
   gitIgnoreNodeModules: {
-    id: 917,
+    id: 91701,
     name: '.gitignore blocks node_modules',
     check: (ctx) => {
       const gitignore = ctx.fileContent('.gitignore') || '';
@@ -210,7 +210,7 @@ const TECHNIQUES = {
   },
 
   multipleCommands: {
-    id: 20,
+    id: 20001,
     name: '3+ slash commands for rich workflow',
     check: (ctx) => ctx.hasDir('.claude/commands') && ctx.dirFiles('.claude/commands').length >= 3,
     impact: 'medium',
@@ -221,7 +221,7 @@ const TECHNIQUES = {
   },
 
   deployCommand: {
-    id: 20,
+    id: 20002,
     name: 'Has /deploy or /release command',
     check: (ctx) => {
       if (!ctx.hasDir('.claude/commands')) return false;
@@ -236,7 +236,7 @@ const TECHNIQUES = {
   },
 
   reviewCommand: {
-    id: 20,
+    id: 20003,
     name: 'Has /review command',
     check: (ctx) => {
       if (!ctx.hasDir('.claude/commands')) return false;
@@ -262,7 +262,7 @@ const TECHNIQUES = {
   },
 
   multipleSkills: {
-    id: 21,
+    id: 2101,
     name: '2+ skills for specialization',
     check: (ctx) => ctx.hasDir('.claude/skills') && ctx.dirFiles('.claude/skills').length >= 2,
     impact: 'medium',
@@ -284,7 +284,7 @@ const TECHNIQUES = {
   },
 
   multipleAgents: {
-    id: 22,
+    id: 2201,
     name: '2+ agents for delegation',
     check: (ctx) => ctx.hasDir('.claude/agents') && ctx.dirFiles('.claude/agents').length >= 2,
     impact: 'medium',
@@ -295,7 +295,7 @@ const TECHNIQUES = {
   },
 
   multipleRules: {
-    id: 3,
+    id: 301,
     name: '2+ rules files for granular control',
     check: (ctx) => ctx.hasDir('.claude/rules') && ctx.dirFiles('.claude/rules').length >= 2,
     impact: 'medium',
@@ -324,7 +324,7 @@ const TECHNIQUES = {
   },
 
   permissionDeny: {
-    id: 24,
+    id: 2401,
     name: 'Deny rules configured in permissions',
     check: (ctx) => {
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
@@ -340,7 +340,7 @@ const TECHNIQUES = {
   },
 
   noBypassPermissions: {
-    id: 24,
+    id: 2402,
     name: 'Default mode is not bypassPermissions',
     check: (ctx) => {
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
@@ -400,7 +400,7 @@ const TECHNIQUES = {
   },
 
   hooksInSettings: {
-    id: 88,
+    id: 8801,
     name: 'Hooks configured in settings',
     check: (ctx) => {
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
@@ -415,7 +415,7 @@ const TECHNIQUES = {
   },
 
   preToolUseHook: {
-    id: 88,
+    id: 8802,
     name: 'PreToolUse hook configured',
     check: (ctx) => {
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
@@ -430,7 +430,7 @@ const TECHNIQUES = {
   },
 
   postToolUseHook: {
-    id: 88,
+    id: 8803,
     name: 'PostToolUse hook configured',
     check: (ctx) => {
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
@@ -445,7 +445,7 @@ const TECHNIQUES = {
   },
 
   sessionStartHook: {
-    id: 88,
+    id: 8804,
     name: 'SessionStart hook configured',
     check: (ctx) => {
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
@@ -478,7 +478,7 @@ const TECHNIQUES = {
   },
 
   tailwindMention: {
-    id: 1025,
+    id: 102501,
     name: 'Tailwind CSS configured',
     check: (ctx) => {
       const pkg = ctx.fileContent('package.json') || '';
@@ -508,7 +508,7 @@ const TECHNIQUES = {
   },
 
   dockerCompose: {
-    id: 399,
+    id: 39901,
     name: 'Has docker-compose.yml',
     check: (ctx) => ctx.files.some(f => /^docker-compose\.(yml|yaml)$/i.test(f)),
     impact: 'medium',
@@ -589,7 +589,7 @@ const TECHNIQUES = {
   },
 
   editorconfig: {
-    id: 0,
+    id: 5001,
     name: 'Has .editorconfig',
     check: (ctx) => ctx.files.includes('.editorconfig'),
     impact: 'low',
@@ -600,7 +600,7 @@ const TECHNIQUES = {
   },
 
   nvmrc: {
-    id: 0,
+    id: 5002,
     name: 'Node version pinned',
     check: (ctx) => {
       if (ctx.files.includes('.nvmrc') || ctx.files.includes('.node-version')) return true;
@@ -665,7 +665,7 @@ const TECHNIQUES = {
   },
 
   multipleMcpServers: {
-    id: 18,
+    id: 1801,
     name: '2+ MCP servers for rich tooling',
     check: (ctx) => {
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
@@ -746,7 +746,7 @@ const TECHNIQUES = {
   },
 
   constraintBlocks: {
-    id: 96,
+    id: 9601,
     name: 'XML constraint blocks in CLAUDE.md',
     check: (ctx) => {
       const md = ctx.fileContent('CLAUDE.md') || '';

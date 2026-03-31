@@ -569,38 +569,109 @@ exit 0
 `,
   }),
 
-  'commands': () => ({
-    'test.md': `Run the test suite and report results.
+  'commands': (stacks) => {
+    const stackKeys = stacks.map(s => s.key);
+    const isNext = stackKeys.includes('nextjs');
+    const isDjango = stackKeys.includes('django');
+    const isFastApi = stackKeys.includes('fastapi');
+    const isPython = stackKeys.includes('python') || isDjango || isFastApi;
+    const hasDocker = stackKeys.includes('docker');
+
+    const cmds = {};
+
+    // Test command - stack-specific
+    if (isNext) {
+      cmds['test.md'] = `Run the test suite for this Next.js project.
+
+## Steps:
+1. Run \`npm test\` (or \`npx vitest run\`)
+2. If tests fail, check for missing mocks or async issues
+3. For component tests, ensure React Testing Library patterns are used
+4. For API route tests, check request/response handling
+5. Report: total, passed, failed, coverage if available
+`;
+    } else if (isPython) {
+      cmds['test.md'] = `Run the test suite for this Python project.
+
+## Steps:
+1. Run \`python -m pytest -v\` (or the project's test command)
+2. Check for fixture issues, missing test database, or import errors
+3. If using Django: \`python manage.py test\`
+4. Report: total, passed, failed, and any tracebacks
+`;
+    } else {
+      cmds['test.md'] = `Run the test suite and report results.
 
 ## Steps:
 1. Run the project's test command
 2. If tests fail, analyze the failures
 3. Report: total, passed, failed, and any error details
-`,
-    'review.md': `Review the current changes for quality and correctness.
+`;
+    }
+
+    // Review - always generic (works well as-is)
+    cmds['review.md'] = `Review the current changes for quality and correctness.
 
 ## Steps:
 1. Run \`git diff\` to see all changes
 2. Check for: bugs, security issues, missing tests, code style
 3. Provide actionable feedback
-`,
-    'deploy.md': `Pre-deployment checklist and deployment steps.
+`;
 
-## Pre-deploy checks:
+    // Deploy - stack-specific
+    if (isNext) {
+      cmds['deploy.md'] = `Pre-deployment checklist for Next.js.
+
+## Pre-deploy:
+1. Run \`git status\` — working tree must be clean
+2. Run \`npm run build\` — must succeed with no errors
+3. Run \`npm test\` — all tests pass
+4. Run \`npm run lint\` — no lint errors
+5. Check for \`console.log\` in production code
+6. Verify environment variables are set in deployment platform
+
+## Deploy:
+1. If Vercel: \`git push\` triggers auto-deploy
+2. If self-hosted: \`npm run build && npm start\`
+3. Verify: check /api/health or main page loads
+4. Tag: \`git tag -a vX.Y.Z -m "Release vX.Y.Z"\`
+`;
+    } else if (hasDocker) {
+      cmds['deploy.md'] = `Pre-deployment checklist with Docker.
+
+## Pre-deploy:
+1. Run \`git status\` — working tree must be clean
+2. Run full test suite — all tests pass
+3. Run \`docker build -t app .\` — must succeed
+4. Run \`docker run app\` locally — smoke test
+
+## Deploy:
+1. Build: \`docker build -t registry/app:latest .\`
+2. Push: \`docker push registry/app:latest\`
+3. Deploy to target environment
+4. Verify health endpoint responds
+5. Tag: \`git tag -a vX.Y.Z -m "Release vX.Y.Z"\`
+`;
+    } else {
+      cmds['deploy.md'] = `Pre-deployment checklist.
+
+## Pre-deploy:
 1. Run \`git status\` — working tree must be clean
 2. Run full test suite — all tests must pass
-3. Run linter — no errors allowed
-4. Check for TODO/FIXME/HACK comments in changed files
-5. Verify no secrets in staged changes (\`git diff --cached\`)
+3. Run linter — no errors
+4. Verify no secrets in staged changes
+5. Review diff since last deploy
 
-## Deploy steps:
-1. Confirm target environment (staging vs production)
-2. Review the diff since last deploy tag
-3. Run the deployment command
-4. Verify deployment succeeded (health check / smoke test)
-5. Tag the release: \`git tag -a vX.Y.Z -m "Release vX.Y.Z"\`
-`,
-    'fix.md': `Fix the issue described: $ARGUMENTS
+## Deploy:
+1. Confirm target environment
+2. Run deployment command
+3. Verify deployment (health check)
+4. Tag: \`git tag -a vX.Y.Z -m "Release vX.Y.Z"\`
+`;
+    }
+
+    // Fix - always generic with $ARGUMENTS
+    cmds['fix.md'] = `Fix the issue described: $ARGUMENTS
 
 ## Steps:
 1. Understand the issue — read relevant code and error messages
@@ -609,8 +680,32 @@ exit 0
 4. Write or update tests to cover the fix
 5. Run the full test suite to verify no regressions
 6. Summarize what was wrong and how the fix addresses it
-`,
-  }),
+`;
+
+    // Stack-specific bonus commands
+    if (isNext) {
+      cmds['check-build.md'] = `Run Next.js build check without deploying.
+
+1. Run \`npx next build\`
+2. Check for: TypeScript errors, missing pages, broken imports
+3. Verify no "Dynamic server usage" errors in static pages
+4. Report build output size and any warnings
+`;
+    }
+
+    if (isPython && (isDjango || isFastApi)) {
+      cmds['migrate.md'] = `Run database migrations safely.
+
+1. Check current migration status${isDjango ? ': `python manage.py showmigrations`' : ''}
+2. Create new migration if schema changed${isDjango ? ': `python manage.py makemigrations`' : ''}
+3. Review the generated migration file
+4. Apply: ${isDjango ? '`python manage.py migrate`' : '`alembic upgrade head`'}
+5. Verify: check that the app starts and queries work
+`;
+    }
+
+    return cmds;
+  },
 
   'skills': () => ({
     'fix-issue/SKILL.md': `---
