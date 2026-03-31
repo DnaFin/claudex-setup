@@ -452,7 +452,7 @@
                 <div style="background:var(--surface);padding:20px;text-align:center">
                     <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:600;margin-bottom:8px">2. Plan</div>
                     <div style="font-size:13px;color:var(--text-dim)">Ran <code style="color:var(--green);font-size:12px">suggest-only</code></div>
-                    <div style="font-size:24px;font-weight:800;color:var(--yellow);margin-top:4px">9</div>
+                    <div style="font-size:24px;font-weight:800;color:var(--yellow);margin-top:4px">15</div>
                     <div style="font-size:11px;color:var(--text-dim)">actionable fixes</div>
                 </div>
                 <div style="background:var(--surface);padding:20px;text-align:center">
@@ -464,20 +464,22 @@
                 <div style="background:var(--surface);padding:20px;text-align:center">
                     <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:600;margin-bottom:8px">4. Result</div>
                     <div style="font-size:13px;color:var(--text-dim)">Score after</div>
-                    <div style="font-size:24px;font-weight:800;color:var(--green);margin-top:4px">80<span style="font-size:14px;color:var(--text-dim)">/100</span></div>
-                    <div style="font-size:11px;color:var(--text-dim)">+18 points</div>
+                    <div style="font-size:24px;font-weight:800;color:var(--green);margin-top:4px">90<span style="font-size:14px;color:var(--text-dim)">/100</span></div>
+                    <div style="font-size:11px;color:var(--text-dim)">+28 points</div>
                 </div>
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
                 <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
-                    <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px">What we applied</div>
+                    <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px">What we applied (15 fixes)</div>
                     <div style="font-size:13px;color:var(--text-dim);line-height:1.8">
                         <span style="color:var(--green)">&#10003;</span> Secrets deny rules in settings<br>
                         <span style="color:var(--green)">&#10003;</span> GitHub Actions CI pipeline<br>
                         <span style="color:var(--green)">&#10003;</span> Second agent + 2 skills<br>
                         <span style="color:var(--green)">&#10003;</span> Trust-drift automation hook<br>
-                        <span style="color:var(--green)">&#10003;</span> Verification commands in CLAUDE.md
+                        <span style="color:var(--green)">&#10003;</span> Role definition + test/lint commands<br>
+                        <span style="color:var(--green)">&#10003;</span> /review command + CONTRIBUTING.md<br>
+                        <span style="color:var(--green)">&#10003;</span> 2 MCP servers via .mcp.json
                     </div>
                 </div>
                 <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
@@ -490,7 +492,7 @@
                     </div>
                 </div>
             </div>
-            <p style="text-align:center;color:var(--text-dim);font-size:13px">Also found a real bug in our own tool during this run (settings hierarchy). Fixed and shipped. <a href="https://github.com/DnaFin/claudex/blob/main/research/self-dogfood-results-2026-03-31.md" style="color:var(--accent)">Full results</a></p>
+            <p style="text-align:center;color:var(--text-dim);font-size:13px">Found and fixed 2 real bugs during this run (settings hierarchy + MCP detection). Both shipped same day. <a href="https://github.com/DnaFin/claudex/blob/main/research/self-dogfood-results-2026-03-31.md" style="color:var(--accent)">Full results</a></p>
         </section>
 
         <section style="margin:64px 0">
