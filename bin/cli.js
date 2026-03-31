@@ -14,15 +14,17 @@ const HELP = `
   Powered by 1,107 verified techniques.
 
   Usage:
-    npx claudex-setup              Run audit on current directory
-    npx claudex-setup audit        Same as above
-    npx claudex-setup setup        Apply recommended configuration
-    npx claudex-setup setup --auto Apply all recommendations without prompts
-    npx claudex-setup badge        Generate shields.io badge markdown
+    npx claudex-setup                  Run audit on current directory
+    npx claudex-setup audit            Same as above
+    npx claudex-setup setup            Apply recommended configuration
+    npx claudex-setup setup --auto     Apply all without prompts
+    npx claudex-setup interactive      Step-by-step guided wizard
+    npx claudex-setup watch            Monitor changes and re-audit live
+    npx claudex-setup badge            Generate shields.io badge markdown
 
   Options:
-    --verbose    Show detailed analysis
-    --json       Output as JSON
+    --verbose    Show all recommendations (not just critical/high)
+    --json       Output as JSON (for CI pipelines)
     --help       Show this help
     --version    Show version
 `;
@@ -53,6 +55,12 @@ async function main() {
       console.log('');
       console.log('Add this to your README.md');
       process.exit(0);
+    } else if (command === 'interactive' || command === 'wizard') {
+      const { interactive } = require('../src/interactive');
+      await interactive(options);
+    } else if (command === 'watch') {
+      const { watch } = require('../src/watch');
+      await watch(options);
     } else if (command === 'setup') {
       await setup(options);
     } else {
