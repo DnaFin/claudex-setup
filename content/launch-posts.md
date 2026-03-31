@@ -19,7 +19,7 @@ Then `npx claudex-setup setup` auto-creates everything that's missing, tailored 
 
 Zero dependencies. No API keys. Runs entirely local.
 
-GitHub: https://github.com/DnaFin/claudex
+GitHub: https://github.com/DnaFin/claudex-setup
 
 Would love feedback!
 
@@ -45,7 +45,7 @@ npx claudex-setup
 
 Scores your project 0-100, tells you exactly what to fix, and can auto-apply everything.
 
-Free, open source, zero dependencies: https://github.com/DnaFin/claudex
+Free, open source, zero dependencies: https://github.com/DnaFin/claudex-setup
 
 ---
 
@@ -83,7 +83,7 @@ I packaged this into a CLI that checks your project:
 npx claudex-setup
 ```
 
-Full catalog: https://github.com/DnaFin/claudex
+Full catalog: https://github.com/DnaFin/claudex-setup
 
 ---
 
@@ -137,7 +137,7 @@ Scores 0-100. Shows what's missing. Auto-fixes with `setup`.
 
 Free. Open source. Zero dependencies.
 
-https://github.com/DnaFin/claudex
+https://github.com/DnaFin/claudex-setup
 
 ---
 
@@ -157,4 +157,4 @@ Detects your stack (React, Python, TS, Rust, Go, etc) and tailors recommendation
 
 Zero dependencies, no API keys, runs locally.
 
-https://github.com/DnaFin/claudex
+https://github.com/DnaFin/claudex-setup

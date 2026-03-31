@@ -31,7 +31,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DnaFin/claudex.git"
+    "url": "git+https://github.com/DnaFin/claudex-setup.git"
   },
   "engines": {
     "node": ">=18.0.0"

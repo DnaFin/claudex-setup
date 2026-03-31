@@ -94,7 +94,7 @@ function openBrowser(url) {
 const CONTENT = {
   hn: {
     title: 'Show HN: claudex-setup – Audit any project for Claude Code optimization (972 techniques)',
-    url: 'https://github.com/DnaFin/claudex',
+    url: 'https://github.com/DnaFin/claudex-setup',
   },
   reddit: {
     title: 'I built a CLI that audits your project for Claude Code optimization — scores 0-100 (972 verified techniques)',
@@ -113,7 +113,7 @@ Then npx claudex-setup setup creates everything that's missing, tailored to your
 - Runs entirely on your machine
 - Free and open source
 
-GitHub: https://github.com/DnaFin/claudex`,
+GitHub: https://github.com/DnaFin/claudex-setup`,
     subreddits: ['ClaudeAI', 'ChatGPTCoding'],
   },
 };

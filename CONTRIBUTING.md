@@ -38,7 +38,7 @@
 
 ## Research Backing
 
-Every check should trace back to a technique in the [CLAUDEX catalog](https://github.com/DnaFin/claudex). When adding checks, reference the technique ID in a comment:
+Every check should trace back to a technique in the [CLAUDEX catalog](https://github.com/DnaFin/claudex-setup). When adding checks, reference the technique ID in a comment:
 
 ```js
 // CLAUDEX: T-042 (Mermaid diagrams reduce token usage by 73%)

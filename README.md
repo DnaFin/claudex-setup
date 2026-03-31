@@ -206,7 +206,7 @@ npx claudex-setup --help             # Show help
 
 ## Backed by Research
 
-Every check and template is derived from the [CLAUDEX](https://github.com/DnaFin/claudex) research catalog — a systematic audit of 1,107 verified Claude Code techniques across 13 research categories. This includes findings from all 73 official Claude Code documentation pages, community reports, and hands-on experiments.
+Every check and template is derived from the [CLAUDEX](https://github.com/DnaFin/claudex-setup) research catalog — a systematic audit of 1,107 verified Claude Code techniques across 13 research categories. This includes findings from all 73 official Claude Code documentation pages, community reports, and hands-on experiments.
 
 The knowledge base is continuously updated. Run `npx claudex-setup` periodically to pick up new checks and improved templates.
 
