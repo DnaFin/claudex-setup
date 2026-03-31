@@ -1,6 +1,6 @@
 # claudex-setup
 
-> Score your project 0-100 for Claude Code readiness. Smart CLAUDE.md generator, 54 audit checks, interactive wizard, watch mode, CI action. Never overwrites existing config.
+> Score your project 0-100 for Claude Code readiness. Smart CLAUDE.md generator, 63 audit checks, interactive wizard, watch mode, CI action. Never overwrites existing config.
 
 [![npm version](https://img.shields.io/npm/v/claudex-setup)](https://www.npmjs.com/package/claudex-setup)
 [![npm downloads](https://img.shields.io/npm/dm/claudex-setup)](https://www.npmjs.com/package/claudex-setup)
@@ -44,7 +44,7 @@ No install. No config. No dependencies.
      design: none (0/2)
      devops: none (0/4)
 
-  29/54 checks passing
+  29/63 checks passing
   Run npx claudex-setup setup to fix
 ```
 
@@ -52,7 +52,7 @@ No install. No config. No dependencies.
 
 | Command | What it does |
 |---------|-------------|
-| `npx claudex-setup` | **Audit** - Score 0-100 against 54 checks |
+| `npx claudex-setup` | **Audit** - Score 0-100 against 63 checks |
 | `npx claudex-setup setup` | **Setup** - Smart CLAUDE.md + hooks + commands + agents |
 | `npx claudex-setup setup --auto` | **Auto-setup** - No prompts, apply all |
 | `npx claudex-setup interactive` | **Wizard** - Step-by-step guided tour |
@@ -79,7 +79,7 @@ Not a generic template. The `setup` command actually analyzes your project:
 - **XML constraint blocks** - adds `<constraints>` and `<verification>` with context-aware rules
 - **Verification criteria** - auto-generates checklist from your actual commands
 
-## 54 Checks Across 13 Categories
+## 63 Checks Across 14 Categories
 
 | Category | Checks | Key items |
 |----------|-------:|-----------|
@@ -96,6 +96,7 @@ Not a generic template. The `setup` command actually analyzes your project:
 | MCP | 3 | servers, Context7, integrations |
 | Prompting | 3 | constraints, validation, patterns |
 | Features | 2 | /security-review, Channels |
+| **Quality Deep** | **9** | **freshness, contradictions, deprecated patterns, maxTurns, $ARGUMENTS** |
 
 ## Stack Detection
 
@@ -135,6 +136,24 @@ Add a readiness badge to your README:
 npx claudex-setup badge
 # Output: [![Claude Code Ready](https://img.shields.io/badge/...)](...)
 ```
+
+## For Veteran Claude Code Users
+
+Already have a solid CLAUDE.md and hooks? The v0.4.0 quality-deep checks are for you:
+
+| Check | What it catches |
+|-------|----------------|
+| **Freshness** | CLAUDE.md that doesn't mention modern features (hooks, skills, MCP) |
+| **Conciseness** | CLAUDE.md over 200 lines (wastes tokens every session) |
+| **Contradictions** | Conflicting rules ("always X" + "never X") |
+| **Hook specificity** | Hooks without matchers that fire on every tool call |
+| **Permission hygiene** | bypassPermissions still enabled in production |
+| **Command flexibility** | Commands without $ARGUMENTS (static, not reusable) |
+| **Agent limits** | Agents without maxTurns (can run forever) |
+| **Security workflow** | No /security-review in your process |
+| **Deprecated patterns** | Old model names, prefill, deprecated API formats |
+
+These checks evaluate **quality**, not just existence. A well-configured project with stale patterns will surface real improvements.
 
 ## Privacy
 

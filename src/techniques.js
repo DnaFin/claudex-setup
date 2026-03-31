@@ -773,6 +773,169 @@ const TECHNIQUES = {
     fix: 'Claude Code Channels (v2.1.80+) lets you control sessions from Telegram/Discord/iMessage.',
     template: null
   },
+
+  // ============================================================
+  // === QUALITY CHECKS FOR VETERANS (category: 'quality-deep')
+  // These check HOW GOOD your config is, not just IF it exists.
+  // ============================================================
+
+  claudeMdFreshness: {
+    id: 2001,
+    name: 'CLAUDE.md mentions current Claude features',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      if (md.length < 50) return false; // too short to evaluate
+      // Check for awareness of features from 2025+
+      const modernFeatures = ['hook', 'skill', 'agent', 'subagent', 'mcp', 'compact', '/clear', 'extended thinking', 'tool_use', 'worktree'];
+      const found = modernFeatures.filter(f => md.toLowerCase().includes(f));
+      return found.length >= 2; // knows at least 2 modern features
+    },
+    impact: 'medium',
+    rating: 4,
+    category: 'quality-deep',
+    fix: 'Your CLAUDE.md may be outdated. Modern Claude Code supports hooks, skills, agents, MCP, worktrees, and extended thinking. Mention the ones you use.',
+    template: null
+  },
+
+  claudeMdNotOverlong: {
+    id: 2002,
+    name: 'CLAUDE.md is concise (under 200 lines)',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      return md.split('\n').length <= 200;
+    },
+    impact: 'medium',
+    rating: 4,
+    category: 'quality-deep',
+    fix: 'CLAUDE.md over 200 lines wastes tokens every session. Move detailed docs to .claude/rules/ or skills. Keep CLAUDE.md lean.',
+    template: null
+  },
+
+  claudeMdNoContradictions: {
+    id: 2003,
+    name: 'CLAUDE.md has no obvious contradictions',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      // Check for common contradictions
+      const hasNever = /never.*always|always.*never/i.test(md);
+      const hasBothStyles = /use tabs/i.test(md) && /use spaces/i.test(md);
+      return !hasNever && !hasBothStyles;
+    },
+    impact: 'high',
+    rating: 4,
+    category: 'quality-deep',
+    fix: 'CLAUDE.md may contain contradictory instructions. Review for conflicting rules (e.g., "always X" and "never X" about the same topic).',
+    template: null
+  },
+
+  hooksAreSpecific: {
+    id: 2004,
+    name: 'Hooks use specific matchers (not catch-all)',
+    check: (ctx) => {
+      const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
+      if (!settings || !settings.hooks) return true; // no hooks = skip
+      const hookStr = JSON.stringify(settings.hooks);
+      // Check that hooks have matchers, not just catch-all
+      return hookStr.includes('matcher');
+    },
+    impact: 'medium',
+    rating: 3,
+    category: 'quality-deep',
+    fix: 'Hooks without matchers run on every tool call. Use matchers like "Write|Edit" or "Bash" to target specific tools.',
+    template: null
+  },
+
+  permissionsNotBypassed: {
+    id: 2005,
+    name: 'Default mode is not bypassPermissions',
+    check: (ctx) => {
+      const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
+      if (!settings || !settings.permissions) return true;
+      return settings.permissions.defaultMode !== 'bypassPermissions';
+    },
+    impact: 'high',
+    rating: 4,
+    category: 'quality-deep',
+    fix: 'bypassPermissions skips all safety checks. Use "default" or "auto" mode with targeted allow rules instead.',
+    template: null
+  },
+
+  commandsUseArguments: {
+    id: 2006,
+    name: 'Commands use $ARGUMENTS for flexibility',
+    check: (ctx) => {
+      if (!ctx.hasDir('.claude/commands')) return true;
+      const files = ctx.dirFiles('.claude/commands');
+      if (files.length === 0) return true;
+      // Check if at least one command uses $ARGUMENTS
+      for (const f of files) {
+        const content = ctx.fileContent(`.claude/commands/${f}`) || '';
+        if (content.includes('$ARGUMENTS') || content.includes('$arguments')) return true;
+      }
+      return false;
+    },
+    impact: 'medium',
+    rating: 3,
+    category: 'quality-deep',
+    fix: 'Commands without $ARGUMENTS are static. Use $ARGUMENTS to make them flexible: "Fix the issue: $ARGUMENTS"',
+    template: null
+  },
+
+  agentsHaveMaxTurns: {
+    id: 2007,
+    name: 'Agents have maxTurns limit',
+    check: (ctx) => {
+      if (!ctx.hasDir('.claude/agents')) return true;
+      const files = ctx.dirFiles('.claude/agents');
+      if (files.length === 0) return true;
+      for (const f of files) {
+        const content = ctx.fileContent(`.claude/agents/${f}`) || '';
+        if (!content.includes('maxTurns')) return false;
+      }
+      return true;
+    },
+    impact: 'medium',
+    rating: 3,
+    category: 'quality-deep',
+    fix: 'Agents without maxTurns can run indefinitely. Add "maxTurns: 50" to agent frontmatter.',
+    template: null
+  },
+
+  securityReviewInWorkflow: {
+    id: 2008,
+    name: '/security-review in workflow',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      const hasCommand = ctx.hasDir('.claude/commands') &&
+        (ctx.dirFiles('.claude/commands') || []).some(f => f.includes('security') || f.includes('review'));
+      return md.toLowerCase().includes('security') || hasCommand;
+    },
+    impact: 'high',
+    rating: 4,
+    category: 'quality-deep',
+    fix: 'Claude Code has built-in /security-review (OWASP Top 10). Add it to your workflow or create a /security command.',
+    template: null
+  },
+
+  noDeprecatedPatterns: {
+    id: 2009,
+    name: 'No deprecated patterns detected',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      // Check for patterns deprecated in Claude 4.x
+      const deprecated = [
+        'prefill', // deprecated in 4.6
+        'claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku', // old model names
+        'human_prompt', 'assistant_prompt', // old API format
+      ];
+      return !deprecated.some(d => md.toLowerCase().includes(d));
+    },
+    impact: 'medium',
+    rating: 3,
+    category: 'quality-deep',
+    fix: 'CLAUDE.md references deprecated patterns (old model names or API formats). Update to current Claude 4.x conventions.',
+    template: null
+  },
 };
 
 // Stack detection
