@@ -696,8 +696,12 @@ const TECHNIQUES = {
     id: 1801,
     name: '2+ MCP servers for rich tooling',
     check: (ctx) => {
+      let count = 0;
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      return !!(settings && settings.mcpServers && Object.keys(settings.mcpServers).length >= 2);
+      if (settings && settings.mcpServers) count += Object.keys(settings.mcpServers).length;
+      const mcpJson = ctx.jsonFile('.mcp.json');
+      if (mcpJson && mcpJson.mcpServers) count += Object.keys(mcpJson.mcpServers).length;
+      return count >= 2;
     },
     impact: 'medium',
     rating: 4,
