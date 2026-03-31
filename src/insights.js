@@ -21,7 +21,7 @@
 const https = require('https');
 const os = require('os');
 
-const INSIGHTS_ENDPOINT = 'https://claudex-insights.dnafin.workers.dev/v1/report';
+const INSIGHTS_ENDPOINT = 'https://claudex-insights.claudex.workers.dev/v1/report';
 const TIMEOUT_MS = 3000;
 
 function shouldCollect() {

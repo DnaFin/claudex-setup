@@ -58,7 +58,7 @@ async function main() {
       process.exit(0);
     } else if (command === 'insights' || command === 'learn') {
       const https = require('https');
-      const url = 'https://claudex-insights.dnafin.workers.dev/v1/stats';
+      const url = 'https://claudex-insights.claudex.workers.dev/v1/stats';
       https.get(url, (res) => {
         let data = '';
         res.on('data', chunk => data += chunk);
