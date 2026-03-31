@@ -188,6 +188,147 @@ const MCP_PACKS = [
       },
     },
   },
+  {
+    key: 'sequential-thinking',
+    label: 'Sequential Thinking',
+    useWhen: 'Complex problem-solving sessions that benefit from structured step-by-step reasoning.',
+    adoption: 'Safe default for any repo. No auth required.',
+    servers: {
+      'sequential-thinking': {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-sequential-thinking'],
+      },
+    },
+  },
+  {
+    key: 'jira-confluence',
+    label: 'Jira + Confluence',
+    useWhen: 'Teams using Atlassian for issue tracking and documentation.',
+    adoption: 'Requires ATLASSIAN_API_TOKEN and ATLASSIAN_EMAIL env vars.',
+    servers: {
+      jira: {
+        command: 'npx',
+        args: ['-y', '@anthropic/jira-mcp-server'],
+        env: { ATLASSIAN_API_TOKEN: '${ATLASSIAN_API_TOKEN}', ATLASSIAN_EMAIL: '${ATLASSIAN_EMAIL}' },
+      },
+    },
+  },
+  {
+    key: 'ga4-analytics',
+    label: 'Google Analytics 4',
+    useWhen: 'Repos with web analytics needs — live GA4 data, attribution, and audience insights.',
+    adoption: 'Requires GA4 credentials. 1,641 stars.',
+    servers: {
+      ga4: {
+        command: 'npx',
+        args: ['-y', '@anthropic/ga4-mcp-server'],
+        env: { GA4_PROPERTY_ID: '${GA4_PROPERTY_ID}' },
+      },
+    },
+  },
+  {
+    key: 'search-console',
+    label: 'Google Search Console',
+    useWhen: 'SEO-focused repos that need search performance data, indexing status, and sitemap insights.',
+    adoption: 'Requires GSC credentials. 595 stars.',
+    servers: {
+      gsc: {
+        command: 'npx',
+        args: ['-y', 'mcp-gsc@latest'],
+        env: { GSC_CREDENTIALS: '${GSC_CREDENTIALS}' },
+      },
+    },
+  },
+  {
+    key: 'n8n-workflows',
+    label: 'n8n Workflow Automation',
+    useWhen: 'Teams using n8n for workflow automation with 1,396 integration nodes.',
+    adoption: 'Requires n8n instance URL. 17,092 stars.',
+    servers: {
+      n8n: {
+        command: 'npx',
+        args: ['-y', 'n8n-mcp-server@latest'],
+        env: { N8N_URL: '${N8N_URL}', N8N_API_KEY: '${N8N_API_KEY}' },
+      },
+    },
+  },
+  {
+    key: 'zendesk-mcp',
+    label: 'Zendesk',
+    useWhen: 'Support teams using Zendesk for ticket management and help center content.',
+    adoption: 'Requires ZENDESK_API_TOKEN env var. 79 stars.',
+    servers: {
+      zendesk: {
+        command: 'npx',
+        args: ['-y', 'zendesk-mcp-server@latest'],
+        env: { ZENDESK_API_TOKEN: '${ZENDESK_API_TOKEN}', ZENDESK_SUBDOMAIN: '${ZENDESK_SUBDOMAIN}' },
+      },
+    },
+  },
+  {
+    key: 'infisical-secrets',
+    label: 'Infisical Secrets',
+    useWhen: 'Repos using Infisical for secrets management with auto-rotation.',
+    adoption: 'Requires INFISICAL_TOKEN env var. 25,629 stars.',
+    servers: {
+      infisical: {
+        command: 'npx',
+        args: ['-y', '@infisical/mcp-server'],
+        env: { INFISICAL_TOKEN: '${INFISICAL_TOKEN}' },
+      },
+    },
+  },
+  {
+    key: 'shopify-mcp',
+    label: 'Shopify',
+    useWhen: 'Shopify stores and apps that need API schema access and deployment tooling.',
+    adoption: 'Official Shopify dev MCP. Requires SHOPIFY_ACCESS_TOKEN env var.',
+    servers: {
+      shopify: {
+        command: 'npx',
+        args: ['-y', '@shopify/dev-mcp-server'],
+        env: { SHOPIFY_ACCESS_TOKEN: '${SHOPIFY_ACCESS_TOKEN}' },
+      },
+    },
+  },
+  {
+    key: 'huggingface-mcp',
+    label: 'Hugging Face',
+    useWhen: 'AI/ML repos that need model search, dataset discovery, and Spaces integration.',
+    adoption: 'Useful for ai-ml domain repos. Requires HF_TOKEN env var.',
+    servers: {
+      huggingface: {
+        command: 'npx',
+        args: ['-y', '@huggingface/mcp-server'],
+        env: { HF_TOKEN: '${HF_TOKEN}' },
+      },
+    },
+  },
+  {
+    key: 'blender-mcp',
+    label: 'Blender 3D',
+    useWhen: '3D modeling, animation, or rendering repos that use Blender. 18,219 stars.',
+    adoption: 'Requires Blender installed locally. Python bridge.',
+    servers: {
+      blender: {
+        command: 'npx',
+        args: ['-y', 'blender-mcp@latest'],
+      },
+    },
+  },
+  {
+    key: 'wordpress-mcp',
+    label: 'WordPress',
+    useWhen: 'WordPress sites needing content management, site ops, and plugin workflows.',
+    adoption: 'Requires WP_URL and WP_AUTH_TOKEN env vars. 115 stars.',
+    servers: {
+      wordpress: {
+        command: 'npx',
+        args: ['-y', 'wordpress-mcp-server@latest'],
+        env: { WP_URL: '${WP_URL}', WP_AUTH_TOKEN: '${WP_AUTH_TOKEN}' },
+      },
+    },
+  },
 ];
 
 function clone(value) {
@@ -276,6 +417,37 @@ function recommendMcpPacks(stacks = [], domainPacks = []) {
   // Stripe for e-commerce
   if (domainKeys.has('ecommerce')) {
     recommended.add('stripe-mcp');
+  }
+
+  // Jira for enterprise teams
+  if (domainKeys.has('enterprise-governed')) {
+    recommended.add('jira-confluence');
+  }
+
+  // Analytics for ecommerce and marketing
+  if (domainKeys.has('ecommerce') || domainKeys.has('docs-content')) {
+    recommended.add('ga4-analytics');
+    recommended.add('search-console');
+  }
+
+  // Shopify for ecommerce
+  if (domainKeys.has('ecommerce')) {
+    recommended.add('shopify-mcp');
+  }
+
+  // HuggingFace for AI/ML
+  if (domainKeys.has('ai-ml')) {
+    recommended.add('huggingface-mcp');
+  }
+
+  // Zendesk for support
+  if (domainKeys.has('enterprise-governed')) {
+    recommended.add('zendesk-mcp');
+  }
+
+  // Infisical for security-focused
+  if (domainKeys.has('security-focused') || domainKeys.has('regulated-lite')) {
+    recommended.add('infisical-secrets');
   }
 
   // Security scanner when 2+ MCP servers recommended
