@@ -953,6 +953,8 @@ const STACKS = {
   java: { files: ['pom.xml'], content: {}, label: 'Java' },
   kotlin: { files: ['build.gradle.kts'], content: {}, label: 'Kotlin' },
   swift: { files: ['Package.swift'], content: {}, label: 'Swift' },
+  terraform: { files: ['main.tf', 'terraform'], content: {}, label: 'Terraform' },
+  kubernetes: { files: ['k8s', 'kubernetes', 'helm'], content: {}, label: 'Kubernetes' },
 };
 
 module.exports = { TECHNIQUES, STACKS };

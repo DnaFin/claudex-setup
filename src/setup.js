@@ -96,16 +96,62 @@ function detectDependencies(ctx) {
     guidelines.push('- Use Playwright for E2E tests. Keep tests in tests/ or e2e/');
   }
 
+  // tRPC
+  if (allDeps['@trpc/server'] || allDeps['@trpc/client']) {
+    guidelines.push('- Use tRPC for type-safe API calls. Define routers in server, use client hooks in components');
+  }
+
+  // Stripe
+  if (allDeps['stripe']) {
+    guidelines.push('- Use Stripe SDK for payments. Always verify webhooks with stripe.webhooks.constructEvent()');
+  }
+
+  // Resend
+  if (allDeps['resend']) {
+    guidelines.push('- Use Resend for transactional email. Define templates as React components');
+  }
+
+  // Express security
+  if (allDeps['helmet']) {
+    guidelines.push('- Helmet is configured — ensure all middleware is applied before routes');
+  }
+  if (allDeps['jsonwebtoken']) {
+    guidelines.push('- Use JWT for authentication. Always verify tokens with the correct secret/algorithm');
+  }
+  if (allDeps['bcrypt']) {
+    guidelines.push('- Use bcrypt for password hashing. Never store plaintext passwords');
+  }
+  if (allDeps['cors']) {
+    guidelines.push('- CORS is configured — restrict origins to known domains in production');
+  }
+
+  // Monorepo
+  if (allDeps['turbo'] || allDeps['turborepo']) {
+    guidelines.push('- Turborepo monorepo — use `turbo run` for all tasks. Respect package boundaries');
+  }
+  if (allDeps['nx']) {
+    guidelines.push('- Nx monorepo — use `nx affected` for incremental builds and tests');
+  }
+
   // Python
   const reqTxt = ctx.fileContent('requirements.txt') || '';
   if (reqTxt.includes('sqlalchemy')) {
-    guidelines.push('- Use SQLAlchemy for all database operations');
+    guidelines.push('- Use SQLAlchemy for database operations. Define models in models/');
   }
   if (reqTxt.includes('pydantic')) {
     guidelines.push('- Use Pydantic for data validation and serialization');
   }
   if (reqTxt.includes('pytest')) {
     guidelines.push('- Use pytest for testing. Run with `python -m pytest`');
+  }
+  if (reqTxt.includes('alembic')) {
+    guidelines.push('- Use Alembic for database migrations. Run `alembic upgrade head` after model changes');
+  }
+  if (reqTxt.includes('celery')) {
+    guidelines.push('- Use Celery for background tasks. Define tasks in tasks/ or services/');
+  }
+  if (reqTxt.includes('redis')) {
+    guidelines.push('- Redis is available for caching and task queues');
   }
 
   return guidelines;
@@ -342,18 +388,29 @@ function getFrameworkInstructions(stacks) {
 
   if (stackKeys.includes('rust')) {
     sections.push(`### Rust
-- Prefer Result<T, E> over unwrap/expect in library code
-- Use clippy warnings as errors
-- Derive common traits (Debug, Clone, PartialEq) where appropriate
-- Use modules to organize code; keep lib.rs/main.rs thin`);
+- Use Result<T, E> for error handling, avoid unwrap() in production code
+- Prefer &str over String for function parameters
+- Use clippy: \`cargo clippy -- -D warnings\`
+- Structure: src/lib.rs for library, src/main.rs for binary`);
   }
 
   if (stackKeys.includes('go')) {
     sections.push(`### Go
-- Follow standard project layout conventions
-- Handle all errors explicitly; no blank _ for errors
-- Use interfaces for testability and abstraction
-- Keep packages focused; avoid circular dependencies`);
+- Follow standard Go project layout (cmd/, internal/, pkg/)
+- Use interfaces for dependency injection and testability
+- Handle all errors explicitly — never ignore err returns
+- Use context.Context for cancellation and timeouts
+- Prefer table-driven tests
+- Run \`go vet\` and \`golangci-lint\` before committing`);
+  }
+
+  if (stackKeys.includes('terraform')) {
+    sections.push(`### Terraform
+- Use modules for reusable infrastructure components
+- Always run \`terraform plan\` before \`terraform apply\`
+- Store state remotely (S3 + DynamoDB, or Terraform Cloud)
+- Use variables.tf for all configurable values
+- Tag all resources consistently`);
   }
 
   const hasJS = stackKeys.some(k => ['react', 'vue', 'angular', 'nextjs', 'node', 'svelte'].includes(k));
@@ -726,8 +783,10 @@ Fix the GitHub issue: $ARGUMENTS
     const rules = {};
     const hasTS = stacks.some(s => s.key === 'typescript');
     const hasPython = stacks.some(s => s.key === 'python');
+    const hasFrontend = stacks.some(s => ['react', 'vue', 'angular', 'svelte', 'nextjs'].includes(s.key));
+    const hasBackend = stacks.some(s => ['go', 'python', 'django', 'fastapi', 'rust', 'java'].includes(s.key));
 
-    if (hasTS || stacks.some(s => ['react', 'vue', 'angular', 'nextjs', 'node'].includes(s.key))) {
+    if (hasFrontend || (hasTS && !hasBackend)) {
       rules['frontend.md'] = `When editing JavaScript/TypeScript files (*.ts, *.tsx, *.js, *.jsx, *.vue):
 - Use functional components with hooks (React/Vue 3)
 - Add TypeScript interfaces for all props and function params
@@ -735,6 +794,16 @@ Fix the GitHub issue: $ARGUMENTS
 - Use named exports over default exports
 - Handle errors explicitly — no empty catch blocks
 - Keep component files under 200 lines; extract sub-components
+`;
+    }
+    if (hasBackend) {
+      rules['backend.md'] = `When editing backend code:
+- Handle all errors explicitly — never swallow exceptions silently
+- Validate all external input at API boundaries
+- Use dependency injection for testability
+- Keep route handlers thin — delegate to service/business logic layers
+- Log errors with sufficient context for debugging
+- Never hardcode secrets or credentials
 `;
     }
     if (hasPython) {
