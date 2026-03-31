@@ -58,6 +58,7 @@ No install. No config. No dependencies.
 | `npx claudex-setup interactive` | **Wizard** - Step-by-step guided tour |
 | `npx claudex-setup watch` | **Watch** - Live monitoring with score delta |
 | `npx claudex-setup badge` | **Badge** - Generate shields.io badge for README |
+| `npx claudex-setup deep-review` | **Deep Review** - AI-powered config analysis (needs API key) |
 | `npx claudex-setup insights` | **Insights** - View community aggregate stats |
 
 ### Options
@@ -139,7 +140,19 @@ npx claudex-setup badge
 
 ## For Veteran Claude Code Users
 
-Already have a solid CLAUDE.md and hooks? The v0.4.0 quality-deep checks are for you:
+Already have a solid CLAUDE.md and hooks? Two things for you:
+
+### Deep Review (AI-powered)
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-... npx claudex-setup deep-review
+```
+
+Claude reads your actual config and gives specific feedback: what's strong, what has issues, what's missing for your stack. Not pattern matching — real analysis. Your config goes to Anthropic API only, we never see it.
+
+### Quality-Deep Checks
+
+The v0.4.0 quality-deep checks catch what basic audits miss:
 
 | Check | What it catches |
 |-------|----------------|

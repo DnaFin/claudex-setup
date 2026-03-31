@@ -18,6 +18,7 @@ const HELP = `
     npx claudex-setup audit            Same as above
     npx claudex-setup setup            Apply recommended configuration
     npx claudex-setup setup --auto     Apply all without prompts
+    npx claudex-setup deep-review       AI-powered config analysis (needs API key)
     npx claudex-setup interactive      Step-by-step guided wizard
     npx claudex-setup watch            Monitor changes and re-audit live
     npx claudex-setup badge            Generate shields.io badge markdown
@@ -91,6 +92,9 @@ async function main() {
         console.log('  Could not reach insights server. Run locally: npx claudex-setup');
       });
       return; // keep process alive for http
+    } else if (command === 'deep-review' || command === 'review') {
+      const { deepReview } = require('../src/deep-review');
+      await deepReview(options);
     } else if (command === 'interactive' || command === 'wizard') {
       const { interactive } = require('../src/interactive');
       await interactive(options);
