@@ -384,32 +384,29 @@ ${verificationSteps.join('\n')}
 
   'hooks': () => ({
     'on-edit-lint.sh': `#!/bin/bash
-# PostToolUse hook - auto-check after file edits
-# Customize the linter command for your project
-TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-echo "[$TIMESTAMP] File changed: $(cat -)" >> .claude/logs/changes.txt
+# PostToolUse hook - runs linter after file edits
+# Detects which linter is available and runs it
+
+if command -v npx &>/dev/null; then
+  if [ -f "package.json" ] && grep -q '"lint"' package.json 2>/dev/null; then
+    npm run lint --silent 2>/dev/null
+  elif [ -f ".eslintrc" ] || [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
+    npx eslint --fix . --quiet 2>/dev/null
+  fi
+elif command -v ruff &>/dev/null; then
+  ruff check --fix . 2>/dev/null
+fi
 `,
     'protect-secrets.sh': `#!/bin/bash
-# PreToolUse hook - warn before touching sensitive files
-# Prevents accidental reads/writes to files containing secrets
-
+# PreToolUse hook - blocks reads of secret files
 INPUT=$(cat -)
-FILE=$(echo "$INPUT" | grep -oP '"file_path"\\s*:\\s*"\\K[^"]+' 2>/dev/null || echo "")
+FILE_PATH=$(echo "$INPUT" | sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p')
 
-if [ -z "$FILE" ]; then
+if echo "$FILE_PATH" | grep -qiE '\\.env$|\\.env\\.|secrets/|credentials|\\.pem$|\\.key$'; then
+  echo '{"decision": "block", "reason": "Blocked: accessing secret/credential files is not allowed."}'
   exit 0
 fi
-
-BASENAME=$(basename "$FILE")
-
-case "$BASENAME" in
-  .env|.env.*|*.pem|*.key|credentials.json|secrets.yaml|secrets.yml)
-    echo "WARN: Attempting to access sensitive file: $BASENAME"
-    echo "This file may contain secrets. Proceed with caution."
-    ;;
-esac
-
-exit 0
+echo '{"decision": "allow"}'
 `,
     'log-changes.sh': `#!/bin/bash
 # PostToolUse hook - logs all file changes with timestamps
@@ -571,9 +568,19 @@ async function setup(options) {
   let created = 0;
   let skipped = 0;
 
+  let failedWithTemplates = [];
   for (const [key, technique] of Object.entries(TECHNIQUES)) {
     if (technique.passed || technique.check(ctx)) continue;
     if (!technique.template) continue;
+    failedWithTemplates.push({ key, technique });
+  }
+
+  // Filter by 'only' list if provided (interactive wizard selections)
+  if (options.only && options.only.length > 0) {
+    failedWithTemplates = failedWithTemplates.filter(r => options.only.includes(r.key));
+  }
+
+  for (const { key, technique } of failedWithTemplates) {
 
     const template = TEMPLATES[technique.template];
     if (!template) continue;
@@ -624,6 +631,41 @@ async function setup(options) {
           skipped++;
         }
       }
+    }
+  }
+
+  // Auto-register hooks in settings if hooks were created but no settings exist
+  const hooksDir = path.join(options.dir, '.claude/hooks');
+  const settingsPath = path.join(options.dir, '.claude/settings.json');
+  if (fs.existsSync(hooksDir) && !fs.existsSync(settingsPath)) {
+    const hookFiles = fs.readdirSync(hooksDir).filter(f => f.endsWith('.sh'));
+    if (hookFiles.length > 0) {
+      const settings = {
+        hooks: {
+          PostToolUse: [{
+            matcher: "Write|Edit",
+            hooks: hookFiles.filter(f => f !== 'protect-secrets.sh').map(f => ({
+              type: "command",
+              command: `bash .claude/hooks/${f}`,
+              timeout: 10
+            }))
+          }]
+        }
+      };
+      // Add protect-secrets as PreToolUse if it exists
+      if (hookFiles.includes('protect-secrets.sh')) {
+        settings.hooks.PreToolUse = [{
+          matcher: "Read|Write|Edit",
+          hooks: [{
+            type: "command",
+            command: "bash .claude/hooks/protect-secrets.sh",
+            timeout: 5
+          }]
+        }];
+      }
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+      console.log(`  \x1b[32m✅\x1b[0m Created .claude/settings.json (hooks registered)`);
+      created++;
     }
   }
 

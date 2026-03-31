@@ -7,6 +7,7 @@
  */
 
 const https = require('https');
+const path = require('path');
 const { ProjectContext } = require('./context');
 const { STACKS } = require('./techniques');
 
@@ -198,14 +199,21 @@ function hasClaudeCode() {
 
 async function callClaudeCode(prompt) {
   const { execSync } = require('child_process');
-  // Use claude -p (headless/print mode) - uses the user's existing Claude Code auth
-  const escaped = prompt.replace(/'/g, "'\\''");
-  const result = execSync(`claude -p '${escaped}' --output-format text`, {
-    encoding: 'utf8',
-    maxBuffer: 1024 * 1024,
-    timeout: 120000,
-  });
-  return result;
+  const os = require('os');
+  const fs = require('fs');
+  const tmpFile = path.join(os.tmpdir(), `claudex-review-${Date.now()}.txt`);
+  fs.writeFileSync(tmpFile, prompt, 'utf8');
+  try {
+    const result = execSync(`claude -p --output-format text < "${tmpFile}"`, {
+      encoding: 'utf8',
+      maxBuffer: 1024 * 1024,
+      timeout: 120000,
+      shell: true,
+    });
+    return result;
+  } finally {
+    try { fs.unlinkSync(tmpFile); } catch {}
+  }
 }
 
 async function deepReview(options) {

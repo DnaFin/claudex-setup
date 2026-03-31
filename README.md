@@ -67,7 +67,7 @@ No install. No config. No dependencies.
 |------|--------|
 | `--verbose` | Show all recommendations (not just critical/high) |
 | `--json` | Machine-readable JSON output (for CI) |
-| `--no-insights` | Disable anonymous usage insights |
+| `--insights` | Enable anonymous usage insights (off by default) |
 
 ## Smart CLAUDE.md Generation
 
@@ -76,7 +76,7 @@ Not a generic template. The `setup` command actually analyzes your project:
 - **Reads package.json** - includes your actual test, build, lint, dev commands
 - **Detects framework** - Next.js Server Components, Django models, FastAPI Pydantic, React hooks
 - **TypeScript-aware** - detects strict mode, adds TS-specific rules
-- **Auto Mermaid diagram** - scans directories and generates architecture visualization (73% token savings)
+- **Auto Mermaid diagram** - scans directories and generates architecture visualization (Mermaid diagrams are more token-efficient than prose descriptions, per Anthropic docs)
 - **XML constraint blocks** - adds `<constraints>` and `<verification>` with context-aware rules
 - **Verification criteria** - auto-generates checklist from your actual commands
 
@@ -172,7 +172,7 @@ These checks evaluate **quality**, not just existence. A well-configured project
 
 - **Zero dependencies** - nothing to audit
 - **Runs 100% locally** - no cloud processing
-- **Anonymous insights** - opt-in, no PII, no file contents (disable with `--no-insights`)
+- **Anonymous insights** - opt-in, no PII, no file contents (enable with `--insights`)
 - **MIT Licensed** - use anywhere
 
 ## Backed by Research

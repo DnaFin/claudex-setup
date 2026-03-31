@@ -766,11 +766,16 @@ const TECHNIQUES = {
   channelsAwareness: {
     id: 1102,
     name: 'Claude Code Channels awareness',
-    check: () => true, // informational
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
+      const settingsStr = JSON.stringify(settings || {});
+      return md.toLowerCase().includes('channel') || settingsStr.includes('channel');
+    },
     impact: 'low',
-    rating: 4,
+    rating: 3,
     category: 'features',
-    fix: 'Claude Code Channels (v2.1.80+) lets you control sessions from Telegram/Discord/iMessage.',
+    fix: 'Claude Code Channels (v2.1.80+) bridges Telegram/Discord/iMessage to your session.',
     template: null
   },
 
@@ -801,7 +806,8 @@ const TECHNIQUES = {
     id: 2002,
     name: 'CLAUDE.md is concise (under 200 lines)',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.fileContent('CLAUDE.md');
+      if (!md) return false; // no CLAUDE.md = not passing
       return md.split('\n').length <= 200;
     },
     impact: 'medium',
@@ -815,7 +821,8 @@ const TECHNIQUES = {
     id: 2003,
     name: 'CLAUDE.md has no obvious contradictions',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.fileContent('CLAUDE.md');
+      if (!md || md.length < 50) return false; // no CLAUDE.md or too short = not passing
       // Check for common contradictions
       const hasNever = /never.*always|always.*never/i.test(md);
       const hasBothStyles = /use tabs/i.test(md) && /use spaces/i.test(md);
@@ -921,7 +928,8 @@ const TECHNIQUES = {
     id: 2009,
     name: 'No deprecated patterns detected',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.fileContent('CLAUDE.md');
+      if (!md) return false; // no CLAUDE.md = not passing
       // Check for patterns deprecated in Claude 4.x
       const deprecated = [
         'prefill', // deprecated in 4.6

@@ -102,7 +102,7 @@ async function interactive(options) {
   console.log('');
 
   // Run setup in auto mode
-  await setup({ ...options, auto: true });
+  await setup({ ...options, auto: true, only: toFix });
 
   console.log('');
   console.log(c('  Done! Run `npx claudex-setup` to see your new score.', 'green'));

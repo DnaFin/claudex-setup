@@ -25,14 +25,10 @@ const INSIGHTS_ENDPOINT = 'https://claudex-insights.claudex.workers.dev/v1/repor
 const TIMEOUT_MS = 3000;
 
 function shouldCollect() {
-  // Respect opt-out
-  if (process.env.CLAUDEX_NO_INSIGHTS === '1') return false;
-  if (process.argv.includes('--no-insights')) return false;
-
-  // Don't collect in CI
-  if (process.env.CI || process.env.GITHUB_ACTIONS) return false;
-
-  return true;
+  // Opt-IN: only collect if user explicitly enables
+  if (process.env.CLAUDEX_INSIGHTS === '1') return true;
+  if (process.argv.includes('--insights')) return true;
+  return false;
 }
 
 function buildPayload(auditResult) {

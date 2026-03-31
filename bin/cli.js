@@ -11,7 +11,7 @@ const flags = args.filter(a => a.startsWith('--'));
 const HELP = `
   claudex-setup v${version}
   Audit and optimize any project for Claude Code.
-  Powered by 1,107 verified techniques.
+  Backed by research from 1,107 cataloged Claude Code entries.
 
   Usage:
     npx claudex-setup                  Run audit on current directory
@@ -26,7 +26,7 @@ const HELP = `
   Options:
     --verbose       Show all recommendations (not just critical/high)
     --json          Output as JSON (for CI pipelines)
-    --no-insights   Disable anonymous usage insights
+    --insights       Enable anonymous usage insights (off by default)
     --help          Show this help
     --version       Show version
 `;
