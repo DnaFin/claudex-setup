@@ -1,6 +1,6 @@
 {
   "name": "claudex-setup",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Audit and improve Claude Code readiness with discover, plan, apply, governance, and benchmark workflows.",
   "main": "src/index.js",
   "bin": {

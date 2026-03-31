@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.10.0] - 2026-04-01
+
+### Added
+- 11 new MCP packs (15→26): sequential-thinking, jira-confluence, ga4-analytics, search-console, n8n-workflows, zendesk, infisical-secrets, shopify, huggingface, blender, wordpress
+- 7 new domain packs (10→17→16 final): ecommerce, ai-ml, devops-cicd, design-system, docs-content, security-focused
+- Smart recommendation for all new packs based on detected stack and domain
+- Detection logic: Storybook, Docusaurus, Stripe, LangChain, GitHub Actions, auth deps
+
 ## [1.9.0] - 2026-03-31
 
 ### Added
