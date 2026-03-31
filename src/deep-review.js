@@ -189,19 +189,38 @@ function callClaude(apiKey, prompt) {
   });
 }
 
+function hasClaudeCode() {
+  try {
+    require('child_process').execSync('claude --version', { stdio: 'ignore' });
+    return true;
+  } catch { return false; }
+}
+
+async function callClaudeCode(prompt) {
+  const { execSync } = require('child_process');
+  // Use claude -p (headless/print mode) - uses the user's existing Claude Code auth
+  const escaped = prompt.replace(/'/g, "'\\''");
+  const result = execSync(`claude -p '${escaped}' --output-format text`, {
+    encoding: 'utf8',
+    maxBuffer: 1024 * 1024,
+    timeout: 120000,
+  });
+  return result;
+}
+
 async function deepReview(options) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  const hasClaude = hasClaudeCode();
+
+  if (!apiKey && !hasClaude) {
     console.log('');
-    console.log(c('  Deep Review requires an Anthropic API key.', 'bold'));
+    console.log(c('  Deep Review needs Claude Code or an API key.', 'bold'));
     console.log('');
-    console.log('  Set it with:');
+    console.log('  Option A (recommended): Install Claude Code, then run this command.');
+    console.log(c('    npm install -g @anthropic-ai/claude-code', 'green'));
+    console.log('');
+    console.log('  Option B: Set an API key:');
     console.log(c('    export ANTHROPIC_API_KEY=sk-ant-...', 'green'));
-    console.log('');
-    console.log(c('  Or on Windows:', 'dim'));
-    console.log(c('    set ANTHROPIC_API_KEY=sk-ant-...', 'green'));
-    console.log('');
-    console.log(c('  Your key is sent directly to Anthropic API. We never see or store it.', 'dim'));
     console.log('');
     process.exit(1);
   }
@@ -236,7 +255,20 @@ async function deepReview(options) {
 
   try {
     const prompt = buildPrompt(config);
-    const review = await callClaude(apiKey, prompt);
+    let review;
+    let method;
+
+    if (hasClaude) {
+      method = 'Claude Code (your existing subscription)';
+      console.log(c('  Using: Claude Code (no API key needed)', 'green'));
+      console.log('');
+      review = await callClaudeCode(prompt);
+    } else {
+      method = 'Anthropic API (your key)';
+      console.log(c('  Using: Anthropic API', 'dim'));
+      console.log('');
+      review = await callClaude(apiKey, prompt);
+    }
 
     // Format output
     const lines = review.split('\n');
@@ -264,8 +296,8 @@ async function deepReview(options) {
 
     console.log('');
     console.log(c('  ─────────────────────────────────────', 'dim'));
-    console.log(c('  Reviewed by Claude Sonnet 4.6 via Anthropic API', 'dim'));
-    console.log(c('  Your config was sent to api.anthropic.com only. We never see it.', 'dim'));
+    console.log(c(`  Reviewed via ${method}`, 'dim'));
+    console.log(c('  Your config stays between you and Anthropic. We never see it.', 'dim'));
     console.log('');
   } catch (err) {
     console.log(c(`  Error: ${err.message}`, 'red'));

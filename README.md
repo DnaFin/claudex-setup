@@ -145,7 +145,7 @@ Already have a solid CLAUDE.md and hooks? Two things for you:
 ### Deep Review (AI-powered)
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-... npx claudex-setup deep-review
+npx claudex-setup deep-review
 ```
 
 Claude reads your actual config and gives specific feedback: what's strong, what has issues, what's missing for your stack. Not pattern matching — real analysis. Your config goes to Anthropic API only, we never see it.
