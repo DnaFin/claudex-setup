@@ -569,6 +569,7 @@ async function setup(options) {
   console.log('');
 
   let created = 0;
+  let skipped = 0;
 
   for (const [key, technique] of Object.entries(TECHNIQUES)) {
     if (technique.passed || technique.check(ctx)) continue;
@@ -589,6 +590,9 @@ async function setup(options) {
         fs.writeFileSync(fullPath, result, 'utf8');
         console.log(`  \x1b[32m✅\x1b[0m Created ${filePath}`);
         created++;
+      } else {
+        console.log(`  \x1b[2m⏭️  Skipped ${filePath} (already exists — your version is kept)\x1b[0m`);
+        skipped++;
       }
     } else if (typeof result === 'object') {
       // Multiple files template (hooks, commands, etc)
@@ -616,16 +620,23 @@ async function setup(options) {
           fs.writeFileSync(filePath, content, 'utf8');
           console.log(`  \x1b[32m✅\x1b[0m Created ${path.relative(options.dir, filePath)}`);
           created++;
+        } else {
+          skipped++;
         }
       }
     }
   }
 
-  if (created === 0) {
-    console.log('  \x1b[32m✅\x1b[0m Project already well configured!');
-  } else {
-    console.log('');
+  console.log('');
+  if (created === 0 && skipped > 0) {
+    console.log('  \x1b[32m✅\x1b[0m Your project is already well configured!');
+    console.log(`  \x1b[2m  ${skipped} files already exist and were preserved.\x1b[0m`);
+    console.log('  \x1b[2m  We never overwrite your existing config — your setup is kept.\x1b[0m');
+  } else if (created > 0) {
     console.log(`  \x1b[1m${created} files created.\x1b[0m`);
+    if (skipped > 0) {
+      console.log(`  \x1b[2m${skipped} existing files preserved (not overwritten).\x1b[0m`);
+    }
   }
 
   console.log('');

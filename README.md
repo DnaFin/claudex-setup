@@ -1,6 +1,6 @@
 # claudex-setup
 
-> Score your project 0-100 for Claude Code. Smart CLAUDE.md, 54 checks, wizard, watch mode, CI action. Powered by 1,107 verified techniques.
+> Score your project 0-100 for Claude Code readiness. Smart CLAUDE.md generator, 54 audit checks, interactive wizard, watch mode, CI action. Never overwrites existing config.
 
 [![npm version](https://img.shields.io/npm/v/claudex-setup)](https://www.npmjs.com/package/claudex-setup)
 [![npm downloads](https://img.shields.io/npm/dm/claudex-setup)](https://www.npmjs.com/package/claudex-setup)
@@ -151,7 +151,9 @@ Every check traces to a verified technique from a systematic audit of:
 - Anthropic blog posts and benchmark papers
 - 194 hands-on experiments with real evidence
 
-1,107 techniques cataloged. 954 tested. Continuously updated.
+The catalog includes 1,107 entries (features, techniques, patterns, tools, stats, and known limitations) — not all are actionable checks. 954 were verified with real evidence. Continuously updated.
+
+**Note:** A hand-crafted CLAUDE.md that reflects your real conventions will always be better than a generated one. This tool is most useful for projects starting from zero, or as a checklist for what you might be missing.
 
 ## Requirements
 

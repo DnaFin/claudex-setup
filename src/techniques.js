@@ -702,15 +702,18 @@ const TECHNIQUES = {
     name: 'XML tags for structured prompts',
     check: (ctx) => {
       const md = ctx.fileContent('CLAUDE.md') || '';
-      return md.includes('<') && md.includes('>') && (
-        md.includes('<constraints') || md.includes('<rules') ||
-        md.includes('<validation') || md.includes('<instructions')
-      );
+      // Give credit for XML tags OR well-structured markdown with clear sections
+      const hasXml = md.includes('<constraints') || md.includes('<rules') ||
+        md.includes('<validation') || md.includes('<instructions');
+      const hasStructuredMd = (md.includes('## Rules') || md.includes('## Constraints') ||
+        md.includes('## Do not') || md.includes('## Never') || md.includes('## Important')) &&
+        md.split('\n').length > 20;
+      return hasXml || hasStructuredMd;
     },
-    impact: 'high',
-    rating: 5,
+    impact: 'medium',
+    rating: 4,
     category: 'prompting',
-    fix: 'Use XML tags (<constraints>, <validation>) in CLAUDE.md for unambiguous instructions.',
+    fix: 'Add clear rules sections to CLAUDE.md. XML tags (<constraints>) are optional but improve clarity.',
     template: null
   },
 

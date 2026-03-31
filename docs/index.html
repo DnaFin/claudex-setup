@@ -177,8 +177,8 @@
                 <span class="dot"></span>
                 v0.3.2 &mdash; Free &amp; Open Source
             </div>
-            <h1>Your project is running<br>Claude Code at <em>10%</em></h1>
-            <p class="hero-sub">One command scores your project 0-100. Smart auto-fix generates framework-aware CLAUDE.md, hooks, commands, and agents. Built from 1,107 verified techniques.</p>
+            <h1>Is your project ready<br>for <em>Claude Code</em>?</h1>
+            <p class="hero-sub">One command scores your project 0-100 for Claude Code optimization. Smart auto-fix generates framework-aware CLAUDE.md, hooks, and commands. Never overwrites your existing config.</p>
 
             <div class="install-box mono" onclick="navigator.clipboard.writeText('npx claudex-setup');this.querySelector('.copy-icon').textContent='Copied!'">
                 <span class="prompt">$</span>
@@ -419,7 +419,11 @@
                 </details>
                 <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
                     <summary style="font-weight:600;cursor:pointer;color:var(--text);font-size:15px">Where do the 1,107 techniques come from?</summary>
-                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7">From a systematic research project covering all 73 official Claude Code documentation pages, 100+ community tools and MCP servers verified via GitHub API, Anthropic blog posts, benchmark papers, and hands-on experiments. 954 techniques were verified with real evidence. The research is ongoing.</p>
+                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7">From a systematic research project covering all 73 official Claude Code documentation pages, 100+ community tools and MCP servers verified via GitHub API, Anthropic blog posts, benchmark papers, and hands-on experiments. The count includes features, techniques, patterns, tools, stats, and limitations &mdash; not all are actionable. 954 were verified with real evidence. The research is ongoing.</p>
+                </details>
+                <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+                    <summary style="font-weight:600;cursor:pointer;color:var(--text);font-size:15px">My project already has a good CLAUDE.md. Will this help?</summary>
+                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7"><strong>Audit</strong> will still show you what else you might be missing (hooks, agents, rules, MCP config). <strong>Setup</strong> will never overwrite your existing files &mdash; it only creates what's missing. If your project is already well-configured, the tool will tell you. A hand-crafted CLAUDE.md that reflects your real conventions will always be better than a generated one.</p>
                 </details>
             </div>
         </section>
@@ -442,8 +446,8 @@
         </section>
 
         <section class="cta">
-            <h2>Every minute you code without this,<br>Claude is running at a fraction of its power.</h2>
-            <p style="max-width:480px;margin:0 auto 32px">54 checks. 10 seconds. The difference between Claude guessing and Claude knowing your project.</p>
+            <h2>Find out what you're missing.<br>Fix it in 10 seconds.</h2>
+            <p style="max-width:480px;margin:0 auto 32px">54 checks. Read-only audit. Never overwrites your existing setup. If you already have a good config, it'll tell you.</p>
             <div class="install-box mono" style="margin-bottom:24px" onclick="navigator.clipboard.writeText('npx claudex-setup');this.querySelector('.copy-icon').textContent='Copied!'">
                 <span class="prompt">$</span>
                 <span class="cmd">npx claudex-setup</span>
