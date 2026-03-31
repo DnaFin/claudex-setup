@@ -79,6 +79,54 @@ const DOMAIN_PACKS = [
     recommendedMcpPacks: ['context7-docs'],
     benchmarkFocus: ['audit trail completeness', 'change traceability', 'policy compliance readiness'],
   },
+  {
+    key: 'ecommerce',
+    label: 'E-Commerce',
+    useWhen: 'Shopify, WooCommerce, Stripe, or storefront repos with payment, catalog, and analytics workflows.',
+    recommendedModules: ['verification', 'security workflow', 'commands', 'rules'],
+    recommendedMcpPacks: ['context7-docs', 'stripe-mcp'],
+    benchmarkFocus: ['payment safety', 'catalog workflow quality', 'analytics integration'],
+  },
+  {
+    key: 'ai-ml',
+    label: 'AI / ML',
+    useWhen: 'Repos with LLM chains, ML pipelines, model training, or AI agent workflows.',
+    recommendedModules: ['verification', 'agents', 'commands', 'benchmark'],
+    recommendedMcpPacks: ['context7-docs'],
+    benchmarkFocus: ['pipeline reproducibility', 'model workflow safety', 'experiment tracking'],
+  },
+  {
+    key: 'devops-cicd',
+    label: 'DevOps / CI/CD',
+    useWhen: 'Repos focused on CI/CD pipelines, GitHub Actions, deployment automation, or release engineering.',
+    recommendedModules: ['ci-devops', 'commands', 'hooks', 'governance'],
+    recommendedMcpPacks: ['context7-docs', 'github-mcp', 'docker-mcp'],
+    benchmarkFocus: ['pipeline safety', 'release workflow quality', 'deployment verification'],
+  },
+  {
+    key: 'design-system',
+    label: 'Design System',
+    useWhen: 'Component libraries, design token repos, or Storybook-driven projects with visual QA needs.',
+    recommendedModules: ['frontend rules', 'commands', 'verification', 'benchmark'],
+    recommendedMcpPacks: ['context7-docs', 'figma-mcp', 'playwright-mcp'],
+    benchmarkFocus: ['component quality', 'visual regression', 'token consistency'],
+  },
+  {
+    key: 'docs-content',
+    label: 'Docs / Content',
+    useWhen: 'Documentation sites, knowledge bases, or content-heavy repos (Docusaurus, GitBook, MDX).',
+    recommendedModules: ['commands', 'rules', 'verification'],
+    recommendedMcpPacks: ['context7-docs'],
+    benchmarkFocus: ['content quality', 'link integrity', 'build verification'],
+  },
+  {
+    key: 'security-focused',
+    label: 'Security-Focused',
+    useWhen: 'Repos handling auth, payments, PII, or secrets that need strict Claude guardrails.',
+    recommendedModules: ['governance', 'suggest-only profile', 'hooks', 'audit logging'],
+    recommendedMcpPacks: ['context7-docs', 'mcp-security'],
+    benchmarkFocus: ['permission posture', 'secrets protection', 'audit trail quality'],
+  },
 ];
 
 function uniqueByKey(items) {
@@ -204,6 +252,76 @@ function detectDomainPacks(ctx, stacks, assets = null) {
       'Detected compliance or regulatory signals without full enterprise governance.',
       ctx.files.includes('SECURITY.md') ? 'SECURITY.md present.' : null,
       ctx.hasDir('compliance') ? 'Compliance directory detected.' : null,
+    ]);
+  }
+
+  // E-commerce detection
+  const isEcommerce = deps.stripe || deps['@stripe/stripe-js'] || deps.shopify || deps['@shopify/shopify-api'] ||
+    deps.woocommerce || ctx.hasDir('products') || ctx.hasDir('checkout') || ctx.hasDir('cart');
+  if (isEcommerce) {
+    addMatch('ecommerce', [
+      'Detected e-commerce dependencies or storefront structure.',
+      deps.stripe ? 'Stripe dependency detected.' : null,
+      ctx.hasDir('checkout') ? 'Checkout directory detected.' : null,
+    ]);
+  }
+
+  // AI/ML detection
+  const isAiMl = deps.langchain || deps['@langchain/core'] || deps.openai || deps.anthropic ||
+    deps['@anthropic-ai/sdk'] || deps.transformers || deps.torch || deps.tensorflow ||
+    ctx.hasDir('chains') || ctx.hasDir('agents') || ctx.hasDir('models') || ctx.hasDir('prompts');
+  if (isAiMl && !hasData) {
+    addMatch('ai-ml', [
+      'Detected AI/ML dependencies or agent structure.',
+      deps.langchain ? 'LangChain detected.' : null,
+      ctx.hasDir('chains') ? 'Chain directory detected.' : null,
+    ]);
+  }
+
+  // DevOps/CI detection
+  const isDevopsCicd = ctx.hasDir('.github/workflows') || ctx.hasDir('.circleci') ||
+    ctx.files.includes('Jenkinsfile') || ctx.files.includes('.gitlab-ci.yml') ||
+    ctx.hasDir('deploy') || ctx.hasDir('scripts/deploy');
+  if (isDevopsCicd && !hasInfra) {
+    addMatch('devops-cicd', [
+      'Detected CI/CD pipelines or deployment scripts.',
+      ctx.hasDir('.github/workflows') ? 'GitHub Actions detected.' : null,
+      ctx.hasDir('deploy') ? 'Deploy directory detected.' : null,
+    ]);
+  }
+
+  // Design system detection
+  const isDesignSystem = deps.storybook || deps['@storybook/react'] || deps['@storybook/vue3'] ||
+    ctx.hasDir('tokens') || ctx.hasDir('design-tokens') ||
+    (ctx.hasDir('components') && ctx.files.includes('.storybook'));
+  if (isDesignSystem) {
+    addMatch('design-system', [
+      'Detected design system or component library signals.',
+      deps.storybook ? 'Storybook detected.' : null,
+      ctx.hasDir('tokens') ? 'Design tokens detected.' : null,
+    ]);
+  }
+
+  // Docs/content detection
+  const isDocsContent = deps.docusaurus || deps['@docusaurus/core'] || deps.nextra || deps.vitepress ||
+    deps.gitbook || ctx.files.includes('docusaurus.config.js') || ctx.files.includes('mkdocs.yml') ||
+    (ctx.hasDir('docs') && ctx.hasDir('content'));
+  if (isDocsContent) {
+    addMatch('docs-content', [
+      'Detected documentation site or content-heavy structure.',
+      deps.docusaurus ? 'Docusaurus detected.' : null,
+      ctx.files.includes('mkdocs.yml') ? 'MkDocs detected.' : null,
+    ]);
+  }
+
+  // Security-focused detection
+  const isSecurityFocused = ctx.files.includes('SECURITY.md') &&
+    (hasBackend || deps.bcrypt || deps.jsonwebtoken || deps.passport || deps['next-auth']);
+  if (isSecurityFocused && !isRegulated) {
+    addMatch('security-focused', [
+      'Detected security-sensitive backend with auth dependencies.',
+      deps.jsonwebtoken ? 'JWT auth detected.' : null,
+      deps.passport ? 'Passport auth detected.' : null,
     ]);
   }
 

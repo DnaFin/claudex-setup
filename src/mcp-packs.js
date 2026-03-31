@@ -61,6 +61,133 @@ const MCP_PACKS = [
       },
     },
   },
+  {
+    key: 'playwright-mcp',
+    label: 'Playwright Browser',
+    useWhen: 'Frontend repos that need browser automation, E2E testing, or visual QA during Claude sessions.',
+    adoption: 'Recommended for frontend-ui repos with E2E tests. No auth required.',
+    servers: {
+      playwright: {
+        command: 'npx',
+        args: ['-y', '@playwright/mcp@latest'],
+      },
+    },
+  },
+  {
+    key: 'docker-mcp',
+    label: 'Docker',
+    useWhen: 'Repos with containerized workflows that benefit from container management during Claude sessions.',
+    adoption: 'Useful for infra-platform and backend repos. Requires Docker running locally.',
+    servers: {
+      docker: {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-docker'],
+      },
+    },
+  },
+  {
+    key: 'notion-mcp',
+    label: 'Notion',
+    useWhen: 'Teams using Notion for documentation, wikis, or knowledge bases that Claude should reference.',
+    adoption: 'Useful for teams with Notion-based docs. Requires NOTION_API_KEY env var.',
+    servers: {
+      notion: {
+        command: 'npx',
+        args: ['-y', '@notionhq/notion-mcp-server'],
+        env: { NOTION_API_KEY: '${NOTION_API_KEY}' },
+      },
+    },
+  },
+  {
+    key: 'linear-mcp',
+    label: 'Linear',
+    useWhen: 'Teams using Linear for issue tracking that want Claude to read and create issues.',
+    adoption: 'Useful for teams managing sprints in Linear. Requires LINEAR_API_KEY env var.',
+    servers: {
+      linear: {
+        command: 'npx',
+        args: ['-y', '@linear/mcp-server'],
+        env: { LINEAR_API_KEY: '${LINEAR_API_KEY}' },
+      },
+    },
+  },
+  {
+    key: 'sentry-mcp',
+    label: 'Sentry',
+    useWhen: 'Repos with Sentry error tracking that benefit from error context during debugging sessions.',
+    adoption: 'Useful for production repos. Requires SENTRY_AUTH_TOKEN env var.',
+    servers: {
+      sentry: {
+        command: 'npx',
+        args: ['-y', '@sentry/mcp-server'],
+        env: { SENTRY_AUTH_TOKEN: '${SENTRY_AUTH_TOKEN}' },
+      },
+    },
+  },
+  {
+    key: 'slack-mcp',
+    label: 'Slack',
+    useWhen: 'Teams using Slack that want Claude to draft, preview, or post messages.',
+    adoption: 'Useful for team workflows. Requires SLACK_BOT_TOKEN env var.',
+    servers: {
+      slack: {
+        command: 'npx',
+        args: ['-y', '@anthropic/slack-mcp-server'],
+        env: { SLACK_BOT_TOKEN: '${SLACK_BOT_TOKEN}' },
+      },
+    },
+  },
+  {
+    key: 'stripe-mcp',
+    label: 'Stripe',
+    useWhen: 'Repos with Stripe integration for payments, subscriptions, or billing workflows.',
+    adoption: 'Useful for e-commerce and SaaS repos. Requires STRIPE_API_KEY env var.',
+    servers: {
+      stripe: {
+        command: 'npx',
+        args: ['-y', '@stripe/mcp-server'],
+        env: { STRIPE_API_KEY: '${STRIPE_API_KEY}' },
+      },
+    },
+  },
+  {
+    key: 'figma-mcp',
+    label: 'Figma',
+    useWhen: 'Design-heavy repos where Claude needs access to Figma designs and components.',
+    adoption: 'Useful for frontend-ui repos with design systems. Requires FIGMA_ACCESS_TOKEN env var.',
+    servers: {
+      figma: {
+        command: 'npx',
+        args: ['-y', '@anthropic/figma-mcp-server'],
+        env: { FIGMA_ACCESS_TOKEN: '${FIGMA_ACCESS_TOKEN}' },
+      },
+    },
+  },
+  {
+    key: 'mcp-security',
+    label: 'MCP Security Scanner',
+    useWhen: 'Any repo using MCP servers that should be scanned for tool poisoning and prompt injection.',
+    adoption: 'Recommended as a safety companion for any repo with 2+ MCP servers.',
+    servers: {
+      'mcp-scan': {
+        command: 'npx',
+        args: ['-y', 'mcp-scan@latest'],
+      },
+    },
+  },
+  {
+    key: 'composio-mcp',
+    label: 'Composio Universal',
+    useWhen: 'Teams needing 500+ integrations through a single MCP gateway with centralized OAuth.',
+    adoption: 'Useful for enterprise or integration-heavy repos. Requires COMPOSIO_API_KEY env var.',
+    servers: {
+      composio: {
+        command: 'npx',
+        args: ['-y', 'composio-mcp@latest'],
+        env: { COMPOSIO_API_KEY: '${COMPOSIO_API_KEY}' },
+      },
+    },
+  },
 ];
 
 function clone(value) {
@@ -109,9 +236,10 @@ function recommendMcpPacks(stacks = [], domainPacks = []) {
     recommended.add('context7-docs');
   }
 
-  // GitHub MCP for repos with .github directory
   const domainKeys = new Set(domainPacks.map(p => p.key));
-  if (domainKeys.has('oss-library') || domainKeys.has('enterprise-governed')) {
+
+  // GitHub MCP for collaborative repos
+  if (domainKeys.has('oss-library') || domainKeys.has('enterprise-governed') || domainKeys.has('monorepo')) {
     recommended.add('github-mcp');
   }
 
@@ -120,9 +248,39 @@ function recommendMcpPacks(stacks = [], domainPacks = []) {
     recommended.add('postgres-mcp');
   }
 
-  // Memory MCP for complex/monorepo projects
+  // Memory MCP for complex projects
   if (domainKeys.has('monorepo') || domainKeys.has('enterprise-governed')) {
     recommended.add('memory-mcp');
+  }
+
+  // Playwright for frontend repos
+  if (domainKeys.has('frontend-ui') || stackKeys.has('react') || stackKeys.has('vue') || stackKeys.has('angular') || stackKeys.has('svelte')) {
+    recommended.add('playwright-mcp');
+  }
+
+  // Docker for infra repos
+  if (domainKeys.has('infra-platform') || stackKeys.has('docker')) {
+    recommended.add('docker-mcp');
+  }
+
+  // Sentry for production backend/frontend
+  if (domainKeys.has('backend-api') || domainKeys.has('frontend-ui')) {
+    recommended.add('sentry-mcp');
+  }
+
+  // Figma for frontend-ui with design systems
+  if (domainKeys.has('frontend-ui')) {
+    recommended.add('figma-mcp');
+  }
+
+  // Stripe for e-commerce
+  if (domainKeys.has('ecommerce')) {
+    recommended.add('stripe-mcp');
+  }
+
+  // Security scanner when 2+ MCP servers recommended
+  if (recommended.size >= 2) {
+    recommended.add('mcp-security');
   }
 
   return MCP_PACKS

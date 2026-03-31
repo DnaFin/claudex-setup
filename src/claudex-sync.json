@@ -4,8 +4,8 @@
   "total_items": 1107,
   "tested": 948,
   "last_id": 1157,
-  "domain_packs": 10,
-  "mcp_packs": 5,
+  "domain_packs": 17,
+  "mcp_packs": 16,
   "anti_patterns": 53,
   "contract_version": "1.0.0"
 }
