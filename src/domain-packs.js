@@ -55,6 +55,30 @@ const DOMAIN_PACKS = [
     recommendedMcpPacks: ['context7-docs'],
     benchmarkFocus: ['policy-aware rollout', 'approval flow readiness', 'benchmark export quality'],
   },
+  {
+    key: 'monorepo',
+    label: 'Monorepo',
+    useWhen: 'Nx, Turborepo, Lerna, or workspace-based repos with multiple packages sharing a root.',
+    recommendedModules: ['path-specific rules', 'commands per package', 'governance', 'agents'],
+    recommendedMcpPacks: ['context7-docs'],
+    benchmarkFocus: ['package-scoped rule coverage', 'cross-package safety', 'workspace-aware starter output'],
+  },
+  {
+    key: 'mobile',
+    label: 'Mobile App',
+    useWhen: 'React Native, Flutter, Swift, or Kotlin repos with mobile-specific build and release workflows.',
+    recommendedModules: ['verification', 'commands', 'rules', 'agents'],
+    recommendedMcpPacks: ['context7-docs'],
+    benchmarkFocus: ['build verification', 'platform-specific rules', 'release workflow quality'],
+  },
+  {
+    key: 'regulated-lite',
+    label: 'Regulated Lite',
+    useWhen: 'Repos in regulated environments (fintech, health, legal) that need auditability without full enterprise governance overhead.',
+    recommendedModules: ['governance', 'activity artifacts', 'suggest-only profile', 'audit logging'],
+    recommendedMcpPacks: ['context7-docs'],
+    benchmarkFocus: ['audit trail completeness', 'change traceability', 'policy compliance readiness'],
+  },
 ];
 
 function uniqueByKey(items) {
@@ -141,6 +165,45 @@ function detectDomainPacks(ctx, stacks, assets = null) {
     addMatch('enterprise-governed', [
       'Settings, deny rules, and CI indicate a governed team workflow.',
       'Repo already has policy-aware Claude assets.',
+    ]);
+  }
+
+  // Monorepo detection
+  const isMonorepo = ctx.files.includes('nx.json') || ctx.files.includes('turbo.json') ||
+    ctx.files.includes('lerna.json') || ctx.hasDir('packages') ||
+    (pkg.workspaces && (Array.isArray(pkg.workspaces) ? pkg.workspaces.length > 0 : true));
+  if (isMonorepo) {
+    addMatch('monorepo', [
+      'Detected monorepo or workspace configuration.',
+      ctx.files.includes('nx.json') ? 'Nx workspace detected.' : null,
+      ctx.files.includes('turbo.json') ? 'Turborepo detected.' : null,
+      ctx.hasDir('packages') ? 'Packages directory detected.' : null,
+    ]);
+  }
+
+  // Mobile detection
+  const isMobile = deps['react-native'] || deps.expo || deps.flutter ||
+    ctx.files.includes('Podfile') || ctx.files.includes('build.gradle') ||
+    ctx.files.includes('build.gradle.kts') || ctx.hasDir('ios') || ctx.hasDir('android');
+  if (isMobile) {
+    addMatch('mobile', [
+      'Detected mobile app structure or dependencies.',
+      deps['react-native'] ? 'React Native detected.' : null,
+      ctx.hasDir('ios') ? 'iOS directory detected.' : null,
+      ctx.hasDir('android') ? 'Android directory detected.' : null,
+    ]);
+  }
+
+  // Regulated-lite detection
+  const isRegulated = ctx.files.includes('SECURITY.md') ||
+    ctx.files.includes('COMPLIANCE.md') || ctx.hasDir('compliance') ||
+    ctx.hasDir('audit') || ctx.hasDir('policies') ||
+    (pkg.keywords && pkg.keywords.some(k => ['hipaa', 'fintech', 'compliance', 'regulated', 'sox', 'pci'].includes(k)));
+  if (isRegulated && !isEnterpriseGoverned) {
+    addMatch('regulated-lite', [
+      'Detected compliance or regulatory signals without full enterprise governance.',
+      ctx.files.includes('SECURITY.md') ? 'SECURITY.md present.' : null,
+      ctx.hasDir('compliance') ? 'Compliance directory detected.' : null,
     ]);
   }
 

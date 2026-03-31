@@ -86,6 +86,54 @@ const HOOK_REGISTRY = [
     dryRunExample: 'Edit one file and verify the log entry is appended.',
     rollbackPath: 'Remove the PostToolUse hook entry and delete the log file if desired.',
   },
+  {
+    key: 'duplicate-id-check',
+    file: '.claude/hooks/check-duplicate-ids.sh',
+    triggerPoint: 'PostToolUse',
+    matcher: 'Write|Edit',
+    purpose: 'Detects duplicate IDs in catalog or structured data files after edits.',
+    filesTouched: [],
+    sideEffects: ['Returns a systemMessage warning if duplicates are found.'],
+    risk: 'low',
+    dryRunExample: 'Edit a catalog file and verify duplicate check runs without blocking.',
+    rollbackPath: 'Remove the PostToolUse hook entry from settings.',
+  },
+  {
+    key: 'injection-defense',
+    file: '.claude/hooks/injection-defense.sh',
+    triggerPoint: 'PostToolUse',
+    matcher: 'WebFetch|WebSearch',
+    purpose: 'Scans web tool outputs for common prompt injection patterns.',
+    filesTouched: ['tools/failure-log.txt'],
+    sideEffects: ['Logs alerts to failure log.', 'Returns a systemMessage warning if patterns detected.'],
+    risk: 'low',
+    dryRunExample: 'Run a WebFetch and verify output is scanned for injection patterns.',
+    rollbackPath: 'Remove the PostToolUse hook entry from settings.',
+  },
+  {
+    key: 'trust-drift-check',
+    file: '.claude/hooks/trust-drift-check.sh',
+    triggerPoint: 'PostToolUse',
+    matcher: 'Write|Edit',
+    purpose: 'Runs trust drift validation after file changes to catch metric/docs inconsistencies.',
+    filesTouched: [],
+    sideEffects: ['Returns a systemMessage warning if drift is detected.'],
+    risk: 'low',
+    dryRunExample: 'Edit a product-facing file and verify drift check runs.',
+    rollbackPath: 'Remove the PostToolUse hook entry from settings.',
+  },
+  {
+    key: 'session-init',
+    file: '.claude/hooks/rotate-logs.sh',
+    triggerPoint: 'SessionStart',
+    matcher: null,
+    purpose: 'Rotates large log files and loads workspace context at session start.',
+    filesTouched: ['tools/change-log.txt', 'tools/failure-log.txt'],
+    sideEffects: ['Archives logs over 500KB.', 'Returns a systemMessage with workspace info.'],
+    risk: 'low',
+    dryRunExample: 'Start a new session and verify log rotation runs.',
+    rollbackPath: 'Remove the SessionStart hook entry from settings.',
+  },
 ];
 
 const POLICY_PACKS = [
@@ -307,8 +355,9 @@ function printGovernanceSummary(summary, options = {}) {
 
   console.log('  Hook Registry');
   for (const hook of summary.hookRegistry) {
-    console.log(`  - ${hook.file}`);
-    console.log(`    ${hook.triggerPoint} ${hook.matcher} -> ${hook.purpose}`);
+    const riskColor = hook.risk === 'low' ? '\x1b[32m' : hook.risk === 'medium' ? '\x1b[33m' : '\x1b[31m';
+    console.log(`  - ${hook.file} ${riskColor}[${hook.risk} risk]\x1b[0m`);
+    console.log(`    ${hook.triggerPoint}${hook.matcher ? ` ${hook.matcher}` : ''} -> ${hook.purpose}`);
   }
   console.log('');
 

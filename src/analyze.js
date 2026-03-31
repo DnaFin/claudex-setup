@@ -170,6 +170,30 @@ function moduleFromCategory(category) {
   return map[category] || category;
 }
 
+const STRENGTH_REASONS = {
+  claudeMd: 'Foundation of Claude workflow. Every session benefits from this.',
+  mermaidArchitecture: 'Architecture diagram saves 73% tokens vs prose — high-value asset.',
+  verificationLoop: 'Claude can self-verify, catching errors before human review.',
+  hooks: 'Automated enforcement (100% vs 80% from instructions alone).',
+  hooksInSettings: 'Hook registration in settings ensures consistent automation.',
+  preToolUseHook: 'Pre-execution validation adds a safety layer.',
+  postToolUseHook: 'Post-execution automation catches issues immediately.',
+  sessionStartHook: 'Session initialization ensures consistent starting state.',
+  customCommands: 'Reusable workflows encoded as one-liner commands.',
+  settingsPermissions: 'Explicit permissions prevent accidental dangerous operations.',
+  permissionDeny: 'Deny rules block risky operations at the system level.',
+  pathRules: 'Scoped rules ensure different code areas get appropriate guidance.',
+  fewShotExamples: 'Code examples guide Claude to match your conventions.',
+  constraintBlocks: 'XML constraint blocks improve rule adherence by 40%.',
+  xmlTags: 'Structured prompt sections improve consistency.',
+  context7Mcp: 'Real-time docs eliminate version-mismatch hallucinations.',
+  mcpServers: 'External tool integration extends Claude capabilities.',
+  compactionAwareness: 'Context management keeps sessions efficient.',
+  agents: 'Specialized agents delegate complex tasks effectively.',
+  noSecretsInClaude: 'No secrets in config — good security hygiene.',
+  gitIgnoreEnv: 'Environment files are properly excluded from git.',
+};
+
 function toStrengths(results) {
   return results
     .filter(r => r.passed === true)
@@ -177,14 +201,29 @@ function toStrengths(results) {
       const order = { critical: 3, high: 2, medium: 1, low: 0 };
       return (order[b.impact] || 0) - (order[a.impact] || 0);
     })
-    .slice(0, 6)
+    .slice(0, 8)
     .map(r => ({
       key: r.key,
       name: r.name,
       category: r.category,
-      note: `Already present and worth preserving: ${r.name}.`,
+      why: STRENGTH_REASONS[r.key] || `Already configured and working: ${r.name}.`,
     }));
 }
+
+const GAP_REASONS = {
+  noBypassPermissions: 'bypassPermissions skips all safety checks. Use explicit allow rules for control without risk.',
+  secretsProtection: 'Without deny rules for .env, Claude can read secrets and potentially expose them in outputs.',
+  testCommand: 'Without a test command, Claude cannot verify its changes work before you review them.',
+  lintCommand: 'Without a lint command, Claude may produce inconsistently formatted code.',
+  buildCommand: 'Without a build command, Claude cannot catch compilation errors early.',
+  ciPipeline: 'CI ensures every change is automatically tested. Without it, bugs reach main branch faster.',
+  securityReview: 'Claude Code has built-in OWASP Top 10 scanning. Not using it leaves vulnerabilities undetected.',
+  skills: 'Skills encode domain expertise as reusable components. Without them, you repeat context every session.',
+  multipleAgents: 'Multiple agents enable parallel specialized work (security review + code writing simultaneously).',
+  multipleMcpServers: 'More MCP servers give Claude access to more external context (docs, databases, APIs).',
+  roleDefinition: 'A role definition helps Claude calibrate response depth and technical level.',
+  importSyntax: '@import keeps CLAUDE.md lean while still providing deep instructions in focused modules.',
+};
 
 function toGaps(results) {
   return results
@@ -200,6 +239,7 @@ function toGaps(results) {
       impact: r.impact,
       category: r.category,
       fix: r.fix,
+      why: GAP_REASONS[r.key] || r.fix,
     }));
 }
 
@@ -356,7 +396,10 @@ function printAnalysis(report, options = {}) {
   if (report.strengthsPreserved.length > 0) {
     console.log(c('  Strengths Preserved', 'green'));
     for (const item of report.strengthsPreserved) {
-      console.log(`  - ${item.name}`);
+      console.log(`  ${c('✓', 'green')} ${item.name}`);
+      if (item.why) {
+        console.log(c(`    ${item.why}`, 'dim'));
+      }
     }
     console.log('');
   }
@@ -420,4 +463,87 @@ function printAnalysis(report, options = {}) {
   }
 }
 
-module.exports = { analyzeProject, printAnalysis };
+function exportMarkdown(report) {
+  const lines = [];
+  lines.push(`# Claudex Setup Analysis Report`);
+  lines.push(`## ${report.mode === 'suggest-only' ? 'Suggest-Only' : 'Augment'} Mode`);
+  lines.push('');
+  lines.push(`**Project:** ${report.projectSummary.name}${report.projectSummary.description ? ` — ${report.projectSummary.description}` : ''}`);
+  lines.push(`**Date:** ${new Date().toISOString().split('T')[0]}`);
+  lines.push(`**Score:** ${report.projectSummary.score}/100 | **Organic:** ${report.projectSummary.organicScore}/100`);
+  lines.push(`**Stacks:** ${report.projectSummary.stacks.join(', ') || 'None detected'}`);
+  lines.push(`**Domain Packs:** ${report.projectSummary.domains.join(', ') || 'Baseline General'}`);
+  lines.push(`**Maturity:** ${report.projectSummary.maturity}`);
+  lines.push('');
+
+  if (report.strengthsPreserved.length > 0) {
+    lines.push('## Strengths Preserved');
+    lines.push('');
+    for (const item of report.strengthsPreserved) {
+      lines.push(`- **${item.name}** — ${item.why || 'Already configured.'}`);
+    }
+    lines.push('');
+  }
+
+  if (report.gapsIdentified.length > 0) {
+    lines.push('## Gaps Identified');
+    lines.push('');
+    lines.push('| Gap | Impact | Fix |');
+    lines.push('|-----|--------|-----|');
+    for (const item of report.gapsIdentified) {
+      lines.push(`| ${item.name} | ${item.impact} | ${item.fix} |`);
+    }
+    lines.push('');
+  }
+
+  if (report.topNextActions.length > 0) {
+    lines.push('## Top Next Actions');
+    lines.push('');
+    report.topNextActions.slice(0, 5).forEach((item, index) => {
+      lines.push(`${index + 1}. **${item.name}** — ${item.fix}`);
+    });
+    lines.push('');
+  }
+
+  if (report.recommendedDomainPacks.length > 0) {
+    lines.push('## Recommended Domain Packs');
+    lines.push('');
+    for (const pack of report.recommendedDomainPacks) {
+      lines.push(`- **${pack.label}**: ${pack.useWhen}`);
+    }
+    lines.push('');
+  }
+
+  if (report.recommendedMcpPacks.length > 0) {
+    lines.push('## Recommended MCP Packs');
+    lines.push('');
+    for (const pack of report.recommendedMcpPacks) {
+      lines.push(`- **${pack.label}**: ${pack.useWhen}`);
+    }
+    lines.push('');
+  }
+
+  if (report.riskNotes.length > 0) {
+    lines.push('## Risk Notes');
+    lines.push('');
+    for (const note of report.riskNotes) {
+      lines.push(`- ⚠️ ${note}`);
+    }
+    lines.push('');
+  }
+
+  if (report.suggestedRolloutOrder.length > 0) {
+    lines.push('## Suggested Rollout Order');
+    lines.push('');
+    report.suggestedRolloutOrder.forEach((item, index) => {
+      lines.push(`${index + 1}. ${item}`);
+    });
+    lines.push('');
+  }
+
+  lines.push('---');
+  lines.push(`*Generated by claudex-setup v${require('../package.json').version}*`);
+  return lines.join('\n');
+}
+
+module.exports = { analyzeProject, printAnalysis, exportMarkdown };

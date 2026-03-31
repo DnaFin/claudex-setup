@@ -358,9 +358,15 @@ const TECHNIQUES = {
     id: 2402,
     name: 'Default mode is not bypassPermissions',
     check: (ctx) => {
-      const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      if (!settings || !settings.permissions) return null; // no settings = skip (not applicable)
-      return settings.permissions.defaultMode !== 'bypassPermissions';
+      // Check shared settings first (committed to git) — if the shared baseline
+      // is safe, a personal settings.local.json override should not fail the audit.
+      const shared = ctx.jsonFile('.claude/settings.json');
+      if (shared && shared.permissions) {
+        return shared.permissions.defaultMode !== 'bypassPermissions';
+      }
+      const local = ctx.jsonFile('.claude/settings.local.json');
+      if (!local || !local.permissions) return null;
+      return local.permissions.defaultMode !== 'bypassPermissions';
     },
     impact: 'critical',
     rating: 5,
@@ -373,7 +379,8 @@ const TECHNIQUES = {
     id: 1096,
     name: 'Secrets protection configured',
     check: (ctx) => {
-      const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
+      // Prefer shared settings.json (committed) over local override
+      const settings = ctx.jsonFile('.claude/settings.json') || ctx.jsonFile('.claude/settings.local.json');
       if (!settings || !settings.permissions) return false;
       const deny = JSON.stringify(settings.permissions.deny || []);
       return deny.includes('.env') || deny.includes('secrets');

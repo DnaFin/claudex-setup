@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.9.0] - 2026-03-31
+
+### Added
+- 3 new domain packs: `monorepo`, `mobile`, `regulated-lite` (7→10 total)
+- 3 new MCP packs: `github-mcp`, `postgres-mcp`, `memory-mcp` (2→5 total)
+- smart MCP pack recommendation based on detected domain packs
+- `suggest-only --out report.md` exports full analysis as shareable markdown
+- `why` explanations for all strengths preserved (20+ specific reasons)
+- `why` explanations for all gap findings (12+ specific reasons)
+- 5 new hooks in governance registry: duplicate-id-check, injection-defense, trust-drift-check, session-init, protect-catalog
+- case study template in `content/case-study-template.md`
+- hook risk level display in governance output (color-coded low/medium/high)
+
+### Fixed
+- **Settings hierarchy bug**: `noBypassPermissions` and `secretsProtection` checks now correctly read `.claude/settings.json` before `.claude/settings.local.json`, so personal maintainer overrides no longer fail the shared audit
+- domain pack detection now handles monorepo (nx.json, turbo.json, lerna.json, workspaces), mobile (React Native, Flutter, iOS/Android dirs), and regulated repos (SECURITY.md, compliance dirs)
+
+### Changed
+- strengths preserved section now shows 8 items (was 6) with specific value explanations
+- claudex-sync.json updated with domain pack, MCP pack, and anti-pattern counts
+
 ## [1.8.0] - 2026-03-31
 
 ### Added

@@ -2,7 +2,7 @@
 
 const { audit } = require('../src/audit');
 const { setup } = require('../src/setup');
-const { analyzeProject, printAnalysis } = require('../src/analyze');
+const { analyzeProject, printAnalysis, exportMarkdown } = require('../src/analyze');
 const { buildProposalBundle, printProposalBundle, writePlanFile, applyProposalBundle, printApplyResult } = require('../src/plans');
 const { getGovernanceSummary, printGovernanceSummary, ensureWritableProfile } = require('../src/governance');
 const { runBenchmark, printBenchmark, writeBenchmarkReport } = require('../src/benchmark');
@@ -295,6 +295,12 @@ async function main() {
       return; // keep process alive for http
     } else if (normalizedCommand === 'augment' || normalizedCommand === 'suggest-only') {
       const report = await analyzeProject({ ...options, mode: normalizedCommand });
+      if (options.out && !options.json) {
+        const fs = require('fs');
+        const md = exportMarkdown(report);
+        fs.writeFileSync(options.out, md, 'utf8');
+        console.log(`\n  Report exported to ${options.out}\n`);
+      }
       printAnalysis(report, options);
     } else if (normalizedCommand === 'plan') {
       const bundle = await buildProposalBundle(options);

@@ -23,6 +23,44 @@ const MCP_PACKS = [
       },
     },
   },
+  {
+    key: 'github-mcp',
+    label: 'GitHub',
+    useWhen: 'Repos hosted on GitHub that benefit from issue, PR, and repository context during Claude sessions.',
+    adoption: 'Recommended for any GitHub-hosted project. Requires GITHUB_PERSONAL_ACCESS_TOKEN env var.',
+    servers: {
+      github: {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-github'],
+        env: { GITHUB_PERSONAL_ACCESS_TOKEN: '${GITHUB_PERSONAL_ACCESS_TOKEN}' },
+      },
+    },
+  },
+  {
+    key: 'postgres-mcp',
+    label: 'PostgreSQL',
+    useWhen: 'Repos with PostgreSQL databases that benefit from schema inspection and query assistance.',
+    adoption: 'Useful for backend-api and data-pipeline repos. Requires DATABASE_URL env var.',
+    servers: {
+      postgres: {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-postgres'],
+        env: { DATABASE_URL: '${DATABASE_URL}' },
+      },
+    },
+  },
+  {
+    key: 'memory-mcp',
+    label: 'Memory / Knowledge Graph',
+    useWhen: 'Long-running projects that benefit from persistent entity and relationship tracking across sessions.',
+    adoption: 'Useful for complex projects with many interconnected concepts. Stores data locally.',
+    servers: {
+      memory: {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-memory'],
+      },
+    },
+  },
 ];
 
 function clone(value) {
@@ -69,6 +107,22 @@ function recommendMcpPacks(stacks = [], domainPacks = []) {
   }
   if (stackKeys.size > 0) {
     recommended.add('context7-docs');
+  }
+
+  // GitHub MCP for repos with .github directory
+  const domainKeys = new Set(domainPacks.map(p => p.key));
+  if (domainKeys.has('oss-library') || domainKeys.has('enterprise-governed')) {
+    recommended.add('github-mcp');
+  }
+
+  // Postgres MCP for data-heavy repos
+  if (domainKeys.has('data-pipeline') || domainKeys.has('backend-api')) {
+    recommended.add('postgres-mcp');
+  }
+
+  // Memory MCP for complex/monorepo projects
+  if (domainKeys.has('monorepo') || domainKeys.has('enterprise-governed')) {
+    recommended.add('memory-mcp');
   }
 
   return MCP_PACKS

@@ -227,7 +227,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DnaFin/claudex-setup@v1.8.0
+      - uses: DnaFin/claudex-setup@v1.9.0
         with:
           threshold: 50
 ```
