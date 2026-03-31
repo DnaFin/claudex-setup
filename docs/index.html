@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>claudex-setup — Discover, plan, govern, and benchmark Claude Code setup</title>
-    <meta name="description" content="Audit your repo for Claude Code readiness, export proposal bundles, apply safe starter changes with rollback, and benchmark impact in an isolated temp copy.">
-    <meta property="og:title" content="claudex-setup — Discover, plan, and benchmark Claude Code setup">
-    <meta property="og:description" content="Score your project 0-100, export proposal bundles, apply safe starter changes, and benchmark impact without touching your live repo.">
+    <title>claudex-setup — Safely improve your Claude Code setup</title>
+    <meta name="description" content="Audit your repo. See what's missing. Apply only what you approve with rollback for every change. Existing config is always preserved.">
+    <meta property="og:title" content="claudex-setup — Safely improve your Claude Code setup">
+    <meta property="og:description" content="Audit your repo, see what's missing, apply only what you approve. Rollback for every change. Existing config is always preserved.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://dnafin.github.io/claudex-setup/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -198,6 +198,13 @@
             <span style="color:var(--text-dim);font-size:13px">62 audit checks &bull; 10 domain packs &bull; 5 MCP packs &bull; 18 stacks &bull; Backed by 1,107 tested entries from <a href="https://github.com/DnaFin/claudex" style="color:var(--accent)">CLAUDEX</a></span>
         </div>
 
+        <section style="margin:48px 0 48px;text-align:center;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:14px;padding:32px">
+            <div style="font-size:14px;text-transform:uppercase;letter-spacing:2px;color:var(--accent);font-weight:600;margin-bottom:8px">New here?</div>
+            <div style="font-size:20px;font-weight:700;margin-bottom:8px">Just run one command</div>
+            <div style="color:var(--text-dim);font-size:14px;margin-bottom:16px">Read-only. Nothing changes. See your score and what to improve.</div>
+            <code class="mono" style="background:var(--surface);padding:10px 24px;border-radius:8px;font-size:16px;color:var(--green);display:inline-block">npx claudex-setup</code>
+        </section>
+
         <section class="how-section">
             <h2>How it works</h2>
             <p>Three steps to a safer Claude Code rollout.</p>
@@ -291,8 +298,8 @@
         </section>
 
         <section class="features-section">
-            <h2>Discover, start, and augment safely.</h2>
-            <p>Use the mode that fits your repo maturity instead of forcing one workflow on every project.</p>
+            <h2>Pick the mode that fits your situation</h2>
+            <p>Start with read-only discovery. Go deeper only when you're ready.</p>
             <div class="features-grid">
                 <div class="feature-card">
                     <h3>🔍 Audit</h3>
@@ -315,26 +322,6 @@
                     <code>npx claudex-setup apply</code>
                 </div>
                 <div class="feature-card">
-                    <h3>🧙 Interactive Wizard</h3>
-                    <p>Step-by-step guided tour through every improvement. Pick what to fix, skip what you don't need.</p>
-                    <code>npx claudex-setup interactive</code>
-                </div>
-                <div class="feature-card">
-                    <h3>👁️ Watch Mode</h3>
-                    <p>Live monitoring. Re-audits on every config change, shows score delta in real time. Keep it running while you work.</p>
-                    <code>npx claudex-setup watch</code>
-                </div>
-                <div class="feature-card">
-                    <h3>🏅 Badge</h3>
-                    <p>Generate a shields.io badge for your README. Show the world your Claude Code readiness score.</p>
-                    <code>npx claudex-setup badge</code>
-                </div>
-                <div class="feature-card">
-                    <h3>🧠 Deep Review</h3>
-                    <p>Claude reads your actual config and gives AI-assisted feedback for mature setups. Requires API key and explicit opt-in.</p>
-                    <code>npx claudex-setup deep-review</code>
-                </div>
-                <div class="feature-card">
                     <h3>🛡️ Governance</h3>
                     <p>Permission profiles, hook registry, domain packs, MCP packs, policy packs, and a pilot rollout kit for security-conscious teams.</p>
                     <code>npx claudex-setup governance</code>
@@ -350,6 +337,31 @@
                     <code>uses: DnaFin/claudex-setup@v1.9.0</code>
                 </div>
             </div>
+            <details style="margin-top:16px;text-align:center">
+                <summary style="color:var(--accent);cursor:pointer;font-size:14px;font-weight:500">More modes: interactive wizard, watch, badge, deep-review</summary>
+                <div class="features-grid" style="margin-top:16px">
+                    <div class="feature-card">
+                        <h3>🧙 Interactive Wizard</h3>
+                        <p>Step-by-step guided tour. Pick what to fix, skip what you don't need.</p>
+                        <code>npx claudex-setup interactive</code>
+                    </div>
+                    <div class="feature-card">
+                        <h3>👁️ Watch Mode</h3>
+                        <p>Live monitoring. Re-audits on every config change in real time.</p>
+                        <code>npx claudex-setup watch</code>
+                    </div>
+                    <div class="feature-card">
+                        <h3>🏅 Badge</h3>
+                        <p>Generate a shields.io badge for your README.</p>
+                        <code>npx claudex-setup badge</code>
+                    </div>
+                    <div class="feature-card">
+                        <h3>🧠 Deep Review</h3>
+                        <p>AI-assisted feedback for mature setups. Requires API key and explicit opt-in.</p>
+                        <code>npx claudex-setup deep-review</code>
+                    </div>
+                </div>
+            </details>
         </section>
 
         <section class="smart-section">
@@ -427,35 +439,81 @@
         </div>
 
         <section style="margin:64px 0">
-            <h2 style="font-size:28px;font-weight:700;letter-spacing:-0.5px;margin-bottom:8px">Real example: CLAUDEX repo</h2>
-            <p style="color:var(--text-dim);font-size:15px;margin-bottom:32px">We ran claudex-setup on our own research repo. Here's what happened.</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:700px;margin:0 auto">
-                <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px">
-                    <div style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:12px">Before</div>
-                    <div style="font-size:48px;font-weight:800;color:var(--red)">62<span style="font-size:20px;color:var(--text-dim)">/100</span></div>
-                    <div style="font-size:13px;color:var(--text-dim);margin-top:8px">34 of 58 checks passing</div>
-                    <div style="margin-top:16px;font-size:13px;color:var(--text-dim);line-height:1.8">
-                        <span style="color:var(--red)">&#10007;</span> No secrets protection<br>
-                        <span style="color:var(--red)">&#10007;</span> No CI pipeline<br>
-                        <span style="color:var(--red)">&#10007;</span> Only 1 agent<br>
-                        <span style="color:var(--red)">&#10007;</span> No skills configured<br>
-                        <span style="color:var(--red)">&#10007;</span> Settings hierarchy bug
+            <h2 style="font-size:28px;font-weight:700;letter-spacing:-0.5px;margin-bottom:8px">Real example: full workflow on a live repo</h2>
+            <p style="color:var(--text-dim);font-size:15px;margin-bottom:32px">We ran the full Discover &rarr; Plan &rarr; Apply cycle on our own research repo. No cherry-picking.</p>
+
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--border);border-radius:14px;overflow:hidden;margin-bottom:24px">
+                <div style="background:var(--surface);padding:20px;text-align:center">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:600;margin-bottom:8px">1. Discover</div>
+                    <div style="font-size:13px;color:var(--text-dim)">Ran <code style="color:var(--green);font-size:12px">audit</code></div>
+                    <div style="font-size:24px;font-weight:800;color:var(--red);margin-top:4px">62<span style="font-size:14px;color:var(--text-dim)">/100</span></div>
+                    <div style="font-size:11px;color:var(--text-dim)">24 gaps found</div>
+                </div>
+                <div style="background:var(--surface);padding:20px;text-align:center">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:600;margin-bottom:8px">2. Plan</div>
+                    <div style="font-size:13px;color:var(--text-dim)">Ran <code style="color:var(--green);font-size:12px">suggest-only</code></div>
+                    <div style="font-size:24px;font-weight:800;color:var(--yellow);margin-top:4px">9</div>
+                    <div style="font-size:11px;color:var(--text-dim)">actionable fixes</div>
+                </div>
+                <div style="background:var(--surface);padding:20px;text-align:center">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:600;margin-bottom:8px">3. Apply</div>
+                    <div style="font-size:13px;color:var(--text-dim)">Applied selectively</div>
+                    <div style="font-size:24px;font-weight:800;color:var(--blue);margin-top:4px">7</div>
+                    <div style="font-size:11px;color:var(--text-dim)">changes accepted</div>
+                </div>
+                <div style="background:var(--surface);padding:20px;text-align:center">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:600;margin-bottom:8px">4. Result</div>
+                    <div style="font-size:13px;color:var(--text-dim)">Score after</div>
+                    <div style="font-size:24px;font-weight:800;color:var(--green);margin-top:4px">80<span style="font-size:14px;color:var(--text-dim)">/100</span></div>
+                    <div style="font-size:11px;color:var(--text-dim)">+18 points</div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
+                    <div style="font-size:12px;font-weight:600;color:var(--green);margin-bottom:8px">What we applied</div>
+                    <div style="font-size:13px;color:var(--text-dim);line-height:1.8">
+                        <span style="color:var(--green)">&#10003;</span> Secrets deny rules in settings<br>
+                        <span style="color:var(--green)">&#10003;</span> GitHub Actions CI pipeline<br>
+                        <span style="color:var(--green)">&#10003;</span> Second agent + 2 skills<br>
+                        <span style="color:var(--green)">&#10003;</span> Trust-drift automation hook<br>
+                        <span style="color:var(--green)">&#10003;</span> Verification commands in CLAUDE.md
                     </div>
                 </div>
-                <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px">
-                    <div style="font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:12px">After</div>
-                    <div style="font-size:48px;font-weight:800;color:var(--green)">80<span style="font-size:20px;color:var(--text-dim)">/100</span></div>
-                    <div style="font-size:13px;color:var(--text-dim);margin-top:8px">43 of 58 checks passing</div>
-                    <div style="margin-top:16px;font-size:13px;color:var(--text-dim);line-height:1.8">
-                        <span style="color:var(--green)">&#10003;</span> Secrets deny rules added<br>
-                        <span style="color:var(--green)">&#10003;</span> GitHub Actions CI<br>
-                        <span style="color:var(--green)">&#10003;</span> 2 agents + 2 skills<br>
-                        <span style="color:var(--green)">&#10003;</span> Trust-drift automation<br>
-                        <span style="color:var(--green)">&#10003;</span> Settings bug fixed in tool
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px">
+                    <div style="font-size:12px;font-weight:600;color:var(--yellow);margin-bottom:8px">What we skipped (not applicable)</div>
+                    <div style="font-size:13px;color:var(--text-dim);line-height:1.8">
+                        <span style="color:var(--text-dim)">&#8212;</span> Dockerfile (research repo, no deploy)<br>
+                        <span style="color:var(--text-dim)">&#8212;</span> Terraform (no infra)<br>
+                        <span style="color:var(--text-dim)">&#8212;</span> Build command (no compilation)<br>
+                        <span style="color:var(--text-dim)">&#8212;</span> Deploy command (no release target)
                     </div>
                 </div>
             </div>
-            <p style="text-align:center;color:var(--text-dim);font-size:13px;margin-top:16px">Remaining 15 failures are not applicable to this research repo (no Dockerfile, Terraform, or deploy target). <a href="https://github.com/DnaFin/claudex/blob/main/research/self-dogfood-results-2026-03-31.md" style="color:var(--accent)">Full results</a></p>
+            <p style="text-align:center;color:var(--text-dim);font-size:13px">Also found a real bug in our own tool during this run (settings hierarchy). Fixed and shipped. <a href="https://github.com/DnaFin/claudex/blob/main/research/self-dogfood-results-2026-03-31.md" style="color:var(--accent)">Full results</a></p>
+        </section>
+
+        <section style="margin:64px 0">
+            <h2 style="font-size:28px;font-weight:700;letter-spacing:-0.5px;margin-bottom:8px">When NOT to use this</h2>
+            <p style="color:var(--text-dim);font-size:15px;margin-bottom:24px">Honesty builds trust. Here's where this tool is not the right answer.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="background:var(--red-dim);border:1px solid rgba(248,113,113,0.2);border-radius:10px;padding:20px">
+                    <div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:8px">Don't use setup on a mature repo blindly</div>
+                    <div style="font-size:13px;color:var(--text-dim);line-height:1.6">If your team already has a carefully crafted CLAUDE.md and .claude/ config, use <code style="font-size:12px">audit</code> or <code style="font-size:12px">suggest-only</code> first. Never overwrite a hand-built config without reviewing the proposal.</div>
+                </div>
+                <div style="background:var(--red-dim);border:1px solid rgba(248,113,113,0.2);border-radius:10px;padding:20px">
+                    <div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:8px">Don't trust the score as a quality metric</div>
+                    <div style="font-size:13px;color:var(--text-dim);line-height:1.6">The score measures Claude Code setup coverage, not code quality. A 90/100 repo with bad code is still bad code. This tool improves how Claude works with your repo, not the repo itself.</div>
+                </div>
+                <div style="background:var(--red-dim);border:1px solid rgba(248,113,113,0.2);border-radius:10px;padding:20px">
+                    <div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:8px">Don't skip reading the generated files</div>
+                    <div style="font-size:13px;color:var(--text-dim);line-height:1.6">Generated CLAUDE.md is a strong starting point, but a hand-written one that reflects your real conventions will always be better. Treat generated output as draft, not final.</div>
+                </div>
+                <div style="background:var(--red-dim);border:1px solid rgba(248,113,113,0.2);border-radius:10px;padding:20px">
+                    <div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:8px">Don't expect it to fix your code</div>
+                    <div style="font-size:13px;color:var(--text-dim);line-height:1.6">This tool configures how Claude interacts with your project. It doesn't refactor, fix bugs, or write features. It makes Claude better at doing those things for you.</div>
+                </div>
+            </div>
         </section>
 
         <section class="faq-section" style="margin:64px 0">
