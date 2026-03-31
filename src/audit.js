@@ -97,7 +97,18 @@ async function audit(options) {
   }
 
   if (options.json) {
-    console.log(JSON.stringify({ score, stacks, passed: passed.length, failed: failed.length, results }, null, 2));
+    const { version } = require('../package.json');
+    console.log(JSON.stringify({
+      version,
+      timestamp: new Date().toISOString(),
+      score,
+      stacks,
+      passed: passed.length,
+      failed: failed.length,
+      skipped: skipped.length,
+      checkCount: applicable.length,
+      results
+    }, null, 2));
     return { score, passed: passed.length, failed: failed.length, stacks, results };
   }
 

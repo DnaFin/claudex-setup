@@ -49,6 +49,12 @@ async function main() {
     dir: process.cwd()
   };
 
+  if (!require('fs').existsSync(options.dir)) {
+    console.error(`\n  Error: Directory not found: ${options.dir}`);
+    console.error('  Run claudex-setup from inside your project directory.\n');
+    process.exit(1);
+  }
+
   try {
     if (command === 'badge') {
       const { getBadgeMarkdown } = require('../src/badge');

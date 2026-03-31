@@ -29,8 +29,7 @@ function detectScripts(ctx) {
 // Helper: detect key dependencies and generate guidelines
 // ============================================================
 function detectDependencies(ctx) {
-  const pkg = ctx.jsonFile('package.json');
-  if (!pkg) return [];
+  const pkg = ctx.jsonFile('package.json') || {};
   const allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
   const guidelines = [];
 
@@ -152,6 +151,50 @@ function detectDependencies(ctx) {
   }
   if (reqTxt.includes('redis')) {
     guidelines.push('- Redis is available for caching and task queues');
+  }
+  if (reqTxt.includes('langchain')) {
+    guidelines.push('- Use LangChain for chain/agent orchestration. Define chains in chains/ directory');
+  }
+  if (reqTxt.includes('openai')) {
+    guidelines.push('- OpenAI SDK available. Use structured outputs where possible');
+  }
+  if (reqTxt.includes('anthropic')) {
+    guidelines.push('- Anthropic SDK available. Prefer Claude for complex reasoning tasks');
+  }
+  if (reqTxt.includes('chromadb')) {
+    guidelines.push('- Use ChromaDB for local vector storage. Persist collections to disk');
+  }
+  if (reqTxt.includes('pinecone')) {
+    guidelines.push('- Use Pinecone for production vector search. Define index schemas upfront');
+  }
+  if (reqTxt.includes('mlflow')) {
+    guidelines.push('- Use MLflow for experiment tracking. Log all model parameters and metrics');
+  }
+  if (reqTxt.includes('wandb')) {
+    guidelines.push('- Use Weights & Biases for experiment tracking and visualization');
+  }
+  if (reqTxt.includes('transformers')) {
+    guidelines.push('- HuggingFace Transformers available. Use AutoModel/AutoTokenizer for loading');
+  }
+
+  // JS AI/ML/Cloud deps
+  if (allDeps['@anthropic-ai/sdk']) {
+    guidelines.push('- Anthropic SDK configured. Use Messages API with structured tool_use for agents');
+  }
+  if (allDeps['openai']) {
+    guidelines.push('- OpenAI SDK available. Use structured outputs and function calling');
+  }
+  if (allDeps['@modelcontextprotocol/sdk']) {
+    guidelines.push('- MCP SDK available. Build MCP servers with stdio transport');
+  }
+  if (allDeps['langchain'] || allDeps['@langchain/core']) {
+    guidelines.push('- LangChain available. Use LCEL for chain composition');
+  }
+  if (allDeps['@aws-sdk/client-s3'] || allDeps['@aws-sdk/client-dynamodb']) {
+    guidelines.push('- AWS SDK v3 configured. Use modular imports, not aws-sdk v2');
+  }
+  if (allDeps['@aws-cdk/aws-lambda'] || allDeps['aws-cdk-lib']) {
+    guidelines.push('- AWS CDK available. Define stacks in lib/, constructs as separate classes');
   }
 
   return guidelines;
@@ -563,6 +606,12 @@ ${hasJS ? '- Use const by default; never use var\n' : ''}\
 Before completing any task, confirm:
 ${verificationSteps.join('\n')}
 </verification>
+
+## Context Management
+- Use /compact when context gets large (above 50% capacity)
+- Prefer focused sessions — one task per conversation
+- If a session gets too long, start fresh with /clear
+- Use subagents for research tasks to keep main context clean
 
 ## Workflow
 - Verify changes with tests before committing

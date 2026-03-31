@@ -1,0 +1,11 @@
+test/
+tools/
+docs/
+content/
+.github/
+.claude/
+apf/
+APF.md
+CONTRIBUTING.md
+wrangler.toml
+*.log
