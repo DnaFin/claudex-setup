@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.8.0] - 2026-03-31
+
+### Added
+- domain pack recommendations for backend, frontend, data, infra, OSS, and enterprise-governed repos
+- MCP pack recommendations and merge support for `context7-docs` and `next-devtools`
+- workflow-evidence coverage in benchmark reports
+- runtime settings overlays so `apply --plan` still respects current `--profile` and `--mcp-pack` flags
+
+### Changed
+- benchmark now respects the selected profile and MCP pack options during isolated-copy runs
+- governance and suggest-only outputs now expose domain packs and MCP packs directly
+- README and docs clarify the local-vs-opt-in-network boundary for core flows vs `deep-review`
+- audit output now frames `setup` as starter-safe generation instead of an automatic full fix
+
 ## [1.7.0] - 2026-03-31
 
 ### Added

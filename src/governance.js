@@ -1,3 +1,6 @@
+const { DOMAIN_PACKS } = require('./domain-packs');
+const { MCP_PACKS, mergeMcpServers, normalizeMcpPackKeys } = require('./mcp-packs');
+
 const PERMISSION_PROFILES = [
   {
     key: 'read-only',
@@ -137,11 +140,147 @@ const PILOT_ROLLOUT_KIT = {
   ],
 };
 
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function mergeUnique(existing = [], additions = []) {
+  return [...new Set([...(Array.isArray(existing) ? existing : []), ...additions])];
+}
+
+function mergeHooks(existingHooks = {}, nextHooks = {}) {
+  const merged = clone(existingHooks || {});
+
+  for (const [stage, blocks] of Object.entries(nextHooks)) {
+    const targetBlocks = Array.isArray(merged[stage]) ? clone(merged[stage]) : [];
+    for (const incoming of blocks) {
+      const index = targetBlocks.findIndex(block => block.matcher === incoming.matcher);
+      if (index === -1) {
+        targetBlocks.push(clone(incoming));
+        continue;
+      }
+
+      const current = targetBlocks[index];
+      const existingCommands = new Set((current.hooks || []).map(hook => `${hook.type}:${hook.command}:${hook.timeout || ''}`));
+      const mergedHooks = [...(current.hooks || [])];
+      for (const hook of incoming.hooks || []) {
+        const signature = `${hook.type}:${hook.command}:${hook.timeout || ''}`;
+        if (!existingCommands.has(signature)) {
+          mergedHooks.push(clone(hook));
+          existingCommands.add(signature);
+        }
+      }
+      targetBlocks[index] = { ...current, hooks: mergedHooks };
+    }
+    merged[stage] = targetBlocks;
+  }
+
+  return merged;
+}
+
+function getPermissionProfile(key = 'safe-write') {
+  return PERMISSION_PROFILES.find(profile => profile.key === key) ||
+    PERMISSION_PROFILES.find(profile => profile.key === 'safe-write');
+}
+
+function isWritableProfile(key = 'safe-write') {
+  return ['safe-write', 'power-user', 'internal-research'].includes(getPermissionProfile(key).key);
+}
+
+function ensureWritableProfile(key = 'safe-write', commandName = 'apply', dryRun = false) {
+  const profile = getPermissionProfile(key);
+  if (!dryRun && !isWritableProfile(profile.key)) {
+    throw new Error(`${commandName} requires a writable profile. Use --profile safe-write or --dry-run.`);
+  }
+  return profile;
+}
+
+function buildHookConfig(hookFiles, profileKey) {
+  const profile = getPermissionProfile(profileKey);
+  if (!isWritableProfile(profile.key)) {
+    return {};
+  }
+
+  const uniqueFiles = [...new Set(hookFiles)].sort();
+  if (uniqueFiles.length === 0) {
+    return {};
+  }
+
+  const hookConfig = {
+    PostToolUse: [{
+      matcher: 'Write|Edit',
+      hooks: uniqueFiles
+        .filter(file => file !== 'protect-secrets.sh' && file !== 'session-start.sh')
+        .map(file => ({
+          type: 'command',
+          command: `bash .claude/hooks/${file}`,
+          timeout: 10,
+        })),
+    }],
+  };
+
+  if (uniqueFiles.includes('protect-secrets.sh')) {
+    hookConfig.PreToolUse = [{
+      matcher: 'Read|Write|Edit',
+      hooks: [{
+        type: 'command',
+        command: 'bash .claude/hooks/protect-secrets.sh',
+        timeout: 5,
+      }],
+    }];
+  }
+
+  if (uniqueFiles.includes('session-start.sh')) {
+    hookConfig.SessionStart = [{
+      matcher: '*',
+      hooks: [{
+        type: 'command',
+        command: 'bash .claude/hooks/session-start.sh',
+        timeout: 5,
+      }],
+    }];
+  }
+
+  if ((hookConfig.PostToolUse[0].hooks || []).length === 0) {
+    delete hookConfig.PostToolUse;
+  }
+
+  return hookConfig;
+}
+
+function buildSettingsForProfile({ profileKey = 'safe-write', hookFiles = [], existingSettings = null, mcpPackKeys = [] } = {}) {
+  const profile = getPermissionProfile(profileKey);
+  const base = existingSettings ? clone(existingSettings) : {};
+  const selectedMcpPacks = normalizeMcpPackKeys(mcpPackKeys);
+  base.permissions = base.permissions || {};
+  base.permissions.defaultMode = profile.defaultMode;
+  base.permissions.deny = mergeUnique(base.permissions.deny, profile.deny);
+
+  const hookConfig = buildHookConfig(hookFiles, profile.key);
+  if (Object.keys(hookConfig).length > 0) {
+    base.hooks = mergeHooks(base.hooks, hookConfig);
+  }
+
+  if (selectedMcpPacks.length > 0) {
+    base.mcpServers = mergeMcpServers(base.mcpServers, selectedMcpPacks);
+  }
+
+  base.claudexSetup = {
+    ...(base.claudexSetup || {}),
+    profile: profile.key,
+    mcpPacks: selectedMcpPacks,
+  };
+
+  return base;
+}
+
 function getGovernanceSummary() {
   return {
     permissionProfiles: PERMISSION_PROFILES,
     hookRegistry: HOOK_REGISTRY,
     policyPacks: POLICY_PACKS,
+    domainPacks: DOMAIN_PACKS,
+    mcpPacks: MCP_PACKS,
     pilotRolloutKit: PILOT_ROLLOUT_KIT,
   };
 }
@@ -179,6 +318,18 @@ function printGovernanceSummary(summary, options = {}) {
   }
   console.log('');
 
+  console.log('  Domain Packs');
+  for (const pack of summary.domainPacks) {
+    console.log(`  - ${pack.label}: ${pack.useWhen}`);
+  }
+  console.log('');
+
+  console.log('  MCP Packs');
+  for (const pack of summary.mcpPacks) {
+    console.log(`  - ${pack.label}: ${Object.keys(pack.servers).join(', ')}`);
+  }
+  console.log('');
+
   console.log('  Pilot Rollout Kit');
   for (const item of summary.pilotRolloutKit.recommendedScope) {
     console.log(`  - ${item}`);
@@ -187,6 +338,11 @@ function printGovernanceSummary(summary, options = {}) {
 }
 
 module.exports = {
+  PERMISSION_PROFILES,
+  getPermissionProfile,
+  isWritableProfile,
+  ensureWritableProfile,
+  buildSettingsForProfile,
   getGovernanceSummary,
   printGovernanceSummary,
 };

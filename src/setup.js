@@ -1,6 +1,6 @@
 /**
  * Setup engine - applies recommended Claude Code configuration to a project.
- * v1.7.0 - Starter-safe setup engine with reusable planning primitives.
+ * v1.8.0 - Starter-safe setup engine with reusable planning primitives.
  */
 
 const fs = require('fs');
@@ -8,6 +8,7 @@ const path = require('path');
 const { TECHNIQUES, STACKS } = require('./techniques');
 const { ProjectContext } = require('./context');
 const { audit } = require('./audit');
+const { buildSettingsForProfile } = require('./governance');
 
 // ============================================================
 // Helper: detect project scripts from package.json
@@ -828,6 +829,19 @@ echo "[$TIMESTAMP] $TOOL_NAME: $FILE_PATH" >> "$LOG_FILE"
 
 exit 0
 `,
+    'session-start.sh': `#!/bin/bash
+# SessionStart hook - prepares logs and records session entry
+
+LOG_DIR=".claude/logs"
+LOG_FILE="$LOG_DIR/sessions.log"
+
+mkdir -p "$LOG_DIR"
+
+TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
+echo "[$TIMESTAMP] session started" >> "$LOG_FILE"
+
+exit 0
+`,
   }),
 
   'commands': (stacks) => {
@@ -877,6 +891,15 @@ exit 0
 1. Run \`git diff\` to see all changes
 2. Check for: bugs, security issues, missing tests, code style
 3. Provide actionable feedback
+`;
+
+    cmds['security-review.md'] = `Run a focused security review using Claude Code's built-in security workflow.
+
+## Steps:
+1. Review auth, permissions, secrets handling, and data access paths
+2. Run \`/security-review\` for OWASP-focused analysis
+3. Check for unsafe shell commands, token leakage, and risky file access
+4. Report findings ordered by severity with concrete fixes
 `;
 
     // Deploy - stack-specific
@@ -981,6 +1004,17 @@ Fix the GitHub issue: $ARGUMENTS
 4. Write tests
 5. Create a descriptive commit
 `,
+    'release-check/SKILL.md': `---
+name: release-check
+description: Prepare a release candidate and verify publish readiness
+---
+Prepare a release candidate for: $ARGUMENTS
+
+1. Read CHANGELOG.md and package.json version
+2. Run the test suite and packaging checks
+3. Verify docs, tags, and release notes are aligned
+4. Flag anything that would make the release unsafe or misleading
+`,
   }),
 
   'rules': (stacks) => {
@@ -1028,6 +1062,12 @@ Fix the GitHub issue: $ARGUMENTS
 - Mock external dependencies, not internal logic
 - Include both happy path and edge case tests
 `;
+    rules['repository.md'] = `When changing release, packaging, or workflow files:
+- Keep package.json, CHANGELOG.md, README.md, and docs in sync
+- Prefer tagged release references over floating branch references in public docs
+- Preserve backward compatibility in CLI flags where practical
+- Any automation that writes files must document rollback expectations
+`;
     return rules;
   },
 
@@ -1037,12 +1077,26 @@ name: security-reviewer
 description: Reviews code for security vulnerabilities
 tools: [Read, Grep, Glob]
 model: sonnet
+maxTurns: 50
 ---
 Review code for security issues:
 - Injection vulnerabilities (SQL, XSS, command injection)
 - Authentication and authorization flaws
 - Secrets or credentials in code
 - Insecure data handling
+`,
+    'release-manager.md': `---
+name: release-manager
+description: Checks release readiness and packaging consistency
+tools: [Read, Grep, Glob]
+model: sonnet
+maxTurns: 50
+---
+Review release readiness:
+- version alignment across package.json, changelog, and docs
+- publish safety and packaging scope
+- missing rollback or migration notes
+- documentation drift that would confuse adopters
 `,
   }),
 
@@ -1164,41 +1218,11 @@ async function setup(options) {
   if (fs.existsSync(hooksDir) && !fs.existsSync(settingsPath)) {
     const hookFiles = fs.readdirSync(hooksDir).filter(f => f.endsWith('.sh'));
     if (hookFiles.length > 0) {
-      const settings = {
-        permissions: {
-          defaultMode: "acceptEdits",
-          deny: [
-            "Read(./.env*)",
-            "Read(./secrets/**)",
-            "Bash(rm -rf *)",
-            "Bash(git reset --hard *)",
-            "Bash(git checkout -- *)",
-            "Bash(git clean *)",
-            "Bash(git push --force *)"
-          ]
-        },
-        hooks: {
-          PostToolUse: [{
-            matcher: "Write|Edit",
-            hooks: hookFiles.filter(f => f !== 'protect-secrets.sh').map(f => ({
-              type: "command",
-              command: `bash .claude/hooks/${f}`,
-              timeout: 10
-            }))
-          }]
-        }
-      };
-      // Add protect-secrets as PreToolUse if it exists
-      if (hookFiles.includes('protect-secrets.sh')) {
-        settings.hooks.PreToolUse = [{
-          matcher: "Read|Write|Edit",
-          hooks: [{
-            type: "command",
-            command: "bash .claude/hooks/protect-secrets.sh",
-            timeout: 5
-          }]
-        }];
-      }
+      const settings = buildSettingsForProfile({
+        profileKey: options.profile || 'safe-write',
+        hookFiles,
+        mcpPackKeys: options.mcpPacks || [],
+      });
       fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
       writtenFiles.push('.claude/settings.json');
       log(`  \x1b[32m✅\x1b[0m Created .claude/settings.json (hooks registered)`);

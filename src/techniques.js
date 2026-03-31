@@ -4,6 +4,12 @@
  * Each technique includes: what to check, how to fix, impact level.
  */
 
+function hasFrontendSignals(ctx) {
+  const pkg = ctx.fileContent('package.json') || '';
+  return /react|vue|angular|next|svelte|tailwind|vite|astro/i.test(pkg) ||
+    ctx.files.some(f => /tailwind\.config|vite\.config|next\.config|svelte\.config|nuxt\.config|pages\/|components\/|app\//i.test(f));
+}
+
 const TECHNIQUES = {
   // ============================================================
   // === MEMORY & CONTEXT (category: 'memory') ==================
@@ -142,8 +148,13 @@ const TECHNIQUES = {
     name: '.claude/ tracked in git',
     check: (ctx) => {
       if (!ctx.fileContent('.gitignore')) return true; // no gitignore = ok
-      const content = ctx.fileContent('.gitignore');
-      return !content.includes('.claude/') || content.includes('!.claude/');
+      const lines = ctx.fileContent('.gitignore')
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('#'));
+      const ignoresClaudeDir = lines.some(line => /^(\/|\*\*\/)?\.claude\/?$/.test(line));
+      const unignoresClaudeDir = lines.some(line => /^!(\/)?\.claude(\/|\*\*)?$/.test(line));
+      return !ignoresClaudeDir || unignoresClaudeDir;
     },
     impact: 'high',
     rating: 4,
@@ -318,7 +329,7 @@ const TECHNIQUES = {
     name: 'Permission configuration',
     check: (ctx) => {
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      return settings && settings.permissions;
+      return !!(settings && settings.permissions);
     },
     impact: 'medium',
     rating: 4,
@@ -471,6 +482,7 @@ const TECHNIQUES = {
     id: 1025,
     name: 'Frontend design skill for anti-AI-slop',
     check: (ctx) => {
+      if (!hasFrontendSignals(ctx)) return null;
       const md = ctx.fileContent('CLAUDE.md') || '';
       return md.includes('frontend_aesthetics') || md.includes('anti-AI-slop') || md.includes('frontend-design');
     },
@@ -485,6 +497,7 @@ const TECHNIQUES = {
     id: 102501,
     name: 'Tailwind CSS configured',
     check: (ctx) => {
+      if (!hasFrontendSignals(ctx)) return null;
       const pkg = ctx.fileContent('package.json') || '';
       return pkg.includes('tailwind') ||
         ctx.files.some(f => /tailwind\.config/.test(f));
@@ -613,7 +626,7 @@ const TECHNIQUES = {
       if (!hasNodeSignals) return null;
       if (ctx.files.includes('.nvmrc') || ctx.files.includes('.node-version')) return true;
       const pkg = ctx.jsonFile('package.json');
-      return pkg && pkg.engines && pkg.engines.node;
+      return !!(pkg && pkg.engines && pkg.engines.node);
     },
     impact: 'low',
     rating: 3,
@@ -663,7 +676,7 @@ const TECHNIQUES = {
     name: 'MCP servers configured',
     check: (ctx) => {
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      return settings && settings.mcpServers && Object.keys(settings.mcpServers).length > 0;
+      return !!(settings && settings.mcpServers && Object.keys(settings.mcpServers).length > 0);
     },
     impact: 'medium',
     rating: 3,
@@ -677,7 +690,7 @@ const TECHNIQUES = {
     name: '2+ MCP servers for rich tooling',
     check: (ctx) => {
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      return settings && settings.mcpServers && Object.keys(settings.mcpServers).length >= 2;
+      return !!(settings && settings.mcpServers && Object.keys(settings.mcpServers).length >= 2);
     },
     impact: 'medium',
     rating: 4,

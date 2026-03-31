@@ -1,7 +1,7 @@
 {
   "name": "claudex-setup",
-  "version": "1.7.0",
-  "description": "Audit and optimize any project for Claude Code. Powered by 1107 verified techniques.",
+  "version": "1.8.0",
+  "description": "Audit and improve Claude Code readiness with discover, plan, apply, governance, and benchmark workflows.",
   "main": "src/index.js",
   "bin": {
     "claudex-setup": "bin/cli.js"
@@ -14,6 +14,7 @@
   ],
   "scripts": {
     "start": "node bin/cli.js",
+    "build": "npm pack --dry-run",
     "test": "node test/run.js"
   },
   "keywords": [

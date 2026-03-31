@@ -194,7 +194,7 @@ async function audit(options) {
   console.log(`  ${colorize(`${passed.length}/${applicable.length}`, 'bold')} checks passing${skipped.length > 0 ? colorize(` (${skipped.length} not applicable)`, 'dim') : ''}`);
 
   if (failed.length > 0) {
-    console.log(`  Run ${colorize('npx claudex-setup setup', 'bold')} to fix automatically`);
+    console.log(`  Run ${colorize('npx claudex-setup setup', 'bold')} to create starter-safe defaults`);
   }
 
   console.log('');
@@ -212,7 +212,7 @@ async function audit(options) {
     console.log('');
   }
 
-  console.log(colorize('  Powered by CLAUDEX - 1,107 verified Claude Code techniques', 'dim'));
+  console.log(colorize('  Backed by CLAUDEX research and evidence', 'dim'));
   console.log(colorize('  https://github.com/DnaFin/claudex-setup', 'dim'));
   console.log('');
 

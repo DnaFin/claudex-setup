@@ -4,7 +4,7 @@ const { audit } = require('../src/audit');
 const { setup } = require('../src/setup');
 const { analyzeProject, printAnalysis } = require('../src/analyze');
 const { buildProposalBundle, printProposalBundle, writePlanFile, applyProposalBundle, printApplyResult } = require('../src/plans');
-const { getGovernanceSummary, printGovernanceSummary } = require('../src/governance');
+const { getGovernanceSummary, printGovernanceSummary, ensureWritableProfile } = require('../src/governance');
 const { runBenchmark, printBenchmark, writeBenchmarkReport } = require('../src/benchmark');
 const { version } = require('../package.json');
 
@@ -58,12 +58,14 @@ function parseArgs(rawArgs) {
   let out = null;
   let planFile = null;
   let only = [];
+  let profile = 'safe-write';
+  let mcpPacks = [];
   let commandSet = false;
 
   for (let i = 0; i < rawArgs.length; i++) {
     const arg = rawArgs[i];
 
-    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only') {
+    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack') {
       const value = rawArgs[i + 1];
       if (!value || value.startsWith('--')) {
         throw new Error(`${arg} requires a value`);
@@ -72,6 +74,8 @@ function parseArgs(rawArgs) {
       if (arg === '--out') out = value;
       if (arg === '--plan') planFile = value;
       if (arg === '--only') only = value.split(',').map(item => item.trim()).filter(Boolean);
+      if (arg === '--profile') profile = value.trim();
+      if (arg === '--mcp-pack') mcpPacks = value.split(',').map(item => item.trim()).filter(Boolean);
       i++;
       continue;
     }
@@ -96,6 +100,16 @@ function parseArgs(rawArgs) {
       continue;
     }
 
+    if (arg.startsWith('--profile=')) {
+      profile = arg.split('=').slice(1).join('=').trim();
+      continue;
+    }
+
+    if (arg.startsWith('--mcp-pack=')) {
+      mcpPacks = arg.split('=').slice(1).join('=').split(',').map(item => item.trim()).filter(Boolean);
+      continue;
+    }
+
     if (arg.startsWith('--')) {
       flags.push(arg);
       continue;
@@ -109,13 +123,13 @@ function parseArgs(rawArgs) {
 
   const normalizedCommand = COMMAND_ALIASES[command] || command;
 
-  return { flags, command, normalizedCommand, threshold, out, planFile, only };
+  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks };
 }
 
 const HELP = `
   claudex-setup v${version}
   Audit and optimize any project for Claude Code.
-  Backed by research from 1,107 cataloged Claude Code entries.
+  Backed by CLAUDEX research and evidence.
 
   Usage:
     npx claudex-setup                  Run audit on current directory
@@ -140,6 +154,8 @@ const HELP = `
     --out FILE      Write JSON or markdown output to a file
     --plan FILE     Load a previously exported plan file
     --only A,B      Limit plan/apply to selected proposal ids or technique keys
+    --profile NAME  Choose permission profile (read-only, suggest-only, safe-write, power-user, internal-research)
+    --mcp-pack A,B  Merge named MCP packs into generated settings (e.g. context7-docs,next-devtools)
     --dry-run       Preview apply without writing files
     --verbose       Show all recommendations (not just critical/high)
     --json          Output as JSON (for CI pipelines)
@@ -153,7 +169,11 @@ const HELP = `
     npx claudex-setup augment
     npx claudex-setup suggest-only --json
     npx claudex-setup plan --out claudex-plan.json
+    npx claudex-setup plan --profile safe-write
+    npx claudex-setup setup --mcp-pack context7-docs
     npx claudex-setup apply --plan claudex-plan.json --only hooks,commands
+    npx claudex-setup apply --mcp-pack context7-docs,next-devtools --only hooks
+    npx claudex-setup apply --profile power-user --only claude-md,hooks
     npx claudex-setup governance --json
     npx claudex-setup benchmark --out benchmark.md
     npx claudex-setup --json --threshold 60
@@ -195,6 +215,8 @@ async function main() {
     out: parsed.out,
     planFile: parsed.planFile,
     only: parsed.only,
+    profile: parsed.profile,
+    mcpPacks: parsed.mcpPacks,
     dir: process.cwd()
   };
 
@@ -217,6 +239,15 @@ async function main() {
     console.error(`\n  Error: Directory not found: ${options.dir}`);
     console.error('  Run claudex-setup from inside your project directory.\n');
     process.exit(1);
+  }
+
+  if (['setup', 'apply', 'benchmark'].includes(normalizedCommand)) {
+    try {
+      ensureWritableProfile(options.profile, normalizedCommand, options.dryRun);
+    } catch (err) {
+      console.error(`\n  Error: ${err.message}\n`);
+      process.exit(1);
+    }
   }
 
   try {

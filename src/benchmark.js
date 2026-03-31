@@ -5,6 +5,8 @@ const path = require('path');
 const { version } = require('../package.json');
 const { audit } = require('./audit');
 const { setup } = require('./setup');
+const { analyzeProject } = require('./analyze');
+const { getGovernanceSummary } = require('./governance');
 
 function copyProject(sourceDir, targetDir) {
   fs.mkdirSync(targetDir, { recursive: true });
@@ -34,20 +36,76 @@ function summarizeAudit(result) {
   };
 }
 
-function buildExecutiveSummary(before, after) {
+function buildWorkflowEvidence(before, after, analysisReport, governanceSummary) {
+  const tasks = [
+    {
+      key: 'discover-without-writes',
+      label: 'Discover next actions without writing files',
+      passed: before.checkCount > 0 && Array.isArray(before.quickWins),
+      evidence: `Baseline audit returned ${before.checkCount} applicable checks and ${before.quickWins.length} quick wins.`,
+    },
+    {
+      key: 'starter-safe-improvement',
+      label: 'Apply starter-safe improvements in isolation',
+      passed: after.score >= before.score && after.failed <= before.failed,
+      evidence: `Score moved ${before.score} -> ${after.score}; failed checks moved ${before.failed} -> ${after.failed}.`,
+    },
+    {
+      key: 'governed-rollout-surface',
+      label: 'Expose governed rollout controls',
+      passed: governanceSummary.permissionProfiles.length >= 3 && governanceSummary.hookRegistry.length >= 1,
+      evidence: `${governanceSummary.permissionProfiles.length} profiles and ${governanceSummary.hookRegistry.length} governed hooks available.`,
+    },
+    {
+      key: 'domain-pack-guidance',
+      label: 'Recommend a domain pack for the repo',
+      passed: analysisReport.recommendedDomainPacks.length > 0,
+      evidence: analysisReport.recommendedDomainPacks.map(pack => pack.label).join(', ') || 'No domain pack recommendation generated.',
+    },
+    {
+      key: 'mcp-pack-guidance',
+      label: 'Recommend MCP packs when appropriate',
+      passed: analysisReport.recommendedMcpPacks.length > 0,
+      evidence: analysisReport.recommendedMcpPacks.map(pack => pack.label).join(', ') || 'No MCP pack recommendation generated.',
+    },
+  ];
+
+  const passed = tasks.filter(task => task.passed).length;
+  const total = tasks.length;
+  return {
+    taskPack: 'maintainer-core',
+    tasks,
+    summary: {
+      passed,
+      total,
+      coverageScore: total > 0 ? Math.round((passed / total) * 100) : 0,
+    },
+  };
+}
+
+function buildExecutiveSummary(before, after, workflowEvidence) {
   const scoreDelta = after.score - before.score;
   const organicDelta = after.organicScore - before.organicScore;
+  const workflowCoverage = workflowEvidence.summary.coverageScore;
+  let headline = 'Benchmark did not improve the score in this run.';
+
+  if (scoreDelta > 0) {
+    headline = `Benchmark improved readiness by ${scoreDelta} points without touching the original repo.`;
+  } else if (before.score >= 85 && after.score >= before.score && workflowCoverage >= 80) {
+    headline = 'Benchmark confirmed the repo already meets the starter-safe baseline without regression.';
+  }
+
   return {
-    headline: scoreDelta > 0
-      ? `Benchmark improved readiness by ${scoreDelta} points without touching the original repo.`
-      : 'Benchmark did not improve the score in this run.',
+    headline,
     scoreDelta,
     organicDelta,
     decisionGuidance: scoreDelta >= 20
       ? 'Strong pilot candidate'
       : scoreDelta >= 10
         ? 'Promising but needs manual review'
-        : 'Use suggest-only mode before rollout',
+        : (before.score >= 85 && workflowCoverage >= 80
+          ? 'Use suggest-only mode, domain packs, or task-level benchmarks next'
+          : 'Use suggest-only mode before rollout'),
   };
 }
 
@@ -95,6 +153,11 @@ function renderBenchmarkMarkdown(report) {
     `- ${report.executiveSummary.headline}`,
     `- Recommendation: ${report.executiveSummary.decisionGuidance}`,
     '',
+    '## Workflow Evidence',
+    `- Task pack: ${report.workflowEvidence.taskPack}`,
+    `- Coverage: ${report.workflowEvidence.summary.passed}/${report.workflowEvidence.summary.total} (${report.workflowEvidence.summary.coverageScore}%)`,
+    ...report.workflowEvidence.tasks.map(task => `- ${task.label}: ${task.passed ? 'pass' : 'not yet'} — ${task.evidence}`),
+    '',
     '## Case Study',
     `- Initial state: ${report.caseStudy.initialState}`,
     `- Chosen mode: ${report.caseStudy.chosenMode}`,
@@ -111,8 +174,17 @@ async function runBenchmark(options) {
 
   try {
     copyProject(options.dir, sandboxDir);
-    const applyResult = await setup({ dir: sandboxDir, auto: true, silent: true });
+    const applyResult = await setup({
+      dir: sandboxDir,
+      auto: true,
+      silent: true,
+      profile: options.profile,
+      mcpPacks: options.mcpPacks || [],
+    });
     const after = await audit({ dir: sandboxDir, silent: true });
+    const analysisReport = await analyzeProject({ dir: sandboxDir, mode: 'suggest-only' });
+    const governanceSummary = getGovernanceSummary();
+    const workflowEvidence = buildWorkflowEvidence(before, after, analysisReport, governanceSummary);
 
     return {
       schemaVersion: 1,
@@ -133,7 +205,8 @@ async function runBenchmark(options) {
         passed: after.passed - before.passed,
         failed: after.failed - before.failed,
       },
-      executiveSummary: buildExecutiveSummary(before, after),
+      workflowEvidence,
+      executiveSummary: buildExecutiveSummary(before, after, workflowEvidence),
       caseStudy: buildCaseStudy(before, after, applyResult),
     };
   } finally {
@@ -158,6 +231,7 @@ function printBenchmark(report, options = {}) {
   console.log('');
   console.log(`  ${report.executiveSummary.headline}`);
   console.log(`  Recommendation: ${report.executiveSummary.decisionGuidance}`);
+  console.log(`  Workflow evidence: ${report.workflowEvidence.summary.passed}/${report.workflowEvidence.summary.total} tasks (${report.workflowEvidence.summary.coverageScore}%)`);
   console.log('');
 }
 

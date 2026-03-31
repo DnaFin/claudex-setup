@@ -10,9 +10,10 @@
 
 ```bash
 npx claudex-setup              # Audit your project (10 seconds)
-npx claudex-setup setup        # Auto-fix everything
+npx claudex-setup setup        # Create a starter-safe baseline
 npx claudex-setup augment      # Repo-aware plan, no writes
 npx claudex-setup plan         # Export proposal bundles with file previews
+npx claudex-setup governance   # See permission profiles, packs, and pilot guidance
 npx claudex-setup benchmark    # Measure before/after in an isolated temp copy
 npx claudex-setup --threshold 60   # Fail CI if score is below 60
 ```
@@ -48,15 +49,15 @@ No install. No config. No dependencies.
       design: none (0/2)
      devops: none (0/4)
 
-  29/63 checks passing
-  Run npx claudex-setup setup to fix
+  29/62 checks passing
+  Run npx claudex-setup setup to create a starter-safe baseline
 ```
 
 ## All Commands
 
 | Command | What it does |
 |---------|-------------|
-| `npx claudex-setup` | **Discover** - Score 0-100 against 63 checks |
+| `npx claudex-setup` | **Discover** - Score 0-100 against 62 checks |
 | `npx claudex-setup discover` | **Discover** - Alias for audit mode |
 | `npx claudex-setup setup` | **Starter** - Smart CLAUDE.md + hooks + commands + agents |
 | `npx claudex-setup starter` | **Starter** - Alias for setup mode |
@@ -81,6 +82,8 @@ No install. No config. No dependencies.
 | `--out FILE` | Write JSON or markdown output to a file |
 | `--plan FILE` | Load a previously exported plan file |
 | `--only A,B` | Limit plan/apply to selected proposal ids |
+| `--profile NAME` | Choose a permission profile for write-capable flows |
+| `--mcp-pack A,B` | Merge named MCP packs into generated or patched settings |
 | `--dry-run` | Preview apply without writing files |
 | `--verbose` | Show all recommendations (not just critical/high) |
 | `--json` | Machine-readable JSON output (for CI) |
@@ -121,7 +124,7 @@ Each proposal bundle includes:
 
 - trigger reasons tied to failed checks
 - file previews and diff-style output
-- `create` vs `manual-review` classification
+- `create`, `patch`, or `manual-review` classification
 - risk/confidence labels
 
 Apply only the bundles you want:
@@ -130,7 +133,7 @@ Apply only the bundles you want:
 npx claudex-setup apply --plan claudex-plan.json --only claude-md,hooks
 ```
 
-`apply` creates rollback manifests and activity artifacts under `.claude/claudex-setup/`, so every applied batch has a paper trail and a delete-based rollback path.
+`apply` creates rollback manifests and activity artifacts under `.claude/claudex-setup/`, so every applied batch has a paper trail and a create-or-patch rollback path.
 
 ## Governance And Pilot Readiness
 
@@ -145,7 +148,23 @@ It exposes:
 - permission profiles: `read-only`, `suggest-only`, `safe-write`, `power-user`, `internal-research`
 - hook registry with trigger point, purpose, side effects, risk, and rollback path
 - policy packs for baseline engineering, security-sensitive repos, OSS, and regulated-lite teams
+- domain packs for backend, frontend, data, infra, OSS, and enterprise-governed repos
+- MCP packs for live docs and framework-aware tooling such as Context7 and Next.js devtools
 - a pilot rollout kit with scope, approvals, success metrics, and rollback expectations
+
+## Domain Packs And MCP Packs
+
+`augment` and `suggest-only` now recommend repo-shaped guidance instead of giving every project the same advice.
+
+- domain packs identify the repo shape: `backend-api`, `frontend-ui`, `data-pipeline`, `infra-platform`, `oss-library`, `enterprise-governed`
+- MCP packs recommend current-tooling companions: `context7-docs` for live docs, `next-devtools` for Next.js repos
+- write-capable flows can merge MCP packs directly into `.claude/settings.json`
+
+```bash
+npx claudex-setup suggest-only --json
+npx claudex-setup setup --mcp-pack context7-docs
+npx claudex-setup apply --plan claudex-plan.json --only hooks --mcp-pack context7-docs,next-devtools
+```
 
 ## Benchmark And Evidence
 
@@ -160,9 +179,11 @@ Benchmark mode:
 - runs a baseline audit on your repo
 - copies the repo to an isolated temp workspace
 - applies starter-safe artifacts only in the copy
-- reruns the audit and emits before/after deltas, a case-study summary, and an executive recommendation
+- reruns the audit and emits before/after deltas, workflow-evidence coverage, a case-study summary, and an executive recommendation
 
-## 63 Checks Across 14 Categories
+## 62 Checks Across 14 Categories
+
+The exact applicable count can be lower on a given repo because stack-specific checks are skipped when they do not apply.
 
 | Category | Checks | Key items |
 |----------|-------:|-----------|
@@ -206,7 +227,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DnaFin/claudex-setup@main
+      - uses: DnaFin/claudex-setup@v1.8.0
         with:
           threshold: 50
 ```
@@ -230,7 +251,7 @@ Already have a solid CLAUDE.md and hooks? Two things for you:
 npx claudex-setup deep-review
 ```
 
-Claude reads your actual config and gives specific feedback: what's strong, what has issues, what's missing for your stack. Not pattern matching — real analysis. Your config goes to Anthropic API only, we never see it.
+Claude reads your actual config and gives specific feedback: what's strong, what has issues, what's missing for your stack. This is an AI-assisted review, not a local heuristic audit. Your config goes to the Anthropic API only when you run this command; we do not receive it.
 
 ### Quality-Deep Checks
 
@@ -252,8 +273,9 @@ These checks evaluate **quality**, not just existence. A well-configured project
 
 ## Privacy
 
-- **Zero dependencies** - nothing to audit
-- **Runs 100% locally** - no cloud processing
+- **Zero dependencies** - nothing extra to audit
+- **Core flows run locally** - audit, setup, augment, plan, apply, governance, and benchmark run on your machine
+- **Deep review is opt-in** - only `deep-review` sends selected config to Anthropic for analysis
 - **Benchmark uses an isolated temp copy** - your live repo is not touched
 - **Anonymous insights** - opt-in, no PII, no file contents (enable with `--insights`)
 - **MIT Licensed** - use anywhere

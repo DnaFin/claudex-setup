@@ -7,6 +7,8 @@ const path = require('path');
 const { audit } = require('./audit');
 const { ProjectContext } = require('./context');
 const { STACKS } = require('./techniques');
+const { detectDomainPacks } = require('./domain-packs');
+const { recommendMcpPacks } = require('./mcp-packs');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -275,6 +277,8 @@ async function analyzeProject(options) {
   const metadata = detectProjectMetadata(ctx);
   const maturity = detectMaturity(assets);
   const mainDirs = detectMainDirs(ctx);
+  const recommendedDomainPacks = detectDomainPacks(ctx, stacks, assets);
+  const recommendedMcpPacks = recommendMcpPacks(stacks, recommendedDomainPacks);
 
   const report = {
     mode,
@@ -284,6 +288,7 @@ async function analyzeProject(options) {
       description: metadata.description,
       directory: options.dir,
       stacks: stacks.map(s => s.label),
+      domains: recommendedDomainPacks.map(pack => pack.label),
       maturity,
       score: auditResult.score,
       organicScore: auditResult.organicScore,
@@ -308,6 +313,8 @@ async function analyzeProject(options) {
     gapsIdentified: toGaps(auditResult.results),
     topNextActions: auditResult.quickWins,
     recommendedImprovements: toRecommendations(auditResult),
+    recommendedDomainPacks,
+    recommendedMcpPacks,
     riskNotes: buildRiskNotes(auditResult, assets, maturity),
     optionalModules: buildOptionalModules(stacks, assets),
   };
@@ -332,6 +339,7 @@ function printAnalysis(report, options = {}) {
   console.log(c('  Project Summary', 'blue'));
   console.log(`  ${report.projectSummary.name}${report.projectSummary.description ? ` — ${report.projectSummary.description}` : ''}`);
   console.log(c(`  Stack: ${report.projectSummary.stacks.join(', ') || 'Unknown'}`, 'dim'));
+  console.log(c(`  Domain packs: ${report.projectSummary.domains.join(', ') || 'Baseline General'}`, 'dim'));
   console.log(c(`  Maturity: ${report.projectSummary.maturity} | Score: ${report.projectSummary.score}/100 | Organic: ${report.projectSummary.organicScore}/100`, 'dim'));
   console.log('');
 
@@ -368,6 +376,24 @@ function printAnalysis(report, options = {}) {
       console.log(`  ${index + 1}. ${item.name}`);
       console.log(c(`     ${item.fix}`, 'dim'));
     });
+    console.log('');
+  }
+
+  if (report.recommendedDomainPacks.length > 0) {
+    console.log(c('  Recommended Domain Packs', 'blue'));
+    for (const pack of report.recommendedDomainPacks) {
+      console.log(`  - ${pack.label}`);
+      console.log(c(`    ${pack.useWhen}`, 'dim'));
+    }
+    console.log('');
+  }
+
+  if (report.recommendedMcpPacks.length > 0) {
+    console.log(c('  Recommended MCP Packs', 'blue'));
+    for (const pack of report.recommendedMcpPacks) {
+      console.log(`  - ${pack.label}`);
+      console.log(c(`    ${pack.adoption}`, 'dim'));
+    }
     console.log('');
   }
 

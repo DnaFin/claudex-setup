@@ -122,6 +122,49 @@ async function main() {
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
+  await testAsync('gitIgnoreClaudeTracked ignores only settings.local.json without failing', async () => {
+    const dir = mkFixture('gitignore-claude-local');
+    try {
+      fs.writeFileSync(path.join(dir, '.gitignore'), '.claude/settings.local.json\n');
+      const result = await audit({ dir, silent: true });
+      const check = result.results.find(r => r.key === 'gitIgnoreClaudeTracked');
+      assert.equal(check.passed, true, 'Ignoring only settings.local.json should still count .claude/ as tracked');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Non-frontend repos skip frontend-only design checks', async () => {
+    const dir = mkFixture('non-frontend-design');
+    try {
+      writeJson(dir, 'package.json', { name: 'cli-tool' });
+      const result = await audit({ dir, silent: true });
+      const frontendSkill = result.results.find(r => r.key === 'frontendDesignSkill');
+      const tailwind = result.results.find(r => r.key === 'tailwindMention');
+      assert.equal(frontendSkill.passed, null, 'frontendDesignSkill should be skipped for non-frontend repos');
+      assert.equal(tailwind.passed, null, 'tailwindMention should be skipped for non-frontend repos');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Audit result normalizes check states to booleans or null', async () => {
+    const dir = mkFixture('audit-types');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const result = await audit({ dir, silent: true });
+      for (const item of result.results) {
+        assert.ok([true, false, null].includes(item.passed), `${item.key} returned non-normalized state: ${item.passed}`);
+      }
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Project context includes root dotfiles needed by hygiene checks', async () => {
+    const dir = mkFixture('dotfiles');
+    try {
+      fs.writeFileSync(path.join(dir, '.editorconfig'), 'root = true\n');
+      const result = await audit({ dir, silent: true });
+      const editorconfig = result.results.find(r => r.key === 'editorconfig');
+      assert.equal(editorconfig.passed, true, '.editorconfig should be visible to the scanner');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
   // ============================================================
   // Unit tests: Next.js project
   // ============================================================
@@ -224,6 +267,18 @@ async function main() {
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
+  await testAsync('Setup can merge requested MCP packs into generated settings', async () => {
+    const dir = mkFixture('hooks-mcp');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
+      await setup({ dir, auto: true, mcpPacks: ['context7-docs'] });
+      const settings = JSON.parse(fs.readFileSync(path.join(dir, '.claude/settings.json'), 'utf8'));
+      assert.ok(settings.mcpServers.context7, 'Generated settings should include Context7 MCP server');
+      assert.deepEqual(settings.claudexSetup.mcpPacks, ['context7-docs'], 'Selected MCP packs should be recorded');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
   // ============================================================
   // Unit tests: no overwrite
   // ============================================================
@@ -319,6 +374,20 @@ async function main() {
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
+  await testAsync('Suggest-only analysis recommends domain packs and MCP packs for Next.js repos', async () => {
+    const dir = mkFixture('analysis-domain-packs');
+    try {
+      writeJson(dir, 'package.json', { name: 'app', dependencies: { next: '16', react: '19' } });
+      fs.writeFileSync(path.join(dir, 'next.config.js'), 'module.exports = {}');
+      fs.mkdirSync(path.join(dir, 'app', 'api'), { recursive: true });
+      fs.mkdirSync(path.join(dir, 'components'), { recursive: true });
+      const report = await analyzeProject({ dir, mode: 'suggest-only' });
+      assert.ok(report.recommendedDomainPacks.some(pack => pack.key === 'frontend-ui'), 'Should recommend the frontend-ui domain pack');
+      assert.ok(report.recommendedMcpPacks.some(pack => pack.key === 'context7-docs'), 'Should recommend the Context7 MCP pack');
+      assert.ok(report.recommendedMcpPacks.some(pack => pack.key === 'next-devtools'), 'Should recommend the Next.js devtools MCP pack');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
   await testAsync('Proposal bundle includes templated changes with file previews', async () => {
     const dir = mkFixture('plan-bundle');
     try {
@@ -344,12 +413,80 @@ async function main() {
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
+  await testAsync('Apply can patch existing CLAUDE.md with managed guidance blocks', async () => {
+    const dir = mkFixture('apply-patch-claude');
+    try {
+      writeJson(dir, 'package.json', {
+        name: 'app',
+        scripts: { build: 'npm pack --dry-run', test: 'node test/run.js' }
+      });
+      fs.writeFileSync(path.join(dir, 'CLAUDE.md'), '# Existing project instructions\n\nKeep this file concise.\n');
+      const result = await applyProposalBundle({ dir, only: ['claude-md'], dryRun: false });
+      assert.ok(result.patchedFiles.includes('CLAUDE.md'), 'Should patch the existing CLAUDE.md');
+      const md = fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8');
+      assert.ok(md.includes('<constraints>'), 'Patched CLAUDE.md should include constraints');
+      assert.ok(md.includes('/compact'), 'Patched CLAUDE.md should include compaction guidance');
+      assert.ok(/You are a careful engineer/i.test(md), 'Patched CLAUDE.md should include a role definition');
+      assert.ok(md.includes('npm run build'), 'Patched CLAUDE.md should include the build command');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Apply can patch existing settings.json with selected profile protections', async () => {
+    const dir = mkFixture('apply-patch-settings');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      fs.mkdirSync(path.join(dir, '.claude', 'hooks'), { recursive: true });
+      fs.writeFileSync(path.join(dir, '.claude', 'hooks', 'protect-secrets.sh'), '#!/bin/bash\n');
+      fs.writeFileSync(path.join(dir, '.claude', 'settings.json'), JSON.stringify({
+        mcpServers: {
+          localdocs: { type: 'stdio', command: 'docs-server' }
+        }
+      }, null, 2));
+      const result = await applyProposalBundle({ dir, only: ['hooks'], profile: 'safe-write', dryRun: false });
+      assert.ok(result.patchedFiles.includes('.claude/settings.json'), 'Should patch the existing settings.json');
+      const settings = JSON.parse(fs.readFileSync(path.join(dir, '.claude', 'settings.json'), 'utf8'));
+      assert.ok(settings.permissions.deny.includes('Read(./.env*)'), 'Patched settings should include deny rules');
+      assert.ok(settings.mcpServers.localdocs, 'Existing MCP config should be preserved');
+      assert.equal(settings.claudexSetup.profile, 'safe-write', 'Profile metadata should be recorded');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Apply can merge requested MCP packs into existing settings', async () => {
+    const dir = mkFixture('apply-patch-mcp-settings');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      fs.mkdirSync(path.join(dir, '.claude', 'hooks'), { recursive: true });
+      fs.writeFileSync(path.join(dir, '.claude', 'hooks', 'protect-secrets.sh'), '#!/bin/bash\n');
+      fs.writeFileSync(path.join(dir, '.claude', 'settings.json'), JSON.stringify({
+        mcpServers: {
+          localdocs: { type: 'stdio', command: 'docs-server' }
+        }
+      }, null, 2));
+      await applyProposalBundle({
+        dir,
+        only: ['hooks'],
+        profile: 'safe-write',
+        mcpPacks: ['context7-docs', 'next-devtools'],
+        dryRun: false,
+      });
+      const settings = JSON.parse(fs.readFileSync(path.join(dir, '.claude', 'settings.json'), 'utf8'));
+      assert.ok(settings.mcpServers.localdocs, 'Existing MCP server should be preserved');
+      assert.ok(settings.mcpServers.context7, 'Context7 MCP server should be merged in');
+      assert.ok(settings.mcpServers['next-devtools'], 'Next.js devtools MCP server should be merged in');
+      assert.deepEqual(settings.claudexSetup.mcpPacks, ['context7-docs', 'next-devtools'], 'Merged MCP packs should be recorded');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
   test('Governance summary exposes profiles and hook registry', () => {
     const summary = getGovernanceSummary();
     assert.ok(Array.isArray(summary.permissionProfiles), 'permissionProfiles should be an array');
     assert.ok(summary.permissionProfiles.some(item => item.key === 'safe-write'), 'Should include safe-write profile');
     assert.ok(Array.isArray(summary.hookRegistry), 'hookRegistry should be an array');
     assert.ok(summary.hookRegistry.some(item => item.key === 'protect-secrets'), 'Should include protect-secrets hook');
+    assert.ok(Array.isArray(summary.domainPacks), 'domainPacks should be an array');
+    assert.ok(summary.domainPacks.some(item => item.key === 'baseline-general'), 'Should include the baseline-general domain pack');
+    assert.ok(Array.isArray(summary.mcpPacks), 'mcpPacks should be an array');
+    assert.ok(summary.mcpPacks.some(item => item.key === 'context7-docs'), 'Should include the Context7 MCP pack');
   });
 
   await testAsync('Benchmark runs on isolated copy without modifying original repo', async () => {
@@ -360,6 +497,9 @@ async function main() {
       assert.equal(typeof report.delta.score, 'number', 'Benchmark should report score delta');
       assert.ok(report.after.score >= report.before.score, 'Benchmark should not regress readiness on starter apply');
       assert.ok(!fs.existsSync(path.join(dir, '.claude')), 'Original repo should remain untouched');
+      assert.ok(report.workflowEvidence, 'Benchmark should include workflow evidence');
+      assert.ok(Array.isArray(report.workflowEvidence.tasks), 'Workflow evidence should include task records');
+      assert.equal(typeof report.workflowEvidence.summary.coverageScore, 'number', 'Workflow evidence should include a coverage score');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
@@ -397,16 +537,30 @@ async function main() {
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
+  test('CLI setup rejects non-writable profiles', () => {
+    const dir = mkFixture('cli-profile-reject');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const result = runCli(['setup', '--profile', 'read-only'], dir);
+      assert.equal(result.status, 1, 'setup should fail on non-writable profiles');
+      assert.ok(result.stderr.includes('requires a writable profile'), 'Should explain why the profile was rejected');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
   test('CLI suggest-only returns JSON report', () => {
     const dir = mkFixture('cli-suggest-json');
     try {
-      writeJson(dir, 'package.json', { name: 'app' });
+      writeJson(dir, 'package.json', { name: 'app', dependencies: { next: '16', react: '19' } });
+      fs.writeFileSync(path.join(dir, 'next.config.js'), 'module.exports = {}');
+      fs.mkdirSync(path.join(dir, 'app', 'api'), { recursive: true });
       const result = runCli(['suggest-only', '--json'], dir);
       assert.equal(result.status, 0, 'suggest-only --json should succeed');
       const payload = JSON.parse(result.stdout);
       assert.equal(payload.mode, 'suggest-only');
       assert.ok(payload.projectSummary, 'JSON report should include projectSummary');
       assert.ok(Array.isArray(payload.topNextActions), 'JSON report should include topNextActions');
+      assert.ok(Array.isArray(payload.recommendedDomainPacks), 'JSON report should include recommendedDomainPacks');
+      assert.ok(Array.isArray(payload.recommendedMcpPacks), 'JSON report should include recommendedMcpPacks');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
@@ -440,6 +594,8 @@ async function main() {
       const payload = JSON.parse(result.stdout);
       assert.ok(Array.isArray(payload.permissionProfiles), 'JSON should include permissionProfiles');
       assert.ok(Array.isArray(payload.hookRegistry), 'JSON should include hookRegistry');
+      assert.ok(Array.isArray(payload.domainPacks), 'JSON should include domainPacks');
+      assert.ok(Array.isArray(payload.mcpPacks), 'JSON should include mcpPacks');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
@@ -453,7 +609,22 @@ async function main() {
       assert.ok(fs.existsSync(outFile), 'benchmark should write the markdown report');
       const content = fs.readFileSync(outFile, 'utf8');
       assert.ok(content.includes('Benchmark Report'), 'markdown report should be readable');
+      assert.ok(content.includes('Workflow Evidence'), 'markdown report should include workflow evidence');
       assert.ok(!fs.existsSync(path.join(dir, '.claude')), 'benchmark should not modify the source repo');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI apply supports MCP pack merges through exported plans', () => {
+    const dir = mkFixture('cli-apply-mcp');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const planFile = path.join(dir, 'claudex-plan.json');
+      const exportResult = runCli(['plan', '--out', planFile], dir);
+      assert.equal(exportResult.status, 0, 'plan export should succeed');
+      const applyResult = runCli(['apply', '--plan', planFile, '--only', 'hooks', '--mcp-pack', 'context7-docs'], dir);
+      assert.equal(applyResult.status, 0, 'apply should succeed with --mcp-pack');
+      const settings = JSON.parse(fs.readFileSync(path.join(dir, '.claude', 'settings.json'), 'utf8'));
+      assert.ok(settings.mcpServers.context7, 'apply should merge the Context7 MCP pack into settings');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 

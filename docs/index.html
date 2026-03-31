@@ -175,7 +175,7 @@
         <section class="hero">
             <div class="hero-eyebrow">
                 <span class="dot"></span>
-                v1.7.0 &mdash; Free &amp; Open Source
+                v1.8.0 &mdash; Free &amp; Open Source
             </div>
             <h1>Is your project ready<br>for <em>Claude Code</em>?</h1>
             <p class="hero-sub">Audit your repo, export proposal bundles, apply safe starter changes with rollback, and benchmark impact in an isolated temp copy. Existing config is preserved by default.</p>
@@ -185,13 +185,13 @@
                 <span class="cmd">npx claudex-setup</span>
                 <span class="copy-icon">Copy</span>
             </div>
-            <div class="install-hint">No install needed. Node.js 18+. Zero dependencies. 100% local &mdash; benchmark runs on an isolated temp copy.</div>
+            <div class="install-hint">No install needed. Node.js 18+. Zero dependencies. Core workflows run locally, and benchmark uses an isolated temp copy.</div>
         </section>
 
         <section class="numbers">
             <div class="number-card"><div class="val purple">1,107</div><div class="label">Cataloged Entries</div></div>
             <div class="number-card"><div class="val green">954</div><div class="label">Tested</div></div>
-            <div class="number-card"><div class="val blue">63</div><div class="label">Audit Checks</div></div>
+            <div class="number-card"><div class="val blue">62</div><div class="label">Audit Checks</div></div>
             <div class="number-card"><div class="val yellow">18</div><div class="label">Stacks</div></div>
         </section>
 
@@ -208,7 +208,7 @@
                 <div class="step">
                     <div class="step-num">2</div>
                     <h3>Plan</h3>
-                    <p>Export proposal bundles with file previews, rationale, risk labels, and create vs manual-review classification.</p>
+                    <p>Export proposal bundles with file previews, rationale, risk labels, and create, patch, or manual-review classification.</p>
                     <code>npx claudex-setup plan</code>
                 </div>
                 <div class="step">
@@ -281,8 +281,8 @@
 <br><span class="t-dim">     2. Add CHANGELOG.md</span>
 <br><br>
 <span class="t-dim">  ─────────────────────────────────────</span>
-<br>  <span class="t-bold">42/63</span> checks passing
-<br>  Run <span class="t-green">npx claudex-setup setup</span> to fix
+<br>  <span class="t-bold">42/62</span> checks passing
+<br>  Run <span class="t-green">npx claudex-setup setup</span> to create a starter-safe baseline
                 </div>
             </div>
         </section>
@@ -293,12 +293,12 @@
             <div class="features-grid">
                 <div class="feature-card">
                     <h3>🔍 Audit</h3>
-                    <p>Score 0-100 against 63 checks. Detects framework, TypeScript, Docker. Shows critical issues, high-impact fixes, and best next actions.</p>
+                    <p>Score 0-100 against 62 checks. Detects framework, recommends domain packs, and surfaces best next actions before any write happens.</p>
                     <code>npx claudex-setup</code>
                 </div>
                 <div class="feature-card">
                     <h3>🧩 Proposal Bundles</h3>
-                    <p>Export plan files with rationale, file previews, diff-style output, and create vs manual-review classification.</p>
+                    <p>Export plan files with rationale, file previews, diff-style output, and create, patch, or manual-review classification.</p>
                     <code>npx claudex-setup plan</code>
                 </div>
                 <div class="feature-card">
@@ -328,23 +328,23 @@
                 </div>
                 <div class="feature-card">
                     <h3>🧠 Deep Review</h3>
-                    <p>Claude reads your actual config and gives intelligent, specific feedback. Not pattern matching &mdash; real AI analysis. Requires API key.</p>
+                    <p>Claude reads your actual config and gives AI-assisted feedback for mature setups. Requires API key and explicit opt-in.</p>
                     <code>npx claudex-setup deep-review</code>
                 </div>
                 <div class="feature-card">
                     <h3>🛡️ Governance</h3>
-                    <p>Permission profiles, hook registry, policy packs, and a pilot rollout kit for security-conscious teams.</p>
+                    <p>Permission profiles, hook registry, domain packs, MCP packs, policy packs, and a pilot rollout kit for security-conscious teams.</p>
                     <code>npx claudex-setup governance</code>
                 </div>
                 <div class="feature-card">
                     <h3>📈 Benchmark</h3>
-                    <p>Measure before/after impact in an isolated temp copy and export a markdown or JSON report.</p>
+                    <p>Measure before/after impact in an isolated temp copy and export deltas, workflow evidence, and a markdown or JSON report.</p>
                     <code>npx claudex-setup benchmark</code>
                 </div>
                 <div class="feature-card">
                     <h3>🔄 CI Action</h3>
                     <p>GitHub Action that audits every PR. Set a minimum score threshold. Fail the build if standards drop.</p>
-                    <code>uses: DnaFin/claudex-setup@main</code>
+                    <code>uses: DnaFin/claudex-setup@v1.8.0</code>
                 </div>
             </div>
         </section>
@@ -381,7 +381,7 @@
         </section>
 
         <section class="checks-section">
-            <h2>63 checks across 14 categories</h2>
+            <h2>62 checks across 14 categories</h2>
             <p>Every check is backed by tested research from the CLAUDEX catalog.</p>
             <div class="checks-grid">
                 <div class="check-item"><span class="check-icon">📋</span><div class="check-info"><h4>CLAUDE.md <span class="check-tag tag-critical">Critical</span></h4><p>Project instructions Claude reads every session</p></div></div>
@@ -389,7 +389,7 @@
                 <div class="check-item"><span class="check-icon">🔒</span><div class="check-info"><h4>Secrets Protection <span class="check-tag tag-critical">Critical</span></h4><p>Block .env reads, deny rules for sensitive files</p></div></div>
                 <div class="check-item"><span class="check-icon">⚡</span><div class="check-info"><h4>Hooks <span class="check-tag tag-high">High</span></h4><p>PreToolUse + PostToolUse automation</p></div></div>
                 <div class="check-item"><span class="check-icon">🔷</span><div class="check-info"><h4>Mermaid Diagram <span class="check-tag tag-high">High</span></h4><p>Architecture visualization. More token-efficient than prose</p></div></div>
-                <div class="check-item"><span class="check-icon">🏷️</span><div class="check-info"><h4>XML Tags <span class="check-tag tag-high">High</span></h4><p>Structured prompts. 30% quality boost</p></div></div>
+                <div class="check-item"><span class="check-icon">🏷️</span><div class="check-info"><h4>XML Tags <span class="check-tag tag-high">High</span></h4><p>Structured prompts with clearer constraints and verification blocks</p></div></div>
                 <div class="check-item"><span class="check-icon">⌘</span><div class="check-info"><h4>Commands <span class="check-tag tag-high">High</span></h4><p>Custom /test, /deploy, /review, /fix</p></div></div>
                 <div class="check-item"><span class="check-icon">🔍</span><div class="check-info"><h4>Security Review <span class="check-tag tag-high">High</span></h4><p>Built-in OWASP Top 10 scanning</p></div></div>
                 <div class="check-item"><span class="check-icon">🛡️</span><div class="check-info"><h4>Agents <span class="check-tag tag-medium">Medium</span></h4><p>Security reviewer, test writer subagents</p></div></div>
@@ -428,15 +428,15 @@
             <div style="display:flex;flex-direction:column;gap:12px">
                 <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
                     <summary style="font-weight:600;cursor:pointer;color:var(--text);font-size:15px">Is it safe? Does it modify my code?</summary>
-                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7"><strong>Audit</strong> is read-only &mdash; it never touches your files. <strong>Setup</strong> only creates new files in <code>.claude/</code> and a <code>CLAUDE.md</code>. It never modifies existing source code. Everything runs locally on your machine &mdash; no data is sent anywhere.</p>
+                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7"><strong>Audit</strong>, <strong>augment</strong>, and <strong>suggest-only</strong> are read-only. <strong>Setup</strong> creates missing Claude artifacts, and <strong>apply</strong> uses proposal bundles with rollback + activity logs. Core flows run locally; <strong>deep-review</strong> is the only opt-in mode that sends selected config to Anthropic for analysis.</p>
                 </details>
                 <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
                     <summary style="font-weight:600;cursor:pointer;color:var(--text);font-size:15px">How is this different from <code>/init</code>?</summary>
-                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7">Claude Code's <code>/init</code> generates a basic CLAUDE.md. We go much further: 63 audit checks, smart CLAUDE.md with Mermaid diagrams, PreToolUse/PostToolUse hooks, security agents, framework-specific rules, XML constraint blocks, and verification criteria &mdash; all backed by research from 1,107 cataloged Claude Code entries.</p>
+                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7">Claude Code's <code>/init</code> generates a basic CLAUDE.md. We go much further: 62 audit checks, smart CLAUDE.md with Mermaid diagrams, PreToolUse/PostToolUse hooks, security agents, framework-specific rules, XML constraint blocks, and verification criteria &mdash; all backed by research from the CLAUDEX catalog.</p>
                 </details>
                 <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
                     <summary style="font-weight:600;cursor:pointer;color:var(--text);font-size:15px">What's the real impact on productivity?</summary>
-                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7">Use <code>benchmark</code> for the real answer on your repo. It runs a baseline audit, applies starter-safe changes in an isolated temp copy, and reports before/after deltas plus a case-study style summary.</p>
+                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7">Use <code>benchmark</code> for the real answer on your repo. It runs a baseline audit, applies starter-safe changes in an isolated temp copy, and reports before/after deltas, workflow-evidence coverage, and a case-study style summary.</p>
                 </details>
                 <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
                     <summary style="font-weight:600;cursor:pointer;color:var(--text);font-size:15px">Does it work with Cursor, Codex, or other AI tools?</summary>
@@ -462,17 +462,17 @@
                     <span style="color:var(--green);font-size:18px">&#10003;</span> Zero dependencies
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;color:var(--text-dim);font-size:14px">
-                    <span style="color:var(--green);font-size:18px">&#10003;</span> Runs 100% locally
+                    <span style="color:var(--green);font-size:18px">&#10003;</span> Core flows run locally
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;color:var(--text-dim);font-size:14px">
-                    <span style="color:var(--green);font-size:18px">&#10003;</span> No data sent anywhere
+                    <span style="color:var(--green);font-size:18px">&#10003;</span> Deep review is opt-in
                 </div>
             </div>
         </section>
 
         <section class="cta">
-            <h2>Find out what you're missing.<br>Fix it in 10 seconds.</h2>
-            <p style="max-width:480px;margin:0 auto 32px">63 checks. Read-only audit. Never overwrites your existing setup. If you already have a good config, it'll tell you.</p>
+            <h2>Find out what you're missing.<br>Improve it safely.</h2>
+            <p style="max-width:480px;margin:0 auto 32px">62 checks. Read-only discovery. Proposal bundles before writes. Domain packs, MCP packs, and workflow evidence when you need deeper rollout confidence.</p>
             <div class="install-box mono" style="margin-bottom:24px" onclick="navigator.clipboard.writeText('npx claudex-setup');this.querySelector('.copy-icon').textContent='Copied!'">
                 <span class="prompt">$</span>
                 <span class="cmd">npx claudex-setup</span>
@@ -491,7 +491,7 @@
                 <a href="https://github.com/DnaFin/claudex-setup/blob/main/LICENSE">MIT License</a>
                 <a href="https://github.com/DnaFin/claudex-setup/blob/main/CONTRIBUTING.md">Contribute</a>
             </div>
-            v1.7.0 &mdash; Backed by CLAUDEX &mdash; 1,107 cataloged Claude Code entries, 954 verified with evidence.
+            v1.8.0 &mdash; Backed by CLAUDEX research and evidence.
         </footer>
     </div>
 </body>

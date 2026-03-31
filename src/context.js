@@ -17,11 +17,12 @@ class ProjectContext {
     try {
       const entries = fs.readdirSync(this.dir, { withFileTypes: true });
       for (const entry of entries) {
-        if (entry.name.startsWith('.') && entry.name !== '.claude' && entry.name !== '.gitignore') continue;
-        if (entry.name === 'node_modules' || entry.name === '__pycache__') continue;
         if (entry.isFile()) {
+          if (entry.name === '.DS_Store') continue;
           this.files.push(entry.name);
         } else if (entry.isDirectory()) {
+          if (entry.name.startsWith('.') && entry.name !== '.claude') continue;
+          if (entry.name === 'node_modules' || entry.name === '__pycache__') continue;
           this.files.push(entry.name + '/');
           // Scan .claude/ subdirectories
           if (entry.name === '.claude') {

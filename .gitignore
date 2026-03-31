@@ -4,4 +4,7 @@ node_modules/
 .npmrc
 *.log
 .DS_Store
+!.claude/
+.claude/claudex-setup/
+.claude/logs/
 .claude/settings.local.json
