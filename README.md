@@ -148,16 +148,16 @@ It exposes:
 - permission profiles: `read-only`, `suggest-only`, `safe-write`, `power-user`, `internal-research`
 - hook registry with trigger point, purpose, side effects, risk, and rollback path
 - policy packs for baseline engineering, security-sensitive repos, OSS, and regulated-lite teams
-- domain packs for backend, frontend, data, infra, OSS, and enterprise-governed repos
-- MCP packs for live docs and framework-aware tooling such as Context7 and Next.js devtools
+- 16 domain packs: backend-api, frontend-ui, data-pipeline, infra-platform, oss-library, enterprise-governed, monorepo, mobile, regulated-lite, ecommerce, ai-ml, devops-cicd, design-system, docs-content, security-focused, baseline-general
+- 26 MCP packs: Context7, Next.js devtools, GitHub, PostgreSQL, Playwright, Docker, Notion, Linear, Sentry, Slack, Stripe, Figma, Shopify, Hugging Face, Blender, WordPress, Jira/Confluence, GA4, Search Console, n8n, Zendesk, Infisical, Composio, memory, sequential-thinking, mcp-security
 - a pilot rollout kit with scope, approvals, success metrics, and rollback expectations
 
 ## Domain Packs And MCP Packs
 
 `augment` and `suggest-only` now recommend repo-shaped guidance instead of giving every project the same advice.
 
-- domain packs identify the repo shape: `backend-api`, `frontend-ui`, `data-pipeline`, `infra-platform`, `oss-library`, `enterprise-governed`
-- MCP packs recommend current-tooling companions: `context7-docs` for live docs, `next-devtools` for Next.js repos
+- 16 domain packs identify repo shape and recommend relevant modules
+- 26 MCP packs recommend tooling companions matched to your detected domain and stack
 - write-capable flows can merge MCP packs directly into `.claude/settings.json`
 
 ```bash
