@@ -197,6 +197,22 @@ function detectDependencies(ctx) {
     guidelines.push('- AWS CDK available. Define stacks in lib/, constructs as separate classes');
   }
 
+  // Security middleware
+  if (allDeps['express-rate-limit']) {
+    guidelines.push('- Rate limiting configured. Apply to auth endpoints. Set appropriate windowMs and max values');
+  }
+  if (allDeps['hpp']) {
+    guidelines.push('- HPP (HTTP Parameter Pollution) protection enabled');
+  }
+  if (allDeps['csurf']) {
+    guidelines.push('- CSRF protection enabled. Ensure tokens are included in all state-changing requests');
+  }
+
+  // AWS Lambda
+  if (allDeps['@aws-sdk/client-lambda'] || allDeps['@aws-cdk/aws-lambda'] || allDeps['aws-cdk-lib']) {
+    guidelines.push('- Lambda handlers: keep cold start fast, use layers for deps, set appropriate memory/timeout');
+  }
+
   return guidelines;
 }
 
@@ -371,7 +387,14 @@ function getFrameworkInstructions(stacks) {
 - Prefer Server Components by default; add 'use client' only when needed
 - Use next/image for images, next/link for navigation
 - API routes go in app/api/ (App Router) or pages/api/ (Pages Router)
-- Use loading.tsx, error.tsx, and not-found.tsx for route-level UX`);
+- Use loading.tsx, error.tsx, and not-found.tsx for route-level UX
+
+### Next.js App Router
+- Default to Server Components. Add 'use client' only when needed (hooks, events, browser APIs)
+- Use Server Actions for mutations. Validate with Zod, call revalidatePath after writes
+- Route handlers in app/api/ export named functions: GET, POST, PUT, DELETE
+- Use loading.tsx, error.tsx, not-found.tsx for route-level UI states
+- Middleware in middleware.ts for auth checks, redirects, headers`);
   } else if (stackKeys.includes('react')) {
     sections.push(`### React
 - Use functional components with hooks exclusively
@@ -444,7 +467,10 @@ function getFrameworkInstructions(stacks) {
 - Handle all errors explicitly — never ignore err returns
 - Use context.Context for cancellation and timeouts
 - Prefer table-driven tests
-- Run \`go vet\` and \`golangci-lint\` before committing`);
+- Run \`go vet\` and \`golangci-lint\` before committing
+- If using gRPC: define .proto files in proto/ or pkg/proto, generate with protoc
+- If Makefile exists: use make targets for build/test/lint
+- Organize: cmd/ for entry points, internal/ for private packages, pkg/ for public`);
   }
 
   if (stackKeys.includes('terraform')) {
@@ -453,7 +479,10 @@ function getFrameworkInstructions(stacks) {
 - Always run \`terraform plan\` before \`terraform apply\`
 - Store state remotely (S3 + DynamoDB, or Terraform Cloud)
 - Use variables.tf for all configurable values
-- Tag all resources consistently`);
+- Tag all resources consistently
+- If using Helm: define charts in charts/ or helm/, use values.yaml for config
+- Lock providers: always commit .terraform.lock.hcl
+- Use terraform fmt before committing`);
   }
 
   const hasJS = stackKeys.some(k => ['react', 'vue', 'angular', 'nextjs', 'node', 'svelte'].includes(k));
@@ -523,9 +552,23 @@ npm run lint         # or: npx eslint .`;
 
     // --- Framework-specific instructions ---
     const frameworkInstructions = getFrameworkInstructions(stacks);
-    const stackSection = frameworkInstructions
+    let stackSection = frameworkInstructions
       ? `\n## Stack-Specific Guidelines\n\n${frameworkInstructions}\n`
       : '';
+
+    // Check for security-focused project
+    const pkg2 = ctx.jsonFile('package.json') || {};
+    const allDeps2 = { ...(pkg2.dependencies || {}), ...(pkg2.devDependencies || {}) };
+    const hasSecurityDeps = allDeps2['helmet'] || allDeps2['jsonwebtoken'] || allDeps2['bcrypt'] || allDeps2['passport'];
+    if (hasSecurityDeps) {
+      stackSection += '\n### Security Best Practices\n';
+      stackSection += '- Follow OWASP Top 10 — run /security-review regularly\n';
+      stackSection += '- Never log sensitive data (passwords, tokens, PII)\n';
+      stackSection += '- Use parameterized queries — never string concatenation for SQL\n';
+      stackSection += '- Set security headers via Helmet. Review CSP policy for your frontend\n';
+      stackSection += '- Rate limit all authentication endpoints\n';
+      stackSection += '- Validate and sanitize all user input at API boundaries\n';
+    }
 
     // --- TypeScript-specific additions ---
     let tsSection = '';
