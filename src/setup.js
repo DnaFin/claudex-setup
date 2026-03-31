@@ -95,6 +95,17 @@ function detectDependencies(ctx) {
     guidelines.push('- Use Playwright for E2E tests. Keep tests in tests/ or e2e/');
   }
 
+  // Testing tools
+  if (allDeps['msw']) {
+    guidelines.push('- Use MSW (Mock Service Worker) for API mocking in tests. Define handlers in __mocks__/');
+  }
+  if (allDeps['@testing-library/react']) {
+    guidelines.push('- Use Testing Library for component tests. Prefer userEvent over fireEvent, query by role/label');
+  }
+  if (allDeps['@vitest/coverage-v8'] || allDeps['@vitest/coverage-istanbul']) {
+    guidelines.push('- Coverage configured. Maintain coverage thresholds. Check reports before merging');
+  }
+
   // tRPC
   if (allDeps['@trpc/server'] || allDeps['@trpc/client']) {
     guidelines.push('- Use tRPC for type-safe API calls. Define routers in server, use client hooks in components');
@@ -211,6 +222,23 @@ function detectDependencies(ctx) {
   // AWS Lambda
   if (allDeps['@aws-sdk/client-lambda'] || allDeps['@aws-cdk/aws-lambda'] || allDeps['aws-cdk-lib']) {
     guidelines.push('- Lambda handlers: keep cold start fast, use layers for deps, set appropriate memory/timeout');
+  }
+
+  // Deprecated dependency warnings
+  if (allDeps['moment']) {
+    guidelines.push('- ⚠️ moment.js is deprecated and heavy (330KB). Migrate to date-fns or dayjs');
+  }
+  if (allDeps['request']) {
+    guidelines.push('- ⚠️ request is deprecated. Use fetch (native) or axios instead');
+  }
+  if (allDeps['lodash'] && !allDeps['lodash-es']) {
+    guidelines.push('- Consider replacing lodash with native JS methods or lodash-es for tree-shaking');
+  }
+  if (allDeps['node-sass']) {
+    guidelines.push('- ⚠️ node-sass is deprecated. Migrate to sass (dart-sass)');
+  }
+  if (allDeps['tslint']) {
+    guidelines.push('- ⚠️ TSLint is deprecated. Migrate to ESLint with @typescript-eslint');
   }
 
   return guidelines;
@@ -471,6 +499,22 @@ function getFrameworkInstructions(stacks) {
 - If using gRPC: define .proto files in proto/ or pkg/proto, generate with protoc
 - If Makefile exists: use make targets for build/test/lint
 - Organize: cmd/ for entry points, internal/ for private packages, pkg/ for public`);
+  }
+
+  if (stackKeys.includes('cpp')) {
+    sections.push(`### C++
+- Follow project coding standards (check .clang-format if present)
+- Use smart pointers (unique_ptr, shared_ptr) over raw pointers
+- Run clang-tidy for static analysis
+- Prefer const references for function parameters
+- Use CMake targets, not raw compiler flags`);
+  }
+
+  if (stackKeys.includes('bazel')) {
+    sections.push(`### Bazel
+- Define BUILD files per package. Keep targets focused
+- Use visibility carefully — prefer package-private
+- Run buildifier for formatting`);
   }
 
   if (stackKeys.includes('terraform')) {

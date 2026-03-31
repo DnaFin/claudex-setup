@@ -955,6 +955,8 @@ const STACKS = {
   swift: { files: ['Package.swift'], content: {}, label: 'Swift' },
   terraform: { files: ['main.tf', 'terraform'], content: {}, label: 'Terraform' },
   kubernetes: { files: ['k8s', 'kubernetes', 'helm'], content: {}, label: 'Kubernetes' },
+  cpp: { files: ['CMakeLists.txt', 'Makefile', '.clang-format'], content: {}, label: 'C++' },
+  bazel: { files: ['BUILD', 'WORKSPACE', 'BUILD.bazel', 'WORKSPACE.bazel'], content: {}, label: 'Bazel' },
 };
 
 module.exports = { TECHNIQUES, STACKS };
