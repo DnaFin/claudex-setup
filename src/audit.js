@@ -61,17 +61,20 @@ async function audit(options) {
     });
   }
 
-  const passed = results.filter(r => r.passed);
-  const failed = results.filter(r => !r.passed);
+  // null = not applicable (skip), true = pass, false = fail
+  const applicable = results.filter(r => r.passed !== null);
+  const skipped = results.filter(r => r.passed === null);
+  const passed = applicable.filter(r => r.passed);
+  const failed = applicable.filter(r => !r.passed);
   const critical = failed.filter(r => r.impact === 'critical');
   const high = failed.filter(r => r.impact === 'high');
   const medium = failed.filter(r => r.impact === 'medium');
 
-  // Calculate score
+  // Calculate score only from applicable checks
   const weights = { critical: 15, high: 10, medium: 5 };
-  const maxScore = results.reduce((sum, r) => sum + (weights[r.impact] || 5), 0);
+  const maxScore = applicable.reduce((sum, r) => sum + (weights[r.impact] || 5), 0);
   const earnedScore = passed.reduce((sum, r) => sum + (weights[r.impact] || 5), 0);
-  const score = Math.round((earnedScore / maxScore) * 100);
+  const score = maxScore > 0 ? Math.round((earnedScore / maxScore) * 100) : 0;
 
   // Silent mode: skip all output, just return result
   if (silent) {
@@ -153,7 +156,7 @@ async function audit(options) {
 
   // Summary
   console.log(colorize('  ─────────────────────────────────────', 'dim'));
-  console.log(`  ${colorize(`${passed.length}/${results.length}`, 'bold')} checks passing`);
+  console.log(`  ${colorize(`${passed.length}/${applicable.length}`, 'bold')} checks passing${skipped.length > 0 ? colorize(` (${skipped.length} not applicable)`, 'dim') : ''}`);
 
   if (failed.length > 0) {
     console.log(`  Run ${colorize('npx claudex-setup setup', 'bold')} to fix automatically`);

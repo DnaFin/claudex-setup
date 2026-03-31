@@ -26,6 +26,92 @@ function detectScripts(ctx) {
 }
 
 // ============================================================
+// Helper: detect key dependencies and generate guidelines
+// ============================================================
+function detectDependencies(ctx) {
+  const pkg = ctx.jsonFile('package.json');
+  if (!pkg) return [];
+  const allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+  const guidelines = [];
+
+  // Data fetching
+  if (allDeps['@tanstack/react-query']) {
+    guidelines.push('- Use React Query (TanStack Query) for all server data fetching — never raw useEffect + fetch');
+    guidelines.push('- Define query keys as constants. Invalidate related queries after mutations');
+  }
+  if (allDeps['swr']) {
+    guidelines.push('- Use SWR for data fetching with automatic revalidation');
+  }
+
+  // Validation
+  if (allDeps['zod']) {
+    guidelines.push('- Use Zod for all input validation and type inference (z.infer<typeof schema>)');
+    guidelines.push('- Define schemas in a shared location. Use .parse() at API boundaries');
+  }
+
+  // ORM / Database
+  if (allDeps['prisma'] || allDeps['@prisma/client']) {
+    guidelines.push('- Use Prisma for all database operations. Run `npx prisma generate` after schema changes');
+    guidelines.push('- Never write raw SQL unless Prisma cannot express the query');
+  }
+  if (allDeps['drizzle-orm']) {
+    guidelines.push('- Use Drizzle ORM for database operations. Schema-first approach');
+  }
+  if (allDeps['mongoose']) {
+    guidelines.push('- Use Mongoose for MongoDB operations. Define schemas with validation');
+  }
+
+  // Auth
+  if (allDeps['next-auth'] || allDeps['@auth/core']) {
+    guidelines.push('- Use NextAuth.js for authentication. Access session via auth() in Server Components');
+  }
+  if (allDeps['clerk'] || allDeps['@clerk/nextjs']) {
+    guidelines.push('- Use Clerk for authentication. Protect routes with middleware');
+  }
+
+  // State management
+  if (allDeps['zustand']) {
+    guidelines.push('- Use Zustand for client state. Keep stores small and focused');
+  }
+  if (allDeps['@reduxjs/toolkit']) {
+    guidelines.push('- Use Redux Toolkit for state management. Use createSlice and RTK Query');
+  }
+
+  // Styling
+  if (allDeps['tailwindcss']) {
+    guidelines.push('- Use Tailwind CSS for all styling. Avoid inline styles and CSS modules');
+  }
+  if (allDeps['styled-components'] || allDeps['@emotion/react']) {
+    guidelines.push('- Use CSS-in-JS for component styling. Colocate styles with components');
+  }
+
+  // Testing
+  if (allDeps['vitest']) {
+    guidelines.push('- Use Vitest for testing. Colocate test files with source (*.test.ts)');
+  }
+  if (allDeps['jest']) {
+    guidelines.push('- Use Jest for testing. Follow existing test patterns in the codebase');
+  }
+  if (allDeps['playwright'] || allDeps['@playwright/test']) {
+    guidelines.push('- Use Playwright for E2E tests. Keep tests in tests/ or e2e/');
+  }
+
+  // Python
+  const reqTxt = ctx.fileContent('requirements.txt') || '';
+  if (reqTxt.includes('sqlalchemy')) {
+    guidelines.push('- Use SQLAlchemy for all database operations');
+  }
+  if (reqTxt.includes('pydantic')) {
+    guidelines.push('- Use Pydantic for data validation and serialization');
+  }
+  if (reqTxt.includes('pytest')) {
+    guidelines.push('- Use pytest for testing. Run with `python -m pytest`');
+  }
+
+  return guidelines;
+}
+
+// ============================================================
 // Helper: detect main directories
 // ============================================================
 function detectMainDirs(ctx) {
@@ -356,6 +442,13 @@ npm run lint         # or: npx eslint .`;
       }
     }
 
+    // --- Dependency-specific guidelines ---
+    const depGuidelines = detectDependencies(ctx);
+    const depSection = depGuidelines.length > 0 ? `
+## Key Dependencies
+${depGuidelines.join('\n')}
+` : '';
+
     // --- Verification criteria based on detected commands ---
     const verificationSteps = [];
     verificationSteps.push('1. All existing tests still pass');
@@ -388,7 +481,7 @@ ${mermaid}
 ${dirDescription}
 ## Stack
 ${stackNames}
-${stackSection}${tsSection}
+${stackSection}${tsSection}${depSection}
 ## Build & Test
 \`\`\`bash
 ${buildSection}

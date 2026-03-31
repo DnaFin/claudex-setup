@@ -344,8 +344,8 @@ const TECHNIQUES = {
     name: 'Default mode is not bypassPermissions',
     check: (ctx) => {
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      if (!settings) return true; // no settings = not bypassed
-      return settings.defaultMode !== 'bypassPermissions';
+      if (!settings || !settings.permissions) return null; // no settings = skip (not applicable)
+      return settings.permissions.defaultMode !== 'bypassPermissions';
     },
     impact: 'critical',
     rating: 5,
@@ -840,7 +840,7 @@ const TECHNIQUES = {
     name: 'Hooks use specific matchers (not catch-all)',
     check: (ctx) => {
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      if (!settings || !settings.hooks) return true; // no hooks = skip
+      if (!settings || !settings.hooks) return null; // no hooks = not applicable
       const hookStr = JSON.stringify(settings.hooks);
       // Check that hooks have matchers, not just catch-all
       return hookStr.includes('matcher');
@@ -852,28 +852,15 @@ const TECHNIQUES = {
     template: null
   },
 
-  permissionsNotBypassed: {
-    id: 2005,
-    name: 'Default mode is not bypassPermissions',
-    check: (ctx) => {
-      const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      if (!settings || !settings.permissions) return true;
-      return settings.permissions.defaultMode !== 'bypassPermissions';
-    },
-    impact: 'high',
-    rating: 4,
-    category: 'quality-deep',
-    fix: 'bypassPermissions skips all safety checks. Use "default" or "auto" mode with targeted allow rules instead.',
-    template: null
-  },
+  // permissionsNotBypassed removed - duplicate of noBypassPermissions (#24)
 
   commandsUseArguments: {
     id: 2006,
     name: 'Commands use $ARGUMENTS for flexibility',
     check: (ctx) => {
-      if (!ctx.hasDir('.claude/commands')) return true;
+      if (!ctx.hasDir('.claude/commands')) return null; // not applicable
       const files = ctx.dirFiles('.claude/commands');
-      if (files.length === 0) return true;
+      if (files.length === 0) return null;
       // Check if at least one command uses $ARGUMENTS
       for (const f of files) {
         const content = ctx.fileContent(`.claude/commands/${f}`) || '';
@@ -892,9 +879,9 @@ const TECHNIQUES = {
     id: 2007,
     name: 'Agents have maxTurns limit',
     check: (ctx) => {
-      if (!ctx.hasDir('.claude/agents')) return true;
+      if (!ctx.hasDir('.claude/agents')) return null;
       const files = ctx.dirFiles('.claude/agents');
-      if (files.length === 0) return true;
+      if (files.length === 0) return null;
       for (const f of files) {
         const content = ctx.fileContent(`.claude/agents/${f}`) || '';
         if (!content.includes('maxTurns')) return false;
