@@ -23,10 +23,11 @@ const HELP = `
     npx claudex-setup badge            Generate shields.io badge markdown
 
   Options:
-    --verbose    Show all recommendations (not just critical/high)
-    --json       Output as JSON (for CI pipelines)
-    --help       Show this help
-    --version    Show version
+    --verbose       Show all recommendations (not just critical/high)
+    --json          Output as JSON (for CI pipelines)
+    --no-insights   Disable anonymous usage insights
+    --help          Show this help
+    --version       Show version
 `;
 
 async function main() {
@@ -55,6 +56,41 @@ async function main() {
       console.log('');
       console.log('Add this to your README.md');
       process.exit(0);
+    } else if (command === 'insights' || command === 'learn') {
+      const https = require('https');
+      const url = 'https://claudex-insights.dnafin.workers.dev/v1/stats';
+      https.get(url, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const stats = JSON.parse(data);
+            console.log('');
+            console.log('\x1b[1m  CLAUDEX Community Insights\x1b[0m');
+            console.log('\x1b[2m  ═══════════════════════════════════════\x1b[0m');
+            console.log(`  Total audits run: \x1b[1m${stats.totalRuns}\x1b[0m`);
+            console.log(`  Average score: \x1b[1m${stats.averageScore}/100\x1b[0m`);
+            console.log('');
+            if (stats.topFailedChecks && stats.topFailedChecks.length > 0) {
+              console.log('\x1b[33m  Most common gaps:\x1b[0m');
+              for (const f of stats.topFailedChecks.slice(0, 5)) {
+                console.log(`     ${f.pct}% miss: \x1b[1m${f.check}\x1b[0m`);
+              }
+              console.log('');
+            }
+            if (stats.topStacks && stats.topStacks.length > 0) {
+              console.log('\x1b[36m  Popular stacks:\x1b[0m');
+              console.log(`     ${stats.topStacks.map(s => s.stack).join(', ')}`);
+            }
+            console.log('');
+          } catch (e) {
+            console.log('  No community data available yet. Be the first to run: npx claudex-setup');
+          }
+        });
+      }).on('error', () => {
+        console.log('  Could not reach insights server. Run locally: npx claudex-setup');
+      });
+      return; // keep process alive for http
     } else if (command === 'interactive' || command === 'wizard') {
       const { interactive } = require('../src/interactive');
       await interactive(options);

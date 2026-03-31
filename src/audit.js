@@ -5,6 +5,7 @@
 const { TECHNIQUES, STACKS } = require('./techniques');
 const { ProjectContext } = require('./context');
 const { getBadgeMarkdown } = require('./badge');
+const { sendInsights, getLocalInsights } = require('./insights');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -161,11 +162,27 @@ async function audit(options) {
   console.log('');
   console.log(`  Add to README: ${getBadgeMarkdown(score)}`);
   console.log('');
+
+  // Weakest categories insight
+  const insights = getLocalInsights({ score, results });
+  if (insights.weakest.length > 0) {
+    console.log(colorize('  Weakest areas:', 'dim'));
+    for (const w of insights.weakest) {
+      const bar = w.score === 0 ? colorize('none', 'red') : `${w.score}%`;
+      console.log(colorize(`     ${w.name}: ${bar} (${w.passed}/${w.total})`, 'dim'));
+    }
+    console.log('');
+  }
+
   console.log(colorize('  Powered by CLAUDEX - 1,107 verified Claude Code techniques', 'dim'));
   console.log(colorize('  https://github.com/DnaFin/claudex-setup', 'dim'));
   console.log('');
 
-  return { score, passed: passed.length, failed: failed.length, stacks, results };
+  // Send anonymous insights (opt-in, privacy-first, fire-and-forget)
+  const result = { score, passed: passed.length, failed: failed.length, stacks, results };
+  sendInsights(result);
+
+  return result;
 }
 
 module.exports = { audit };
