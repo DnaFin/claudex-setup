@@ -398,9 +398,57 @@
             </div>
         </div>
 
+        <section class="faq-section" style="margin:64px 0">
+            <h2 style="font-size:28px;font-weight:700;letter-spacing:-0.5px;margin-bottom:32px">Frequently asked</h2>
+            <div style="display:flex;flex-direction:column;gap:12px">
+                <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+                    <summary style="font-weight:600;cursor:pointer;color:var(--text);font-size:15px">Is it safe? Does it modify my code?</summary>
+                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7"><strong>Audit</strong> is read-only &mdash; it never touches your files. <strong>Setup</strong> only creates new files in <code>.claude/</code> and a <code>CLAUDE.md</code>. It never modifies existing source code. Everything runs locally on your machine &mdash; no data is sent anywhere.</p>
+                </details>
+                <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+                    <summary style="font-weight:600;cursor:pointer;color:var(--text);font-size:15px">How is this different from <code>/init</code>?</summary>
+                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7">Claude Code's <code>/init</code> generates a basic CLAUDE.md. We go much further: 54 audit checks, smart CLAUDE.md with Mermaid diagrams, PreToolUse/PostToolUse hooks, security agents, framework-specific rules, XML constraint blocks, and verification criteria &mdash; all based on 1,107 tested techniques.</p>
+                </details>
+                <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+                    <summary style="font-weight:600;cursor:pointer;color:var(--text);font-size:15px">What's the real impact on productivity?</summary>
+                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7">Based on our research: Mermaid diagrams save 73% tokens. Hooks enforce rules at 100% (vs ~80% for CLAUDE.md instructions alone). Verification loops are Anthropic's #1 recommended best practice. Combined, users report 3-5x productivity improvement with a properly configured project.</p>
+                </details>
+                <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+                    <summary style="font-weight:600;cursor:pointer;color:var(--text);font-size:15px">Does it work with Cursor, Codex, or other AI tools?</summary>
+                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7">The audit is Claude Code-specific. However, CLAUDE.md files are recognized by many AI coding tools. The skills format was adopted as a cross-platform standard by OpenAI Codex CLI in December 2025. Hooks and agents are Claude Code-only features.</p>
+                </details>
+                <details style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+                    <summary style="font-weight:600;cursor:pointer;color:var(--text);font-size:15px">Where do the 1,107 techniques come from?</summary>
+                    <p style="color:var(--text-dim);font-size:14px;margin-top:12px;line-height:1.7">From a systematic research project covering all 73 official Claude Code documentation pages, 100+ community tools and MCP servers verified via GitHub API, Anthropic blog posts, benchmark papers, and hands-on experiments. 954 techniques were verified with real evidence. The research is ongoing.</p>
+                </details>
+            </div>
+        </section>
+
+        <section style="margin:64px 0;text-align:center">
+            <div style="display:flex;gap:32px;justify-content:center;flex-wrap:wrap;margin-bottom:24px">
+                <div style="display:flex;align-items:center;gap:8px;color:var(--text-dim);font-size:14px">
+                    <span style="color:var(--green);font-size:18px">&#10003;</span> MIT Licensed
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;color:var(--text-dim);font-size:14px">
+                    <span style="color:var(--green);font-size:18px">&#10003;</span> Zero dependencies
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;color:var(--text-dim);font-size:14px">
+                    <span style="color:var(--green);font-size:18px">&#10003;</span> Runs 100% locally
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;color:var(--text-dim);font-size:14px">
+                    <span style="color:var(--green);font-size:18px">&#10003;</span> No data sent anywhere
+                </div>
+            </div>
+        </section>
+
         <section class="cta">
-            <h2>10 seconds. Zero config. Real results.</h2>
-            <p>No signup. No API keys. Runs entirely on your machine. Open source.</p>
+            <h2>Every minute you code without this,<br>Claude is running at a fraction of its power.</h2>
+            <p style="max-width:480px;margin:0 auto 32px">54 checks. 10 seconds. The difference between Claude guessing and Claude knowing your project.</p>
+            <div class="install-box mono" style="margin-bottom:24px" onclick="navigator.clipboard.writeText('npx claudex-setup');this.querySelector('.copy-icon').textContent='Copied!'">
+                <span class="prompt">$</span>
+                <span class="cmd">npx claudex-setup</span>
+                <span class="copy-icon">Copy</span>
+            </div>
             <div class="cta-buttons">
                 <a href="https://github.com/DnaFin/claudex-setup" class="btn btn-primary">View on GitHub</a>
                 <a href="https://www.npmjs.com/package/claudex-setup" class="btn btn-secondary">npm package</a>
@@ -408,7 +456,13 @@
         </section>
 
         <footer>
-            Built from CLAUDEX &mdash; 1,107 verified Claude Code techniques, 954 tested with real evidence.
+            <div style="display:flex;justify-content:center;gap:24px;margin-bottom:12px">
+                <a href="https://github.com/DnaFin/claudex-setup">GitHub</a>
+                <a href="https://www.npmjs.com/package/claudex-setup">npm</a>
+                <a href="https://github.com/DnaFin/claudex-setup/blob/main/LICENSE">MIT License</a>
+                <a href="https://github.com/DnaFin/claudex-setup/blob/main/CONTRIBUTING.md">Contribute</a>
+            </div>
+            v0.3.0 &mdash; Built from 1,107 verified Claude Code techniques, 954 tested with real evidence.
         </footer>
     </div>
 </body>
