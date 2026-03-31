@@ -18,7 +18,7 @@ const HELP = `
     npx claudex-setup audit            Same as above
     npx claudex-setup setup            Apply recommended configuration
     npx claudex-setup setup --auto     Apply all without prompts
-    npx claudex-setup deep-review       AI-powered config analysis (needs API key)
+    npx claudex-setup deep-review       AI-powered config review (uses Claude Code or API key)
     npx claudex-setup interactive      Step-by-step guided wizard
     npx claudex-setup watch            Monitor changes and re-audit live
     npx claudex-setup badge            Generate shields.io badge markdown
