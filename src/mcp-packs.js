@@ -81,7 +81,7 @@ const MCP_PACKS = [
     servers: {
       docker: {
         command: 'npx',
-        args: ['-y', '@modelcontextprotocol/server-docker'],
+        args: ['-y', '@hypnosis/docker-mcp-server'],
       },
     },
   },
@@ -106,7 +106,7 @@ const MCP_PACKS = [
     servers: {
       linear: {
         command: 'npx',
-        args: ['-y', '@linear/mcp-server'],
+        args: ['-y', '@mseep/linear-mcp'],
         env: { LINEAR_API_KEY: '${LINEAR_API_KEY}' },
       },
     },
@@ -132,7 +132,7 @@ const MCP_PACKS = [
     servers: {
       slack: {
         command: 'npx',
-        args: ['-y', '@anthropic/slack-mcp-server'],
+        args: ['-y', 'slack-mcp-server'],
         env: { SLACK_BOT_TOKEN: '${SLACK_BOT_TOKEN}' },
       },
     },
@@ -145,7 +145,7 @@ const MCP_PACKS = [
     servers: {
       stripe: {
         command: 'npx',
-        args: ['-y', '@stripe/mcp-server'],
+        args: ['-y', '@stripe/mcp'],
         env: { STRIPE_API_KEY: '${STRIPE_API_KEY}' },
       },
     },
@@ -158,7 +158,7 @@ const MCP_PACKS = [
     servers: {
       figma: {
         command: 'npx',
-        args: ['-y', '@anthropic/figma-mcp-server'],
+        args: ['-y', 'claude-talk-to-figma-mcp'],
         env: { FIGMA_ACCESS_TOKEN: '${FIGMA_ACCESS_TOKEN}' },
       },
     },
@@ -183,7 +183,7 @@ const MCP_PACKS = [
     servers: {
       composio: {
         command: 'npx',
-        args: ['-y', 'composio-mcp@latest'],
+        args: ['-y', '@composio/mcp'],
         env: { COMPOSIO_API_KEY: '${COMPOSIO_API_KEY}' },
       },
     },
@@ -208,7 +208,7 @@ const MCP_PACKS = [
     servers: {
       jira: {
         command: 'npx',
-        args: ['-y', '@anthropic/jira-mcp-server'],
+        args: ['-y', 'jira-mcp'],
         env: { ATLASSIAN_API_TOKEN: '${ATLASSIAN_API_TOKEN}', ATLASSIAN_EMAIL: '${ATLASSIAN_EMAIL}' },
       },
     },
@@ -221,7 +221,7 @@ const MCP_PACKS = [
     servers: {
       ga4: {
         command: 'npx',
-        args: ['-y', '@anthropic/ga4-mcp-server'],
+        args: ['-y', 'mcp-server-ga4'],
         env: { GA4_PROPERTY_ID: '${GA4_PROPERTY_ID}' },
       },
     },
@@ -260,7 +260,7 @@ const MCP_PACKS = [
     servers: {
       zendesk: {
         command: 'npx',
-        args: ['-y', 'zendesk-mcp-server@latest'],
+        args: ['-y', 'zendesk-mcp'],
         env: { ZENDESK_API_TOKEN: '${ZENDESK_API_TOKEN}', ZENDESK_SUBDOMAIN: '${ZENDESK_SUBDOMAIN}' },
       },
     },
@@ -273,7 +273,7 @@ const MCP_PACKS = [
     servers: {
       infisical: {
         command: 'npx',
-        args: ['-y', '@infisical/mcp-server'],
+        args: ['-y', '@infisical/mcp'],
         env: { INFISICAL_TOKEN: '${INFISICAL_TOKEN}' },
       },
     },
@@ -286,7 +286,7 @@ const MCP_PACKS = [
     servers: {
       shopify: {
         command: 'npx',
-        args: ['-y', '@shopify/dev-mcp-server'],
+        args: ['-y', 'shopify-mcp'],
         env: { SHOPIFY_ACCESS_TOKEN: '${SHOPIFY_ACCESS_TOKEN}' },
       },
     },
@@ -299,7 +299,7 @@ const MCP_PACKS = [
     servers: {
       huggingface: {
         command: 'npx',
-        args: ['-y', '@huggingface/mcp-server'],
+        args: ['-y', 'huggingface-mcp-server'],
         env: { HF_TOKEN: '${HF_TOKEN}' },
       },
     },
@@ -312,7 +312,7 @@ const MCP_PACKS = [
     servers: {
       blender: {
         command: 'npx',
-        args: ['-y', 'blender-mcp@latest'],
+        args: ['-y', '@glutamateapp/blender-mcp-ts'],
       },
     },
   },
