@@ -351,7 +351,7 @@ async function analyzeProject(options) {
     },
     strengthsPreserved: toStrengths(auditResult.results),
     gapsIdentified: toGaps(auditResult.results),
-    topNextActions: auditResult.quickWins,
+    topNextActions: auditResult.topNextActions || auditResult.quickWins,
     recommendedImprovements: toRecommendations(auditResult),
     recommendedDomainPacks,
     recommendedMcpPacks,
@@ -417,7 +417,14 @@ function printAnalysis(report, options = {}) {
     console.log(c('  Top 5 Next Actions', 'magenta'));
     report.topNextActions.slice(0, 5).forEach((item, index) => {
       console.log(`  ${index + 1}. ${item.name}`);
-      console.log(c(`     ${item.fix}`, 'dim'));
+      console.log(c(`     Why: ${item.why || item.fix}`, 'dim'));
+      if (Array.isArray(item.signals) && item.signals.length > 0) {
+        console.log(c(`     Trace: ${item.signals.join(' | ')}`, 'dim'));
+      }
+      if (item.risk || item.confidence) {
+        console.log(c(`     Risk: ${item.risk || 'low'} | Confidence: ${item.confidence || 'medium'}`, 'dim'));
+      }
+      console.log(c(`     Fix: ${item.fix}`, 'dim'));
     });
     console.log('');
   }
@@ -500,7 +507,15 @@ function exportMarkdown(report) {
     lines.push('## Top Next Actions');
     lines.push('');
     report.topNextActions.slice(0, 5).forEach((item, index) => {
-      lines.push(`${index + 1}. **${item.name}** — ${item.fix}`);
+      lines.push(`${index + 1}. **${item.name}**`);
+      lines.push(`   - Why: ${item.why || item.fix}`);
+      if (Array.isArray(item.signals) && item.signals.length > 0) {
+        lines.push(`   - Trace: ${item.signals.join(' | ')}`);
+      }
+      if (item.risk || item.confidence) {
+        lines.push(`   - Risk / Confidence: ${item.risk || 'low'} / ${item.confidence || 'medium'}`);
+      }
+      lines.push(`   - Fix: ${item.fix}`);
     });
     lines.push('');
   }

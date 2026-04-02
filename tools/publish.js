@@ -93,18 +93,18 @@ function openBrowser(url) {
 // === Content library ===
 const CONTENT = {
   hn: {
-    title: 'Show HN: claudex-setup – Audit any project for Claude Code optimization (972 techniques)',
+    title: 'Show HN: claudex-setup – Audit any project for Claude Code optimization (1,107 entries)',
     url: 'https://github.com/DnaFin/claudex-setup',
   },
   reddit: {
-    title: 'I built a CLI that audits your project for Claude Code optimization — scores 0-100 (972 verified techniques)',
-    text: `After cataloging 972 Claude Code techniques and testing 773 of them with real evidence, I built a free CLI that checks if your project is actually set up to get the most out of Claude Code.
+    title: 'I built a CLI that audits your project for Claude Code optimization — scores 0-100 (1,107 catalog entries)',
+    text: `After cataloging 1,107 Claude Code entries and verifying 948 of them with real evidence, I built a free CLI that checks if your project is actually set up to get the most out of Claude Code.
 
 Most projects score 10-20 out of 100. After running setup, they jump to 70+.
 
     npx claudex-setup
 
-It checks 12 critical things: CLAUDE.md, hooks, commands, skills, agents, Mermaid diagrams, XML tags, path rules, MCP config, permissions, and more.
+It checks 62 Claude Code setup signals: CLAUDE.md, hooks, commands, skills, agents, Mermaid diagrams, XML tags, path rules, MCP config, permissions, and more.
 
 Then npx claudex-setup setup creates everything that's missing, tailored to your stack (React, Python, TypeScript, Rust, Go, etc).
 

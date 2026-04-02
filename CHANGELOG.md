@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.10.3] - 2026-04-02
+
+### Added
+- `--snapshot` support for `audit`, `augment`, `suggest-only`, `benchmark`, and `governance`, writing normalized evidence artifacts under `.claude/claudex-setup/snapshots/`
+- shared snapshot history via `index.json` so before/after work can accumulate into a single local evidence spine
+- `governance --out governance.md` for a shareable governance / pilot-readiness artifact
+- packaged Claude-native `audit-repo` skill template under `content/claude-code/audit-repo/`
+- lightweight release checklist in `content/release-checklist.md`
+
+### Changed
+- default audit now surfaces `Top 5 Next Actions` with rationale, traceability, risk, confidence, and a suggested next command
+- `--lite` now gives a shorter beginner-first top-3 quick scan
+- README and docs now reflect snapshot artifacts, governance export, and the Claude-native skill path
+- packaged content and public-facing counts are now aligned with the current CLAUDEX state
+
 ## [1.10.2] - 2026-04-02
 
 ### Fixed
@@ -10,6 +25,12 @@
 ### Added
 - MCP preflight warnings for `setup`, `plan`, and `apply` when selected packs require missing environment variables
 - user-facing docs now reflect the actual 22 detected stacks
+
+## [1.10.1] - 2026-04-02
+
+### Fixed
+- corrected MCP pack package names to verified npm packages
+- aligned settings hierarchy checks with shared settings precedence
 
 ## [1.10.0] - 2026-04-01
 

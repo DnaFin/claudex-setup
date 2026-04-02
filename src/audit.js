@@ -30,10 +30,60 @@ function progressBar(score, max = 100, width = 20) {
 }
 
 const IMPACT_ORDER = { critical: 3, high: 2, medium: 1, low: 0 };
+const CATEGORY_MODULES = {
+  memory: 'CLAUDE.md',
+  quality: 'verification',
+  git: 'safety',
+  workflow: 'commands-agents-skills',
+  security: 'permissions',
+  automation: 'hooks',
+  design: 'design-rules',
+  devops: 'ci-devops',
+  hygiene: 'project-hygiene',
+  performance: 'context-management',
+  tools: 'mcp-tools',
+  prompting: 'prompt-structure',
+  features: 'modern-claude-features',
+  'quality-deep': 'quality-deep',
+};
+const ACTION_RATIONALES = {
+  noBypassPermissions: 'bypassPermissions skips the main safety layer. Explicit allow and deny rules create safer autonomy.',
+  secretsProtection: 'Without secret protection, Claude can accidentally inspect sensitive files and leak them into outputs.',
+  permissionDeny: 'Deny rules are the strongest way to prevent dangerous reads and destructive operations.',
+  settingsPermissions: 'Explicit permission settings make the workflow safer, more governable, and easier to review.',
+  testCommand: 'Without a test command, Claude cannot verify that its changes actually work before handoff.',
+  lintCommand: 'Without a lint command, Claude will miss formatting and style regressions that teams expect to catch automatically.',
+  buildCommand: 'Without a build command, compile and packaging failures stay invisible until later in the workflow.',
+  ciPipeline: 'CI is what turns a local setup improvement into a repeatable team-wide standard.',
+  securityReview: 'If you do not wire in security review guidance, high-risk changes are easier to ship without the right scrutiny.',
+  skills: 'Skills package reusable expertise so Claude does not need the same context re-explained every session.',
+  multipleAgents: 'Specialized agents unlock role-based work such as security review, implementation, and QA in parallel.',
+  multipleMcpServers: 'A richer MCP surface gives Claude access to live tools and documentation instead of stale assumptions.',
+  roleDefinition: 'A clear role definition calibrates how Claude thinks, explains, and validates work in this repo.',
+  importSyntax: 'Imported modules keep CLAUDE.md maintainable as the workflow grows more sophisticated.',
+  claudeMd: 'CLAUDE.md is the foundation of project-specific context. Without it, Claude starts every task half-blind.',
+  hooks: 'Hooks enforce the rules programmatically, which is much more reliable than relying on instructions alone.',
+  pathRules: 'Path-specific rules help Claude behave differently in different parts of the repo without global noise.',
+  context7Mcp: 'Live documentation reduces version drift and cuts down on confident but outdated answers.',
+};
+
+function riskFromImpact(impact) {
+  if (impact === 'critical') return 'high';
+  if (impact === 'high') return 'medium';
+  return 'low';
+}
+
+function confidenceFromImpact(impact) {
+  return impact === 'critical' || impact === 'high' ? 'high' : 'medium';
+}
+
+function getPrioritizedFailed(failed) {
+  const prioritized = failed.filter(r => !(r.category === 'hygiene' && r.impact === 'low'));
+  return prioritized.length > 0 ? prioritized : failed;
+}
 
 function getQuickWins(failed) {
-  const prioritized = failed.filter(r => !(r.category === 'hygiene' && r.impact === 'low'));
-  const pool = prioritized.length > 0 ? prioritized : failed;
+  const pool = getPrioritizedFailed(failed);
 
   return [...pool]
     .sort((a, b) => {
@@ -43,6 +93,87 @@ function getQuickWins(failed) {
       return (a.fix || '').length - (b.fix || '').length;
     })
     .slice(0, 3);
+}
+
+function buildTopNextActions(failed, limit = 5) {
+  const pool = getPrioritizedFailed(failed);
+
+  return [...pool]
+    .sort((a, b) => {
+      const impactA = IMPACT_ORDER[a.impact] ?? 0;
+      const impactB = IMPACT_ORDER[b.impact] ?? 0;
+      if (impactA !== impactB) return impactB - impactA;
+      return (a.fix || '').length - (b.fix || '').length;
+    })
+    .slice(0, limit)
+    .map(({ key, name, impact, fix, category }) => ({
+      key,
+      name,
+      impact,
+      category,
+      module: CATEGORY_MODULES[category] || category,
+      fix,
+      why: ACTION_RATIONALES[key] || fix,
+      risk: riskFromImpact(impact),
+      confidence: confidenceFromImpact(impact),
+      signals: [
+        `failed-check:${key}`,
+        `impact:${impact}`,
+        `category:${category}`,
+      ],
+    }));
+}
+
+function inferSuggestedNextCommand(result) {
+  const actionKeys = new Set((result.topNextActions || []).map(item => item.key));
+
+  if (result.failed === 0) {
+    return 'npx claudex-setup augment';
+  }
+
+  if (
+    result.score < 50 ||
+    actionKeys.has('claudeMd') ||
+    actionKeys.has('hooks') ||
+    actionKeys.has('settingsPermissions') ||
+    actionKeys.has('permissionDeny')
+  ) {
+    return 'npx claudex-setup setup';
+  }
+
+  if (result.score < 80) {
+    return 'npx claudex-setup suggest-only';
+  }
+
+  return 'npx claudex-setup augment';
+}
+
+function printLiteAudit(result, dir) {
+  console.log('');
+  console.log(colorize('  claudex-setup quick scan', 'bold'));
+  console.log(colorize('  ═══════════════════════════════════════', 'dim'));
+  console.log(colorize(`  Scanning: ${dir}`, 'dim'));
+  console.log('');
+  console.log(`  Score: ${colorize(`${result.score}/100`, 'bold')}`);
+  console.log('');
+
+  if (result.failed === 0) {
+    console.log(colorize('  Your Claude setup looks solid.', 'green'));
+    console.log(`  Next: ${colorize(result.suggestedNextCommand, 'bold')}`);
+    console.log('');
+    return;
+  }
+
+  console.log(colorize('  Top 3 things to fix right now:', 'magenta'));
+  console.log('');
+  result.liteSummary.topNextActions.forEach((item, index) => {
+    console.log(`  ${index + 1}. ${colorize(item.name, 'bold')}`);
+    console.log(colorize(`     Why: ${item.why}`, 'dim'));
+    console.log(colorize(`     Fix: ${item.fix}`, 'dim'));
+  });
+  console.log('');
+  console.log(`  Ready? Run: ${colorize(result.suggestedNextCommand, 'bold')}`);
+  console.log('');
 }
 
 async function audit(options) {
@@ -91,6 +222,7 @@ async function audit(options) {
   const organicEarned = organicPassed.reduce((sum, r) => sum + (weights[r.impact] || 5), 0);
   const organicScore = maxScore > 0 ? Math.round((organicEarned / maxScore) * 100) : 0;
   const quickWins = getQuickWins(failed);
+  const topNextActions = buildTopNextActions(failed, 5);
   const result = {
     score,
     organicScore,
@@ -102,6 +234,12 @@ async function audit(options) {
     stacks,
     results,
     quickWins: quickWins.map(({ key, name, impact, fix, category }) => ({ key, name, impact, category, fix })),
+    topNextActions,
+  };
+  result.suggestedNextCommand = inferSuggestedNextCommand(result);
+  result.liteSummary = {
+    topNextActions: topNextActions.slice(0, 3),
+    nextCommand: result.suggestedNextCommand,
   };
 
   // Silent mode: skip all output, just return result
@@ -116,6 +254,12 @@ async function audit(options) {
       timestamp: new Date().toISOString(),
       ...result
     }, null, 2));
+    return result;
+  }
+
+  if (options.lite) {
+    printLiteAudit(result, options.dir);
+    sendInsights(result);
     return result;
   }
 
@@ -178,13 +322,16 @@ async function audit(options) {
     console.log('');
   }
 
-  // Quick wins
-  if (failed.length > 0) {
-    console.log(colorize('  ⚡ Best next fixes', 'magenta'));
-    for (let i = 0; i < quickWins.length; i++) {
-      const r = quickWins[i];
-      console.log(`     ${i + 1}. ${colorize(r.name, 'bold')}`);
-      console.log(colorize(`        → ${r.fix}`, 'dim'));
+  // Top next actions
+  if (topNextActions.length > 0) {
+    console.log(colorize('  ⚡ Top 5 Next Actions', 'magenta'));
+    for (let i = 0; i < topNextActions.length; i++) {
+      const item = topNextActions[i];
+      console.log(`     ${i + 1}. ${colorize(item.name, 'bold')}`);
+      console.log(colorize(`        Why: ${item.why}`, 'dim'));
+      console.log(colorize(`        Trace: ${item.signals.join(' | ')}`, 'dim'));
+      console.log(colorize(`        Risk: ${item.risk} | Confidence: ${item.confidence}`, 'dim'));
+      console.log(colorize(`        Fix: ${item.fix}`, 'dim'));
     }
     console.log('');
   }
@@ -194,7 +341,7 @@ async function audit(options) {
   console.log(`  ${colorize(`${passed.length}/${applicable.length}`, 'bold')} checks passing${skipped.length > 0 ? colorize(` (${skipped.length} not applicable)`, 'dim') : ''}`);
 
   if (failed.length > 0) {
-    console.log(`  Run ${colorize('npx claudex-setup setup', 'bold')} to create starter-safe defaults`);
+    console.log(`  Next command: ${colorize(result.suggestedNextCommand, 'bold')}`);
   }
 
   console.log('');

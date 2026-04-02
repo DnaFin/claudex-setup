@@ -51,3 +51,7 @@ npm test
 ```
 
 Tests run all checks against fixture projects in `test/fixtures/`.
+
+## Release Checklist
+
+Before publishing a new version, walk through [content/release-checklist.md](./content/release-checklist.md).

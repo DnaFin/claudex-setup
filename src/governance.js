@@ -386,6 +386,74 @@ function printGovernanceSummary(summary, options = {}) {
   console.log('');
 }
 
+function renderGovernanceMarkdown(summary) {
+  const lines = [
+    '# Claudex Setup Governance Report',
+    '',
+    'This report summarizes the shipped governance surface for Claude Code rollout, review, and pilot approval.',
+    '',
+    '## Permission Profiles',
+  ];
+
+  for (const profile of summary.permissionProfiles) {
+    lines.push(`- **${profile.label}** \`${profile.key}\` | risk: \`${profile.risk}\` | defaultMode: \`${profile.defaultMode}\``);
+    lines.push(`  - Use when: ${profile.useWhen}`);
+    lines.push(`  - Behavior: ${profile.behavior}`);
+    if (Array.isArray(profile.deny) && profile.deny.length > 0) {
+      lines.push(`  - Deny rules: ${profile.deny.join(', ')}`);
+    }
+  }
+
+  lines.push('', '## Hook Registry');
+  for (const hook of summary.hookRegistry) {
+    lines.push(`- **${hook.key}** \`${hook.triggerPoint}${hook.matcher ? ` ${hook.matcher}` : ''}\` | risk: \`${hook.risk}\``);
+    lines.push(`  - File: ${hook.file}`);
+    lines.push(`  - Purpose: ${hook.purpose}`);
+    lines.push(`  - Dry run: ${hook.dryRunExample}`);
+    lines.push(`  - Rollback: ${hook.rollbackPath}`);
+  }
+
+  lines.push('', '## Policy Packs');
+  for (const pack of summary.policyPacks) {
+    lines.push(`- **${pack.label}**`);
+    lines.push(`  - Use when: ${pack.useWhen}`);
+    lines.push(`  - Modules: ${pack.modules.join(', ')}`);
+  }
+
+  lines.push('', `## Domain Packs (${summary.domainPacks.length})`);
+  for (const pack of summary.domainPacks) {
+    lines.push(`- **${pack.label}**: ${pack.useWhen}`);
+  }
+
+  lines.push('', `## MCP Packs (${summary.mcpPacks.length})`);
+  for (const pack of summary.mcpPacks) {
+    lines.push(`- **${pack.label}**: ${Object.keys(pack.servers).join(', ')}`);
+  }
+
+  lines.push('', '## Pilot Rollout Kit', '### Recommended Scope');
+  for (const item of summary.pilotRolloutKit.recommendedScope) {
+    lines.push(`- ${item}`);
+  }
+
+  lines.push('', '### Approvals');
+  for (const item of summary.pilotRolloutKit.approvals) {
+    lines.push(`- ${item}`);
+  }
+
+  lines.push('', '### Success Metrics');
+  for (const item of summary.pilotRolloutKit.successMetrics) {
+    lines.push(`- ${item}`);
+  }
+
+  lines.push('', '### Rollback Expectations');
+  for (const item of summary.pilotRolloutKit.rollbackExpectations) {
+    lines.push(`- ${item}`);
+  }
+
+  lines.push('');
+  return lines.join('\n');
+}
+
 module.exports = {
   PERMISSION_PROFILES,
   getPermissionProfile,
@@ -394,4 +462,5 @@ module.exports = {
   buildSettingsForProfile,
   getGovernanceSummary,
   printGovernanceSummary,
+  renderGovernanceMarkdown,
 };

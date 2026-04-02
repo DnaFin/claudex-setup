@@ -4,8 +4,9 @@ const { audit } = require('../src/audit');
 const { setup } = require('../src/setup');
 const { analyzeProject, printAnalysis, exportMarkdown } = require('../src/analyze');
 const { buildProposalBundle, printProposalBundle, writePlanFile, applyProposalBundle, printApplyResult } = require('../src/plans');
-const { getGovernanceSummary, printGovernanceSummary, ensureWritableProfile } = require('../src/governance');
+const { getGovernanceSummary, printGovernanceSummary, ensureWritableProfile, renderGovernanceMarkdown } = require('../src/governance');
 const { runBenchmark, printBenchmark, writeBenchmarkReport } = require('../src/benchmark');
+const { writeSnapshotArtifact } = require('../src/activity');
 const { version } = require('../package.json');
 
 const args = process.argv.slice(2);
@@ -133,6 +134,7 @@ const HELP = `
 
   Usage:
     npx claudex-setup                  Run audit on current directory
+    npx claudex-setup --lite           Run the quick-scan beginner view
     npx claudex-setup discover         Discover the highest-value improvements
     npx claudex-setup audit            Same as above
     npx claudex-setup starter          Alias for setup
@@ -156,6 +158,8 @@ const HELP = `
     --only A,B      Limit plan/apply to selected proposal ids or technique keys
     --profile NAME  Choose permission profile (read-only, suggest-only, safe-write, power-user, internal-research)
     --mcp-pack A,B  Merge named MCP packs into generated settings (e.g. context7-docs,next-devtools)
+    --snapshot      Save a normalized snapshot artifact under .claude/claudex-setup/snapshots/
+    --lite          Show a short top-3 quick scan with one clear next command
     --dry-run       Preview apply without writing files
     --verbose       Show all recommendations (not just critical/high)
     --json          Output as JSON (for CI pipelines)
@@ -166,8 +170,12 @@ const HELP = `
 
   Examples:
     npx claudex-setup
+    npx claudex-setup --lite
+    npx claudex-setup --snapshot
     npx claudex-setup augment
+    npx claudex-setup augment --snapshot
     npx claudex-setup suggest-only --json
+    npx claudex-setup governance --snapshot
     npx claudex-setup plan --out claudex-plan.json
     npx claudex-setup plan --profile safe-write
     npx claudex-setup setup --mcp-pack context7-docs
@@ -210,6 +218,8 @@ async function main() {
     verbose: flags.includes('--verbose'),
     json: flags.includes('--json'),
     auto: flags.includes('--auto'),
+    lite: flags.includes('--lite'),
+    snapshot: flags.includes('--snapshot'),
     dryRun: flags.includes('--dry-run'),
     threshold: parsed.threshold !== null ? Number(parsed.threshold) : null,
     out: parsed.out,
@@ -295,6 +305,9 @@ async function main() {
       return; // keep process alive for http
     } else if (normalizedCommand === 'augment' || normalizedCommand === 'suggest-only') {
       const report = await analyzeProject({ ...options, mode: normalizedCommand });
+      const snapshot = options.snapshot ? writeSnapshotArtifact(options.dir, normalizedCommand, report, {
+        sourceCommand: normalizedCommand,
+      }) : null;
       if (options.out && !options.json) {
         const fs = require('fs');
         const md = exportMarkdown(report);
@@ -302,6 +315,11 @@ async function main() {
         console.log(`\n  Report exported to ${options.out}\n`);
       }
       printAnalysis(report, options);
+      if (snapshot && !options.json) {
+        console.log(`  Snapshot saved: ${snapshot.relativePath}`);
+        console.log(`  Snapshot index: ${snapshot.indexPath}`);
+        console.log('');
+      }
     } else if (normalizedCommand === 'plan') {
       const bundle = await buildProposalBundle(options);
       let artifact = null;
@@ -320,16 +338,45 @@ async function main() {
       const result = await applyProposalBundle(options);
       printApplyResult(result, options);
     } else if (normalizedCommand === 'governance') {
+      const fs = require('fs');
+      const path = require('path');
       const summary = getGovernanceSummary();
+      if (options.out) {
+        fs.mkdirSync(path.dirname(options.out), { recursive: true });
+        const content = path.extname(options.out).toLowerCase() === '.md'
+          ? renderGovernanceMarkdown(summary)
+          : JSON.stringify(summary, null, 2);
+        fs.writeFileSync(options.out, content, 'utf8');
+      }
       printGovernanceSummary(summary, options);
+      const snapshot = options.snapshot ? writeSnapshotArtifact(options.dir, 'governance', summary, {
+        sourceCommand: normalizedCommand,
+      }) : null;
+      if (options.out && !options.json) {
+        console.log(`  Governance report written to ${options.out}`);
+        console.log('');
+      }
+      if (snapshot && !options.json) {
+        console.log(`  Snapshot saved: ${snapshot.relativePath}`);
+        console.log(`  Snapshot index: ${snapshot.indexPath}`);
+        console.log('');
+      }
     } else if (normalizedCommand === 'benchmark') {
       const report = await runBenchmark(options);
+      const snapshot = options.snapshot ? writeSnapshotArtifact(options.dir, 'benchmark', report, {
+        sourceCommand: normalizedCommand,
+      }) : null;
       if (options.out) {
         writeBenchmarkReport(report, options.out);
       }
       printBenchmark(report, options);
       if (options.out && !options.json) {
         console.log(`  Benchmark report written to ${options.out}`);
+        console.log('');
+      }
+      if (snapshot && !options.json) {
+        console.log(`  Snapshot saved: ${snapshot.relativePath}`);
+        console.log(`  Snapshot index: ${snapshot.indexPath}`);
         console.log('');
       }
     } else if (normalizedCommand === 'deep-review') {
@@ -345,6 +392,14 @@ async function main() {
       await setup(options);
     } else {
       const result = await audit(options);
+      const snapshot = options.snapshot ? writeSnapshotArtifact(options.dir, 'audit', result, {
+        sourceCommand: normalizedCommand,
+      }) : null;
+      if (snapshot && !options.json) {
+        console.log(`  Snapshot saved: ${snapshot.relativePath}`);
+        console.log(`  Snapshot index: ${snapshot.indexPath}`);
+        console.log('');
+      }
       if (options.threshold !== null && result.score < options.threshold) {
         if (!options.json) {
           console.error(`  Threshold failed: score ${result.score}/100 is below required ${options.threshold}/100.\n`);

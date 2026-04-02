@@ -23,11 +23,14 @@
 ## Quick Start
 
 ```bash
+npx claudex-setup --lite      # Quick beginner scan: top 3 fixes + next command
 npx claudex-setup              # Audit your project (10 seconds)
+npx claudex-setup --snapshot   # Save a normalized snapshot under .claude/claudex-setup/
 npx claudex-setup setup        # Create a starter-safe baseline
 npx claudex-setup augment      # Repo-aware plan, no writes
 npx claudex-setup plan         # Export proposal bundles with file previews
 npx claudex-setup governance   # See permission profiles, packs, and pilot guidance
+npx claudex-setup governance --out governance.md  # Export a shareable governance report
 npx claudex-setup benchmark    # Measure before/after in an isolated temp copy
 npx claudex-setup --threshold 60   # Fail CI if score is below 60
 ```
@@ -55,17 +58,34 @@ No install. No config. No dependencies.
      CI pipeline configured
      → Add .github/workflows/ for automated testing
 
-  ⚡ Best next fixes
+  ⚡ Top 5 Next Actions
      1. Add CLAUDE.md verification criteria
+        Why: Claude needs an explicit verification loop before handoff
+        Trace: failed-check:verificationLoop | impact:critical | category:quality
+        Risk: high | Confidence: high
+        Fix: Add test/lint/build commands to CLAUDE.md so Claude can verify its own work
+
      2. Configure safe permissions + deny rules
+        Why: Explicit permissions are the main safety layer for repo writes
+        Trace: failed-check:permissionDeny | impact:high | category:security
+        Risk: medium | Confidence: high
+        Fix: Add permissions.deny rules to block dangerous operations
 
   Weakest areas:
       design: none (0/2)
      devops: none (0/4)
 
   29/62 checks passing
-  Run npx claudex-setup setup to create a starter-safe baseline
+  Next command: npx claudex-setup setup
 ```
+
+Want the shortest possible first run?
+
+```bash
+npx claudex-setup --lite
+```
+
+That prints a compact top-3 quick scan with one clear next command.
 
 ## All Commands
 
@@ -98,6 +118,8 @@ No install. No config. No dependencies.
 | `--only A,B` | Limit plan/apply to selected proposal ids |
 | `--profile NAME` | Choose a permission profile for write-capable flows |
 | `--mcp-pack A,B` | Merge named MCP packs into generated or patched settings |
+| `--snapshot` | Save a normalized artifact under `.claude/claudex-setup/snapshots/` |
+| `--lite` | Show a short top-3 quick scan with one clear next command |
 | `--dry-run` | Preview apply without writing files |
 | `--verbose` | Show all recommendations (not just critical/high) |
 | `--json` | Machine-readable JSON output (for CI) |
@@ -155,6 +177,7 @@ Use `governance` when the question is "can we pilot this safely?" instead of "wh
 
 ```bash
 npx claudex-setup governance
+npx claudex-setup governance --out governance.md
 ```
 
 It exposes:
@@ -165,6 +188,8 @@ It exposes:
 - 16 domain packs: backend-api, frontend-ui, data-pipeline, infra-platform, oss-library, enterprise-governed, monorepo, mobile, regulated-lite, ecommerce, ai-ml, devops-cicd, design-system, docs-content, security-focused, baseline-general
 - 26 MCP packs: Context7, Next.js devtools, GitHub, PostgreSQL, Playwright, Docker, Notion, Linear, Sentry, Slack, Stripe, Figma, Shopify, Hugging Face, Blender, WordPress, Jira/Confluence, GA4, Search Console, n8n, Zendesk, Infisical, Composio, memory, sequential-thinking, mcp-security
 - a pilot rollout kit with scope, approvals, success metrics, and rollback expectations
+
+Use `--out governance.md` if you want a shareable artifact for leads, platform teams, or security review.
 
 ## Domain Packs And MCP Packs
 
@@ -194,6 +219,31 @@ Benchmark mode:
 - copies the repo to an isolated temp workspace
 - applies starter-safe artifacts only in the copy
 - reruns the audit and emits before/after deltas, workflow-evidence coverage, a case-study summary, and an executive recommendation
+
+If you want repeatable evidence artifacts for before/after work, add `--snapshot` to `audit`, `augment`, `suggest-only`, `benchmark`, or `governance`.
+
+```bash
+npx claudex-setup --snapshot
+npx claudex-setup augment --snapshot
+npx claudex-setup benchmark --snapshot
+```
+
+Snapshots are written to `.claude/claudex-setup/snapshots/` with a shared envelope and an `index.json` history file.
+
+## Use Inside Claude Code
+
+If you want the first Claude-native entry point, copy the shipped skill template into your repo.
+
+If `claudex-setup` is installed locally in `node_modules`, use:
+
+```bash
+mkdir -p .claude/skills/audit-repo
+cp ./node_modules/claudex-setup/content/claude-code/audit-repo/SKILL.md .claude/skills/audit-repo/SKILL.md
+```
+
+If you are using `npx` only, copy the same file from the GitHub repo at `content/claude-code/audit-repo/SKILL.md`.
+
+The skill runs `npx claudex-setup --json`, summarizes the score, shows the top next actions, and points to the right next command without applying changes.
 
 ## 62 Checks Across 14 Categories
 
@@ -241,7 +291,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DnaFin/claudex-setup@v1.10.2
+      - uses: DnaFin/claudex-setup@v1.10.3
         with:
           threshold: 50
 ```
@@ -302,7 +352,7 @@ Every check traces to a verified technique from a systematic audit of:
 - Anthropic blog posts and benchmark papers
 - 194 hands-on experiments with real evidence
 
-The catalog includes 1,107 entries (features, techniques, patterns, tools, stats, and known limitations) — not all are actionable checks. 954 were verified with real evidence. Continuously updated.
+The catalog includes 1,107 entries (features, techniques, patterns, tools, stats, and known limitations) — not all are actionable checks. 948 were verified with real evidence. Continuously updated.
 
 **Note:** A hand-crafted CLAUDE.md that reflects your real conventions will always be better than a generated one. This tool is most useful for projects starting from zero, or as a checklist for what you might be missing.
 

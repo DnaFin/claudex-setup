@@ -87,7 +87,8 @@ function sendInsights(auditResult) {
  */
 function getLocalInsights(auditResult) {
   const { results } = auditResult;
-  const failed = results.filter(r => !r.passed);
+  const applicable = results.filter(r => r.passed !== null);
+  const failed = applicable.filter(r => r.passed === false);
 
   // Top 3 most impactful fixes
   const impactOrder = { critical: 3, high: 2, medium: 1 };
@@ -98,7 +99,7 @@ function getLocalInsights(auditResult) {
 
   // Score breakdown by category
   const categories = {};
-  for (const r of results) {
+  for (const r of applicable) {
     const cat = r.category || 'other';
     if (!categories[cat]) categories[cat] = { passed: 0, total: 0 };
     categories[cat].total++;

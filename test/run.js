@@ -13,7 +13,7 @@ const { runBenchmark } = require('../src/benchmark');
 const { TECHNIQUES, STACKS } = require('../src/techniques');
 const { ProjectContext } = require('../src/context');
 const { getBadgeUrl, getBadgeMarkdown } = require('../src/badge');
-const { shouldCollect } = require('../src/insights');
+const { shouldCollect, getLocalInsights } = require('../src/insights');
 
 function writeJson(dir, file, value) {
   fs.writeFileSync(path.join(dir, file), JSON.stringify(value, null, 2));
@@ -87,6 +87,13 @@ async function main() {
     assert.equal(names.length, unique.size, 'Duplicate names found');
   });
 
+  test('Packaged Claude-native skill template exists and is published', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+    const skillPath = path.join(__dirname, '..', 'content', 'claude-code', 'audit-repo', 'SKILL.md');
+    assert.ok(fs.existsSync(skillPath), 'audit-repo skill template should exist');
+    assert.ok(pkg.files.includes('content'), 'npm package should include content templates');
+  });
+
   // ============================================================
   // Unit tests: empty project
   // ============================================================
@@ -152,6 +159,17 @@ async function main() {
       for (const item of result.results) {
         assert.ok([true, false, null].includes(item.passed), `${item.key} returned non-normalized state: ${item.passed}`);
       }
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Local insights ignore skipped checks when computing weak areas', async () => {
+    const dir = mkFixture('insights-skips');
+    try {
+      fs.writeFileSync(path.join(dir, 'requirements.txt'), 'fastapi\n');
+      const result = await audit({ dir, silent: true });
+      const insights = getLocalInsights(result);
+      assert.ok(Array.isArray(insights.weakest), 'weakest areas should be returned');
+      assert.ok(insights.weakest.every(item => item.total >= item.passed), 'weakest areas should be based on applicable checks only');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
@@ -361,7 +379,25 @@ async function main() {
       const result = await audit({ dir, silent: true });
       assert.equal(typeof result.organicScore, 'number', 'organicScore should be included');
       assert.ok(Array.isArray(result.quickWins), 'quickWins should be included');
+      assert.ok(Array.isArray(result.topNextActions), 'topNextActions should be included');
+      assert.equal(typeof result.suggestedNextCommand, 'string', 'suggestedNextCommand should be included');
+      assert.ok(result.topNextActions.length <= 5, 'topNextActions should be capped at 5');
       assert.equal(typeof result.checkCount, 'number', 'checkCount should be included');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Audit top next actions include rationale and traceability', async () => {
+    const dir = mkFixture('audit-top-actions');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const result = await audit({ dir, silent: true });
+      assert.ok(result.topNextActions.length > 0, 'Expected at least one top action');
+      const first = result.topNextActions[0];
+      assert.equal(typeof first.why, 'string', 'Top actions should include why');
+      assert.equal(typeof first.risk, 'string', 'Top actions should include risk');
+      assert.equal(typeof first.confidence, 'string', 'Top actions should include confidence');
+      assert.ok(Array.isArray(first.signals), 'Top actions should include signals');
+      assert.ok(first.signals.some(signal => signal.startsWith('failed-check:')), 'Signals should include the failed check trace');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
@@ -382,6 +418,7 @@ async function main() {
       assert.equal(report.writeBehavior, 'No files are written in this mode.');
       assert.ok(report.projectSummary);
       assert.ok(Array.isArray(report.topNextActions));
+      assert.ok(report.topNextActions.every(item => typeof item.why === 'string'), 'topNextActions should carry rationale into analysis');
       assert.ok(Array.isArray(report.recommendedImprovements));
       assert.ok(Array.isArray(report.suggestedRolloutOrder));
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
@@ -643,6 +680,75 @@ async function main() {
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
+  test('CLI audit output includes Top 5 Next Actions by default', () => {
+    const dir = mkFixture('cli-audit-top5');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const result = runCli([], dir);
+      assert.equal(result.status, 0, 'default audit should succeed');
+      assert.ok(result.stdout.includes('Top 5 Next Actions'), 'audit output should include Top 5 Next Actions');
+      assert.ok(result.stdout.includes('Trace:'), 'audit output should include traceability');
+      assert.ok(result.stdout.includes('Next command:'), 'audit output should suggest a next command');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI lite mode returns a short quick scan with one clear next command', () => {
+    const dir = mkFixture('cli-lite');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const result = runCli(['--lite'], dir);
+      assert.equal(result.status, 0, '--lite should succeed');
+      assert.ok(result.stdout.includes('quick scan'), 'lite output should identify itself');
+      assert.ok(result.stdout.includes('Top 3 things to fix right now'), 'lite output should show top 3 gaps');
+      assert.ok(result.stdout.includes('Ready? Run:'), 'lite output should end with one clear next command');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI lite mode still returns machine-readable JSON when combined with --json', () => {
+    const dir = mkFixture('cli-lite-json');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const result = runCli(['--lite', '--json'], dir);
+      assert.equal(result.status, 0, '--lite --json should succeed');
+      const payload = JSON.parse(result.stdout);
+      assert.ok(payload.liteSummary, 'JSON output should include liteSummary');
+      assert.ok(Array.isArray(payload.liteSummary.topNextActions), 'liteSummary should include top actions');
+      assert.equal(typeof payload.liteSummary.nextCommand, 'string', 'liteSummary should include nextCommand');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI audit can save a normalized snapshot artifact', () => {
+    const dir = mkFixture('cli-audit-snapshot');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const result = runCli(['--snapshot'], dir);
+      assert.equal(result.status, 0, 'audit --snapshot should succeed');
+      const snapshotRoot = path.join(dir, '.claude', 'claudex-setup', 'snapshots');
+      const files = fs.readdirSync(snapshotRoot).filter(file => file.endsWith('-audit.json'));
+      assert.ok(files.length >= 1, 'audit snapshot file should be created');
+      const envelope = JSON.parse(fs.readFileSync(path.join(snapshotRoot, files[0]), 'utf8'));
+      assert.equal(envelope.artifactType, 'snapshot', 'snapshot envelope should use normalized artifactType');
+      assert.equal(envelope.snapshotKind, 'audit', 'snapshot kind should be audit');
+      assert.ok(envelope.summary && typeof envelope.summary.score === 'number', 'snapshot should contain a summary');
+      assert.ok(fs.existsSync(path.join(snapshotRoot, 'index.json')), 'snapshot history index should be created');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI benchmark can save a normalized snapshot artifact', () => {
+    const dir = mkFixture('cli-benchmark-snapshot');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const result = runCli(['benchmark', '--snapshot'], dir);
+      assert.equal(result.status, 0, 'benchmark --snapshot should succeed');
+      const snapshotRoot = path.join(dir, '.claude', 'claudex-setup', 'snapshots');
+      const files = fs.readdirSync(snapshotRoot).filter(file => file.endsWith('-benchmark.json'));
+      assert.ok(files.length >= 1, 'benchmark snapshot file should be created');
+      const envelope = JSON.parse(fs.readFileSync(path.join(snapshotRoot, files[0]), 'utf8'));
+      assert.equal(envelope.snapshotKind, 'benchmark', 'snapshot kind should be benchmark');
+      assert.ok(typeof envelope.summary.scoreDelta === 'number', 'benchmark snapshot should summarize score deltas');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
   test('CLI plan exports file and activity artifact', () => {
     const dir = mkFixture('cli-plan');
     try {
@@ -665,6 +771,20 @@ async function main() {
       assert.ok(Array.isArray(payload.hookRegistry), 'JSON should include hookRegistry');
       assert.ok(Array.isArray(payload.domainPacks), 'JSON should include domainPacks');
       assert.ok(Array.isArray(payload.mcpPacks), 'JSON should include mcpPacks');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI governance can export markdown report', () => {
+    const dir = mkFixture('cli-governance-md');
+    try {
+      const outFile = path.join(dir, 'governance.md');
+      const result = runCli(['governance', '--out', outFile], dir);
+      assert.equal(result.status, 0, 'governance --out should succeed');
+      assert.ok(fs.existsSync(outFile), 'governance report should be written');
+      const content = fs.readFileSync(outFile, 'utf8');
+      assert.ok(content.includes('Claudex Setup Governance Report'), 'markdown report should include title');
+      assert.ok(content.includes('Permission Profiles'), 'markdown report should include permission profiles');
+      assert.ok(content.includes('Pilot Rollout Kit'), 'markdown report should include pilot rollout guidance');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 

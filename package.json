@@ -1,6 +1,6 @@
 {
   "name": "claudex-setup",
-  "version": "1.10.2",
+  "version": "1.10.3",
   "description": "Score your repo's Claude Code setup against 62 checks. See gaps, apply fixes selectively with rollback, govern hooks and permissions, and benchmark impact — without breaking existing config.",
   "main": "src/index.js",
   "bin": {
@@ -8,6 +8,7 @@
   },
   "files": [
     "bin",
+    "content",
     "src",
     "README.md",
     "CHANGELOG.md"

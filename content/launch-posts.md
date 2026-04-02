@@ -5,7 +5,7 @@
 **Title:** I built a tool that audits your project for Claude Code optimization — scores you 0-100
 
 **Body:**
-After cataloging 972 Claude Code techniques and testing 773 of them, I built a CLI that checks if your project is actually set up to get the most out of Claude Code.
+After cataloging 1,107 Claude Code entries and verifying 948 of them with evidence, I built a CLI that checks if your project is actually set up to get the most out of Claude Code.
 
 Most projects score around 10-20/100. After running setup, they jump to 70+.
 
@@ -30,7 +30,7 @@ Would love feedback!
 **Title:** Your Claude Code project is probably running at 10% efficiency. Here's how to check.
 
 **Body:**
-I spent weeks cataloging every Claude Code feature, technique, and best practice — 972 total, 773 tested with real evidence.
+I spent weeks cataloging every Claude Code feature, technique, and best practice — 1,107 total, 948 verified with real evidence.
 
 Turns out most projects are missing basic stuff that makes a huge difference:
 - No CLAUDE.md (Claude doesn't know your project conventions)
@@ -51,10 +51,10 @@ Free, open source, zero dependencies: https://github.com/DnaFin/claudex-setup
 
 ## Post 3: Dev.to Article
 
-**Title:** 972 Claude Code Techniques: What I Learned Building the Most Comprehensive Catalog
+**Title:** 1,107 Claude Code Entries: What I Learned Building the Most Comprehensive Catalog
 
 **Body (excerpt):**
-I set out to catalog every single Claude Code capability, technique, and best practice. 39 research cycles later, I have 972 items — 773 tested with real evidence.
+I set out to catalog every single Claude Code capability, technique, and best practice. After repeated research cycles, I have 1,107 entries — 948 verified with real evidence.
 
 Here are the top 10 things most developers are missing:
 
@@ -90,7 +90,7 @@ Full catalog: https://github.com/DnaFin/claudex-setup
 ## Post 4: Twitter/X Thread
 
 **Tweet 1:**
-I cataloged 972 Claude Code techniques and tested 773 of them.
+I cataloged 1,107 Claude Code entries and verified 948 of them with evidence.
 
 Most projects use less than 5% of what Claude Code can do.
 
@@ -143,12 +143,12 @@ https://github.com/DnaFin/claudex-setup
 
 ## Post 5: Hacker News (Show HN)
 
-**Title:** Show HN: claudex-setup – Audit any project for Claude Code optimization (972 techniques)
+**Title:** Show HN: claudex-setup – Audit any project for Claude Code optimization (1,107 entries)
 
 **Body:**
 I built a CLI tool that scores your project against Claude Code best practices.
 
-After researching 972 techniques (773 tested live), most projects score 10-20 out of 100 because they're missing basic optimizations like CLAUDE.md files, hooks, custom commands, and architecture diagrams.
+After researching 1,107 entries (948 verified with evidence), most projects score 10-20 out of 100 because they're missing basic optimizations like CLAUDE.md files, hooks, custom commands, and architecture diagrams.
 
 npx claudex-setup → audit (0-100 score)
 npx claudex-setup setup → auto-fix

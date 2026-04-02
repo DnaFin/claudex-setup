@@ -4,7 +4,7 @@
 
 **Product:** `claudex-setup` - CLI tool that audits and optimizes any project for Claude Code
 **Revenue model:** Free CLI (audience) + Premium newsletter (revenue) + Consulting (high-ticket)
-**Unfair advantage:** 972 verified techniques, 773 tested. Nobody else has this.
+**Unfair advantage:** 1,107 catalog entries, 948 verified with evidence. Nobody else has this.
 
 ---
 
@@ -34,7 +34,7 @@ npx claudex-setup → audit + setup your project for Claude Code
 ```
 - Free tier: weekly email with 3 tips
 - Premium: daily tips + full technique database access ($10/month)
-- Source: 972 items = 2+ years of unique daily content
+- Source: 1,107 items = 2+ years of unique daily content
 
 ### Layer 3: One-time Products (Cash Injection)
 ```
@@ -116,6 +116,6 @@ npx claudex-setup → audit + setup your project for Claude Code
 
 | Date | Decision | Reasoning |
 |------|----------|-----------|
-| 2026-03-30 | Start with CLI + newsletter model | Lowest cost, fastest to market, leverages existing 972 items |
+| 2026-03-30 | Start with CLI + newsletter model | Lowest cost, fastest to market, leverages existing catalog depth |
 | 2026-03-30 | Free CLI, premium content | CLI builds audience, content monetizes. Proven model. |
 | 2026-03-30 | n8n for automation | Already running on Docker, zero additional cost |
