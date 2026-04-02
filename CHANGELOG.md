@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.10.2] - 2026-04-02
+
+### Fixed
+- MCP recommendations are now less speculative: `postgres-mcp` requires explicit Postgres signals, `figma-mcp` only appears for design-system repos, and `mcp-security` is no longer auto-added just because multiple packs were suggested
+- `sentry-mcp` now requires real observability signals or stricter operational domains instead of appearing for every frontend/backend repo
+- design-system detection now respects `.storybook/` directories directly, improving frontend pack accuracy
+
+### Added
+- MCP preflight warnings for `setup`, `plan`, and `apply` when selected packs require missing environment variables
+- user-facing docs now reflect the actual 22 detected stacks
+
 ## [1.10.0] - 2026-04-01
 
 ### Added

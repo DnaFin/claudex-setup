@@ -243,14 +243,14 @@ function detectDomainPacks(ctx, stacks, assets = null) {
   }
 
   // Regulated-lite detection
-  const isRegulated = ctx.files.includes('SECURITY.md') ||
-    ctx.files.includes('COMPLIANCE.md') || ctx.hasDir('compliance') ||
+  const hasSecurityPolicy = ctx.files.includes('SECURITY.md');
+  const isRegulated = ctx.files.includes('COMPLIANCE.md') || ctx.hasDir('compliance') ||
     ctx.hasDir('audit') || ctx.hasDir('policies') ||
     (pkg.keywords && pkg.keywords.some(k => ['hipaa', 'fintech', 'compliance', 'regulated', 'sox', 'pci'].includes(k)));
   if (isRegulated && !isEnterpriseGoverned) {
     addMatch('regulated-lite', [
       'Detected compliance or regulatory signals without full enterprise governance.',
-      ctx.files.includes('SECURITY.md') ? 'SECURITY.md present.' : null,
+      ctx.files.includes('COMPLIANCE.md') ? 'COMPLIANCE.md present.' : null,
       ctx.hasDir('compliance') ? 'Compliance directory detected.' : null,
     ]);
   }
@@ -293,7 +293,7 @@ function detectDomainPacks(ctx, stacks, assets = null) {
   // Design system detection
   const isDesignSystem = deps.storybook || deps['@storybook/react'] || deps['@storybook/vue3'] ||
     ctx.hasDir('tokens') || ctx.hasDir('design-tokens') ||
-    (ctx.hasDir('components') && ctx.files.includes('.storybook'));
+    (ctx.hasDir('components') && ctx.hasDir('.storybook'));
   if (isDesignSystem) {
     addMatch('design-system', [
       'Detected design system or component library signals.',
@@ -315,7 +315,7 @@ function detectDomainPacks(ctx, stacks, assets = null) {
   }
 
   // Security-focused detection
-  const isSecurityFocused = ctx.files.includes('SECURITY.md') &&
+  const isSecurityFocused = hasSecurityPolicy &&
     (hasBackend || deps.bcrypt || deps.jsonwebtoken || deps.passport || deps['next-auth']);
   if (isSecurityFocused && !isRegulated) {
     addMatch('security-focused', [

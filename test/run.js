@@ -279,6 +279,19 @@ async function main() {
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
+  await testAsync('Setup returns preflight warnings for MCP packs with missing env vars', async () => {
+    const dir = mkFixture('hooks-mcp-env');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
+      const result = await setup({ dir, auto: true, silent: true, mcpPacks: ['stripe-mcp'] });
+      assert.ok(Array.isArray(result.mcpPreflightWarnings), 'setup should expose MCP preflight warnings');
+      const warning = result.mcpPreflightWarnings.find(item => item.key === 'stripe-mcp');
+      assert.ok(warning, 'stripe-mcp should emit a preflight warning when env vars are missing');
+      assert.ok(warning.missingEnvVars.includes('STRIPE_API_KEY'), 'warning should include STRIPE_API_KEY');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
   // ============================================================
   // Unit tests: no overwrite
   // ============================================================
@@ -385,6 +398,45 @@ async function main() {
       assert.ok(report.recommendedDomainPacks.some(pack => pack.key === 'frontend-ui'), 'Should recommend the frontend-ui domain pack');
       assert.ok(report.recommendedMcpPacks.some(pack => pack.key === 'context7-docs'), 'Should recommend the Context7 MCP pack');
       assert.ok(report.recommendedMcpPacks.some(pack => pack.key === 'next-devtools'), 'Should recommend the Next.js devtools MCP pack');
+      assert.ok(!report.recommendedMcpPacks.some(pack => pack.key === 'postgres-mcp'), 'Should not recommend Postgres without explicit Postgres signals');
+      assert.ok(!report.recommendedMcpPacks.some(pack => pack.key === 'figma-mcp'), 'Should not recommend Figma for every frontend repo');
+      assert.ok(!report.recommendedMcpPacks.some(pack => pack.key === 'mcp-security'), 'Should not auto-recommend mcp-security for generic repos');
+      assert.ok(!report.recommendedMcpPacks.some(pack => pack.key === 'sentry-mcp'), 'Should not recommend Sentry without observability signals');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Suggest-only recommends Postgres MCP when explicit Postgres signals are present', async () => {
+    const dir = mkFixture('analysis-postgres-pack');
+    try {
+      writeJson(dir, 'package.json', { name: 'api', dependencies: { express: '5', pg: '8' } });
+      fs.writeFileSync(path.join(dir, 'docker-compose.yml'), 'services:\n  db:\n    image: postgres:16\n');
+      fs.mkdirSync(path.join(dir, 'api'), { recursive: true });
+      const report = await analyzeProject({ dir, mode: 'suggest-only' });
+      assert.ok(report.recommendedMcpPacks.some(pack => pack.key === 'postgres-mcp'), 'Should recommend Postgres MCP when Postgres signals exist');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Suggest-only recommends Figma MCP when design-system signals are present', async () => {
+    const dir = mkFixture('analysis-figma-pack');
+    try {
+      writeJson(dir, 'package.json', { name: 'design-system', dependencies: { react: '19' } });
+      fs.mkdirSync(path.join(dir, 'components'), { recursive: true });
+      fs.mkdirSync(path.join(dir, '.storybook'), { recursive: true });
+      const report = await analyzeProject({ dir, mode: 'suggest-only' });
+      assert.ok(report.recommendedDomainPacks.some(pack => pack.key === 'design-system'), 'Should detect the design-system domain pack');
+      assert.ok(report.recommendedMcpPacks.some(pack => pack.key === 'figma-mcp'), 'Should recommend Figma MCP for design-system repos');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Suggest-only recommends mcp-security for security-focused repos', async () => {
+    const dir = mkFixture('analysis-security-pack');
+    try {
+      writeJson(dir, 'package.json', { name: 'secure-api', dependencies: { express: '5', jsonwebtoken: '9' } });
+      fs.writeFileSync(path.join(dir, 'SECURITY.md'), '# Security\n');
+      fs.mkdirSync(path.join(dir, 'api'), { recursive: true });
+      const report = await analyzeProject({ dir, mode: 'suggest-only' });
+      assert.ok(report.recommendedDomainPacks.some(pack => pack.key === 'security-focused'), 'Should detect the security-focused domain pack');
+      assert.ok(report.recommendedMcpPacks.some(pack => pack.key === 'mcp-security'), 'Should recommend mcp-security when security-focused signals exist');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
@@ -474,6 +526,23 @@ async function main() {
       assert.ok(settings.mcpServers.context7, 'Context7 MCP server should be merged in');
       assert.ok(settings.mcpServers['next-devtools'], 'Next.js devtools MCP server should be merged in');
       assert.deepEqual(settings.claudexSetup.mcpPacks, ['context7-docs', 'next-devtools'], 'Merged MCP packs should be recorded');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  await testAsync('Apply exposes MCP preflight warnings for missing env vars', async () => {
+    const dir = mkFixture('apply-mcp-preflight');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const result = await applyProposalBundle({
+        dir,
+        only: ['hooks'],
+        profile: 'safe-write',
+        mcpPacks: ['stripe-mcp'],
+        dryRun: true,
+      });
+      const warning = result.mcpPreflightWarnings.find(item => item.key === 'stripe-mcp');
+      assert.ok(warning, 'apply should expose a warning for stripe-mcp');
+      assert.ok(warning.missingEnvVars.includes('STRIPE_API_KEY'), 'warning should include STRIPE_API_KEY');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 

@@ -335,6 +335,71 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function hasDependency(deps, name) {
+  return Object.prototype.hasOwnProperty.call(deps || {}, name);
+}
+
+function hasFileContentMatch(ctx, filePath, pattern) {
+  if (!ctx) return false;
+  const content = ctx.fileContent(filePath);
+  return !!(content && pattern.test(content));
+}
+
+function getProjectDependencies(ctx) {
+  if (!ctx) return {};
+  const pkg = ctx.jsonFile('package.json') || {};
+  return {
+    ...(pkg.dependencies || {}),
+    ...(pkg.devDependencies || {}),
+  };
+}
+
+function hasPostgresSignals(ctx, deps = {}) {
+  if (
+    hasDependency(deps, 'pg') ||
+    hasDependency(deps, 'postgres') ||
+    hasDependency(deps, 'pg-promise') ||
+    hasDependency(deps, 'postgres.js') ||
+    hasDependency(deps, 'slonik') ||
+    hasDependency(deps, '@neondatabase/serverless') ||
+    hasDependency(deps, '@vercel/postgres')
+  ) {
+    return true;
+  }
+
+  return (
+    hasFileContentMatch(ctx, 'prisma/schema.prisma', /provider\s*=\s*["']postgresql["']/i) ||
+    hasFileContentMatch(ctx, 'docker-compose.yml', /\bpostgres\b/i) ||
+    hasFileContentMatch(ctx, 'docker-compose.yaml', /\bpostgres\b/i) ||
+    hasFileContentMatch(ctx, 'compose.yml', /\bpostgres\b/i) ||
+    hasFileContentMatch(ctx, 'compose.yaml', /\bpostgres\b/i) ||
+    hasFileContentMatch(ctx, '.env', /postgres(?:ql)?:\/\//i) ||
+    hasFileContentMatch(ctx, '.env.local', /postgres(?:ql)?:\/\//i) ||
+    hasFileContentMatch(ctx, '.env.example', /postgres(?:ql)?:\/\//i)
+  );
+}
+
+function hasObservabilitySignals(ctx, deps = {}) {
+  if (
+    hasDependency(deps, '@sentry/nextjs') ||
+    hasDependency(deps, '@sentry/node') ||
+    hasDependency(deps, '@sentry/react') ||
+    hasDependency(deps, '@sentry/vue') ||
+    hasDependency(deps, '@sentry/browser')
+  ) {
+    return true;
+  }
+
+  return (
+    hasFileContentMatch(ctx, 'sentry.client.config.js', /\S/) ||
+    hasFileContentMatch(ctx, 'sentry.client.config.ts', /\S/) ||
+    hasFileContentMatch(ctx, 'sentry.server.config.js', /\S/) ||
+    hasFileContentMatch(ctx, 'sentry.server.config.ts', /\S/) ||
+    hasFileContentMatch(ctx, 'instrumentation.ts', /sentry/i) ||
+    hasFileContentMatch(ctx, 'instrumentation.js', /sentry/i)
+  );
+}
+
 function getMcpPack(key) {
   return MCP_PACKS.find(pack => pack.key === key) || null;
 }
@@ -360,9 +425,46 @@ function mergeMcpServers(existing = {}, packKeys = []) {
   return merged;
 }
 
-function recommendMcpPacks(stacks = [], domainPacks = []) {
+function getRequiredEnvVars(packKeys = []) {
+  const required = new Set();
+  for (const key of normalizeMcpPackKeys(packKeys)) {
+    const pack = getMcpPack(key);
+    if (!pack) continue;
+    for (const serverConfig of Object.values(pack.servers || {})) {
+      for (const envKey of Object.keys(serverConfig.env || {})) {
+        required.add(envKey);
+      }
+    }
+  }
+  return [...required].sort();
+}
+
+function getMcpPackPreflight(packKeys = [], env = process.env) {
+  return normalizeMcpPackKeys(packKeys)
+    .map((key) => {
+      const pack = getMcpPack(key);
+      if (!pack) return null;
+      const requiredEnvVars = getRequiredEnvVars([key]);
+      if (requiredEnvVars.length === 0) return null;
+      const missingEnvVars = requiredEnvVars.filter((envKey) => {
+        const value = env && Object.prototype.hasOwnProperty.call(env, envKey) ? env[envKey] : '';
+        return !`${value || ''}`.trim();
+      });
+      return {
+        key,
+        label: pack.label,
+        requiredEnvVars,
+        missingEnvVars,
+      };
+    })
+    .filter(Boolean);
+}
+
+function recommendMcpPacks(stacks = [], domainPacks = [], options = {}) {
   const recommended = new Set();
   const stackKeys = new Set(stacks.map(stack => stack.key));
+  const ctx = options.ctx || null;
+  const deps = getProjectDependencies(ctx);
 
   for (const pack of domainPacks) {
     for (const key of pack.recommendedMcpPacks || []) {
@@ -384,8 +486,8 @@ function recommendMcpPacks(stacks = [], domainPacks = []) {
     recommended.add('github-mcp');
   }
 
-  // Postgres MCP for data-heavy repos
-  if (domainKeys.has('data-pipeline') || domainKeys.has('backend-api')) {
+  // Postgres MCP only when there are explicit Postgres signals
+  if ((domainKeys.has('data-pipeline') || domainKeys.has('backend-api')) && hasPostgresSignals(ctx, deps)) {
     recommended.add('postgres-mcp');
   }
 
@@ -404,13 +506,21 @@ function recommendMcpPacks(stacks = [], domainPacks = []) {
     recommended.add('docker-mcp');
   }
 
-  // Sentry for production backend/frontend
-  if (domainKeys.has('backend-api') || domainKeys.has('frontend-ui')) {
+  // Sentry when the repo already shows observability signals or has stricter operational needs
+  if (
+    (domainKeys.has('backend-api') || domainKeys.has('frontend-ui')) &&
+    (
+      hasObservabilitySignals(ctx, deps) ||
+      domainKeys.has('enterprise-governed') ||
+      domainKeys.has('security-focused') ||
+      domainKeys.has('ecommerce')
+    )
+  ) {
     recommended.add('sentry-mcp');
   }
 
-  // Figma for frontend-ui with design systems
-  if (domainKeys.has('frontend-ui')) {
+  // Figma only when design-system signals are present
+  if (domainKeys.has('design-system')) {
     recommended.add('figma-mcp');
   }
 
@@ -450,11 +560,6 @@ function recommendMcpPacks(stacks = [], domainPacks = []) {
     recommended.add('infisical-secrets');
   }
 
-  // Security scanner when 2+ MCP servers recommended
-  if (recommended.size >= 2) {
-    recommended.add('mcp-security');
-  }
-
   return MCP_PACKS
     .filter(pack => recommended.has(pack.key))
     .map(pack => clone(pack));
@@ -465,5 +570,7 @@ module.exports = {
   getMcpPack,
   normalizeMcpPackKeys,
   mergeMcpServers,
+  getRequiredEnvVars,
+  getMcpPackPreflight,
   recommendMcpPacks,
 };

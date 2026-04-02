@@ -9,6 +9,7 @@ const { TECHNIQUES, STACKS } = require('./techniques');
 const { ProjectContext } = require('./context');
 const { audit } = require('./audit');
 const { buildSettingsForProfile } = require('./governance');
+const { getMcpPackPreflight } = require('./mcp-packs');
 
 // ============================================================
 // Helper: detect project scripts from package.json
@@ -1117,6 +1118,8 @@ async function setup(options) {
   const silent = options.silent === true;
   const writtenFiles = [];
   const preservedFiles = [];
+  const mcpPreflightWarnings = getMcpPackPreflight(options.mcpPacks || [])
+    .filter(item => item.missingEnvVars.length > 0);
 
   function log(message = '') {
     if (!silent) {
@@ -1243,6 +1246,15 @@ async function setup(options) {
   }
 
   log('');
+  if (mcpPreflightWarnings.length > 0) {
+    log('\x1b[33m  MCP Preflight Warnings\x1b[0m');
+    for (const warning of mcpPreflightWarnings) {
+      log(`  - ${warning.label}: missing ${warning.missingEnvVars.join(', ')}`);
+      log('  \x1b[2m  Settings were generated with placeholders, but this MCP server will not start until those env vars are set.\x1b[0m');
+    }
+    log('');
+  }
+
   log('  Run \x1b[1mnpx claudex-setup audit\x1b[0m to check your score.');
   log('');
 
@@ -1252,6 +1264,7 @@ async function setup(options) {
     writtenFiles,
     preservedFiles,
     stacks,
+    mcpPreflightWarnings,
   };
 }
 

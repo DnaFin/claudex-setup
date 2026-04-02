@@ -318,7 +318,7 @@ async function analyzeProject(options) {
   const maturity = detectMaturity(assets);
   const mainDirs = detectMainDirs(ctx);
   const recommendedDomainPacks = detectDomainPacks(ctx, stacks, assets);
-  const recommendedMcpPacks = recommendMcpPacks(stacks, recommendedDomainPacks);
+  const recommendedMcpPacks = recommendMcpPacks(stacks, recommendedDomainPacks, { ctx, assets });
 
   const report = {
     mode,

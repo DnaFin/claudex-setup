@@ -7,6 +7,7 @@ const { ProjectContext } = require('./context');
 const { TECHNIQUES, STACKS } = require('./techniques');
 const { TEMPLATES } = require('./setup');
 const { buildSettingsForProfile } = require('./governance');
+const { getMcpPackPreflight } = require('./mcp-packs');
 const { writeActivityArtifact, writeRollbackArtifact } = require('./activity');
 
 const TEMPLATE_DIR_MAP = {
@@ -374,6 +375,8 @@ async function buildProposalBundle(options) {
   const ctx = new ProjectContext(options.dir);
   const stacks = ctx.detectStacks(STACKS);
   const report = await analyzeProject({ ...options, mode: 'augment' });
+  const mcpPreflightWarnings = getMcpPackPreflight(options.mcpPacks || [])
+    .filter(item => item.missingEnvVars.length > 0);
   const groups = getFailedTemplateGroups(ctx, options.only || []);
   const proposals = [];
 
@@ -406,6 +409,7 @@ async function buildProposalBundle(options) {
     strengthsPreserved: report.strengthsPreserved,
     topNextActions: report.topNextActions,
     riskNotes: report.riskNotes,
+    mcpPreflightWarnings,
     proposals,
   };
 }
@@ -421,6 +425,14 @@ function printProposalBundle(bundle, options = {}) {
   console.log('  ═══════════════════════════════════════');
   console.log(`  ${bundle.projectSummary.name} | maturity=${bundle.projectSummary.maturity} | score=${bundle.projectSummary.score}/100`);
   console.log('');
+
+  if (bundle.mcpPreflightWarnings && bundle.mcpPreflightWarnings.length > 0) {
+    console.log('  MCP Preflight Warnings');
+    for (const warning of bundle.mcpPreflightWarnings) {
+      console.log(`  - ${warning.label}: missing ${warning.missingEnvVars.join(', ')}`);
+    }
+    console.log('');
+  }
 
   if (bundle.proposals.length === 0) {
     console.log('  No templated proposals are needed right now.');
@@ -523,6 +535,8 @@ function resolvePlan(bundle, options) {
 async function applyProposalBundle(options) {
   const liveBundle = options.planFile ? null : await buildProposalBundle(options);
   const bundle = resolvePlan(liveBundle, options);
+  const mcpPreflightWarnings = getMcpPackPreflight(options.mcpPacks || [])
+    .filter(item => item.missingEnvVars.length > 0);
   const selectedIds = options.only && options.only.length > 0
     ? new Set(options.only)
     : null;
@@ -589,6 +603,7 @@ async function applyProposalBundle(options) {
     dryRun: options.dryRun === true,
     rollbackArtifact: rollback ? rollback.relativePath : null,
     activityArtifact: activity ? activity.relativePath : null,
+    mcpPreflightWarnings,
   };
 }
 
@@ -607,6 +622,12 @@ function printApplyResult(result, options = {}) {
   console.log(`  Applied proposal bundles: ${result.appliedProposalIds.join(', ') || 'none'}`);
   console.log(`  Created files: ${result.createdFiles.join(', ') || 'none'}`);
   console.log(`  Patched files: ${result.patchedFiles.join(', ') || 'none'}`);
+  if (result.mcpPreflightWarnings && result.mcpPreflightWarnings.length > 0) {
+    console.log('  MCP preflight warnings:');
+    for (const warning of result.mcpPreflightWarnings) {
+      console.log(`  - ${warning.label}: missing ${warning.missingEnvVars.join(', ')}`);
+    }
+  }
   if (result.rollbackArtifact) {
     console.log(`  Rollback: ${result.rollbackArtifact}`);
   }

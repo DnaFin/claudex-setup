@@ -5,7 +5,7 @@ const { buildProposalBundle, applyProposalBundle } = require('./plans');
 const { getGovernanceSummary } = require('./governance');
 const { runBenchmark } = require('./benchmark');
 const { DOMAIN_PACKS, detectDomainPacks } = require('./domain-packs');
-const { MCP_PACKS, getMcpPack, mergeMcpServers, recommendMcpPacks } = require('./mcp-packs');
+const { MCP_PACKS, getMcpPack, mergeMcpServers, getMcpPackPreflight, recommendMcpPacks } = require('./mcp-packs');
 
 module.exports = {
   audit,
@@ -20,5 +20,6 @@ module.exports = {
   MCP_PACKS,
   getMcpPack,
   mergeMcpServers,
+  getMcpPackPreflight,
   recommendMcpPacks,
 };

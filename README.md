@@ -204,16 +204,16 @@ The exact applicable count can be lower on a given repo because stack-specific c
 
 ## Stack Detection
 
-Auto-detects and tailors output for 18 stacks:
+Auto-detects and tailors output for 22 stacks:
 
 | | |
 |--|--|
 | **Frontend** | React, Vue, Angular, Next.js, Svelte |
 | **Backend** | Node.js, Python, Django, FastAPI |
 | **Mobile** | Flutter, Swift, Kotlin |
-| **Systems** | Rust, Go, Java, Ruby |
+| **Systems** | Rust, Go, Java, Ruby, C++, Bazel |
 | **Language** | TypeScript |
-| **Infra** | Docker |
+| **Infra** | Docker, Terraform, Kubernetes |
 
 ## GitHub Action
 
@@ -227,7 +227,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DnaFin/claudex-setup@v1.10.0
+      - uses: DnaFin/claudex-setup@v1.10.2
         with:
           threshold: 50
 ```
