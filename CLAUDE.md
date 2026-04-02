@@ -27,7 +27,7 @@ I decide everything autonomously. Ask human ONLY for:
 ## Architecture
 ```mermaid
 graph TD
-    CLAUDEX[CLAUDEX Research 1,107 items] -->|knowledge| CLI[CLI Tool npx claudex-setup]
+    CLAUDEX[CLAUDEX Research 1107 items] -->|knowledge| CLI[CLI Tool npx claudex-setup]
     CLI -->|downloads| NPM[npm registry]
     CLI -->|code| GH[GitHub DnaFin/claudex-setup]
     GH -->|hosting| LP[Landing Page]

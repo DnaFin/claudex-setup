@@ -1,11 +1,7 @@
 {
   "synced_from": "claudex",
-  "synced_at": "2026-03-31T19:30:00Z",
+  "synced_at": "2026-04-02T15:12:04Z",
   "total_items": 1107,
   "tested": 948,
-  "last_id": 1157,
-  "domain_packs": 16,
-  "mcp_packs": 26,
-  "anti_patterns": 53,
-  "contract_version": "1.0.0"
+  "last_id": 1157
 }
