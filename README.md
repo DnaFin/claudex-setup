@@ -1,10 +1,24 @@
 # claudex-setup
 
-> Score your project 0-100 for Claude Code readiness. Discover gaps, export proposal bundles, apply safe starter changes with rollback, and benchmark the impact without touching your live repo.
+> Score your repo's Claude Code setup against 62 checks. See what's missing, apply only what you approve with rollback, and benchmark the impact — without breaking existing config.
 
 [![npm version](https://img.shields.io/npm/v/claudex-setup)](https://www.npmjs.com/package/claudex-setup)
 [![npm downloads](https://img.shields.io/npm/dm/claudex-setup)](https://www.npmjs.com/package/claudex-setup)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+### What this is
+
+- A **Claude Code workflow audit and improvement tool** — not an MCP installer, not a code generator
+- Scores your repo 0-100 across CLAUDE.md, hooks, commands, agents, skills, MCP, security, and more
+- Proposes changes as diffs you review — applies only what you approve, with rollback for every change
+- Includes governance (permission profiles, hook registry, policy packs) and benchmark (isolated before/after)
+
+### What this is NOT
+
+- Not an MCP setup tool (MCP packs are one of 26 features, not the product)
+- Not a code generator or refactoring tool — it configures how Claude works with your repo, not the code itself
+- Not a replacement for hand-crafted CLAUDE.md — generated output is a strong starting point, not a final answer
+- Not a score you should chase blindly — 90/100 with bad code is still bad code
 
 ## Quick Start
 
