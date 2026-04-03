@@ -188,6 +188,14 @@ function renderBenchmarkMarkdown(report) {
   ].join('\n');
 }
 
+/**
+ * Run a before/after benchmark on an isolated copy of the project.
+ * @param {Object} options - Benchmark options.
+ * @param {string} options.dir - Project directory to benchmark.
+ * @param {string} [options.profile] - Permission profile to use during setup.
+ * @param {string[]} [options.mcpPacks] - MCP pack keys to include in setup.
+ * @returns {Promise<Object>} Benchmark report with before/after scores, delta, and workflow evidence.
+ */
 async function runBenchmark(options) {
   const before = await audit({ dir: options.dir, silent: true });
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'claudex-benchmark-'));

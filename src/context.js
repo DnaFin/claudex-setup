@@ -5,6 +5,10 @@
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * Scans and caches project files to provide fast lookups for technique checks.
+ * Reads the project directory on construction and exposes helpers for file content, JSON, and stack detection.
+ */
 class ProjectContext {
   constructor(dir) {
     this.dir = dir;
@@ -67,10 +71,19 @@ class ProjectContext {
     }
   }
 
+  /**
+   * Return the contents of the project's CLAUDE.md (root or .claude/ location).
+   * @returns {string|null} File content or null if not found.
+   */
   claudeMdContent() {
     return this.fileContent('CLAUDE.md') || this.fileContent('.claude/CLAUDE.md');
   }
 
+  /**
+   * Read and cache the content of a file relative to the project root.
+   * @param {string} filePath - Relative path from the project root.
+   * @returns {string|null} File content or null if not readable.
+   */
   fileContent(filePath) {
     if (this._cache[filePath] !== undefined) return this._cache[filePath];
     const fullPath = path.join(this.dir, filePath);

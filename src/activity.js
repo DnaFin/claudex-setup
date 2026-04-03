@@ -140,6 +140,14 @@ function updateSnapshotIndex(snapshotDir, record) {
   fs.writeFileSync(indexPath, JSON.stringify(entries, null, 2), 'utf8');
 }
 
+/**
+ * Write a normalized snapshot artifact to .claude/claudex-setup/snapshots/ and update the index.
+ * @param {string} dir - Project root directory.
+ * @param {string} snapshotKind - Snapshot type ('audit', 'benchmark', 'governance', 'augment', 'suggest-only').
+ * @param {Object} payload - Full result payload to persist.
+ * @param {Object} [meta={}] - Optional metadata fields merged into the envelope.
+ * @returns {Object} Artifact record with id, filePath, relativePath, indexPath, and summary.
+ */
 function writeSnapshotArtifact(dir, snapshotKind, payload, meta = {}) {
   const id = timestampId();
   const { snapshotDir } = ensureArtifactDirs(dir);
@@ -189,6 +197,12 @@ function readSnapshotIndex(dir) {
   }
 }
 
+/**
+ * Get the audit score history from saved snapshots, most recent first.
+ * @param {string} dir - Project root directory.
+ * @param {number} [limit=20] - Maximum number of entries to return.
+ * @returns {Object[]} Array of snapshot index entries for audit snapshots.
+ */
 function getHistory(dir, limit = 20) {
   const entries = readSnapshotIndex(dir);
   return entries
@@ -197,6 +211,11 @@ function getHistory(dir, limit = 20) {
     .slice(0, limit);
 }
 
+/**
+ * Compare the two most recent audit snapshots and return the delta.
+ * @param {string} dir - Project root directory.
+ * @returns {Object|null} Comparison with current/previous scores, delta, regressions, improvements, and trend. Null if fewer than 2 snapshots.
+ */
 function compareLatest(dir) {
   const audits = getHistory(dir, 2);
   if (audits.length < 2) return null;

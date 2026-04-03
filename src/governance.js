@@ -332,6 +332,10 @@ function buildSettingsForProfile({ profileKey = 'safe-write', hookFiles = [], ex
   return base;
 }
 
+/**
+ * Return the full governance surface: permission profiles, hooks, policy packs, and pilot kit.
+ * @returns {Object} Summary containing permissionProfiles, hookRegistry, policyPacks, domainPacks, mcpPacks, and pilotRolloutKit.
+ */
 function getGovernanceSummary() {
   return {
     permissionProfiles: PERMISSION_PROFILES,
@@ -396,6 +400,11 @@ function printGovernanceSummary(summary, options = {}) {
   console.log('');
 }
 
+/**
+ * Render a governance summary as a formatted markdown string.
+ * @param {Object} summary - The summary object returned by getGovernanceSummary().
+ * @returns {string} Markdown-formatted governance report.
+ */
 function renderGovernanceMarkdown(summary) {
   const lines = [
     '# Claudex Setup Governance Report',

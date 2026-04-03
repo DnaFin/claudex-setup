@@ -308,6 +308,13 @@ function buildRolloutOrder(report) {
   return steps;
 }
 
+/**
+ * Analyze a project's Claude Code setup and produce a structured recommendation report.
+ * @param {Object} options - Analysis options.
+ * @param {string} options.dir - Project directory to analyze.
+ * @param {string} [options.mode='augment'] - Analysis mode ('augment' or 'suggest-only').
+ * @returns {Promise<Object>} Structured report with project summary, gaps, strengths, and recommendations.
+ */
 async function analyzeProject(options) {
   const mode = options.mode || 'augment';
   const ctx = new ProjectContext(options.dir);
@@ -472,6 +479,11 @@ function printAnalysis(report, options = {}) {
   }
 }
 
+/**
+ * Export an analysis report as a formatted markdown string.
+ * @param {Object} report - The report object returned by analyzeProject().
+ * @returns {string} Markdown-formatted report content.
+ */
 function exportMarkdown(report) {
   const lines = [];
   lines.push(`# Claudex Setup Analysis Report`);

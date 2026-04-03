@@ -1,0 +1,83 @@
+name: 'claudex-setup Audit'
+description: 'Score your Claude Code setup against 84 checks'
+inputs:
+  threshold:
+    description: 'Minimum passing score (0-100)'
+    required: false
+    default: '0'
+  comment:
+    description: 'Post score as PR comment (true/false)'
+    required: false
+    default: 'true'
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Run claudex-setup audit
+      id: audit
+      shell: bash
+      run: |
+        RESULT=$(npx -y claudex-setup --json 2>/dev/null)
+        SCORE=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).score)")
+        PASSED=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).passed)")
+        FAILED=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).failed)")
+        CHECK_COUNT=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).checkCount)")
+        echo "score=$SCORE" >> $GITHUB_OUTPUT
+        echo "passed=$PASSED" >> $GITHUB_OUTPUT
+        echo "failed=$FAILED" >> $GITHUB_OUTPUT
+        echo "check_count=$CHECK_COUNT" >> $GITHUB_OUTPUT
+        echo "Claude Code Setup Score: $SCORE/100 ($PASSED/$CHECK_COUNT checks passing)"
+    - name: Comment on PR
+      if: inputs.comment == 'true' && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const score = '${{ steps.audit.outputs.score }}';
+          const passed = '${{ steps.audit.outputs.passed }}';
+          const checkCount = '${{ steps.audit.outputs.check_count }}';
+          const emoji = score >= 70 ? '🟢' : score >= 40 ? '🟡' : '🔴';
+          const body = `## ${emoji} Claude Code Setup Score: ${score}/100\n\n${passed}/${checkCount} checks passing\n\n<sub>Audited by [claudex-setup](https://github.com/DnaFin/claudex-setup)</sub>`;
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          const existing = comments.find(c => c.body.includes('Claude Code Setup Score'));
+          if (existing) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existing.id,
+              body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+          }
+    - name: Check threshold
+      if: inputs.threshold != '0'
+      shell: bash
+      run: |
+        SCORE=${{ steps.audit.outputs.score }}
+        THRESHOLD=${{ inputs.threshold }}
+        if [ "$SCORE" -lt "$THRESHOLD" ]; then
+          echo "::error::Claude Code setup score ($SCORE) is below threshold ($THRESHOLD)"
+          exit 1
+        fi
+outputs:
+  score:
+    description: 'Audit score (0-100)'
+    value: ${{ steps.audit.outputs.score }}
+  passed:
+    description: 'Number of passing checks'
+    value: ${{ steps.audit.outputs.passed }}
+  failed:
+    description: 'Number of failing checks'
+    value: ${{ steps.audit.outputs.failed }}

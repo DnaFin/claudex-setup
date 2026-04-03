@@ -19,7 +19,7 @@ const COMMAND_ALIASES = {
   suggest: 'suggest-only',
   gov: 'governance',
 };
-const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -63,6 +63,7 @@ function parseArgs(rawArgs) {
   let mcpPacks = [];
   let requireChecks = [];
   let commandSet = false;
+  let extraArgs = [];
 
   for (let i = 0; i < rawArgs.length; i++) {
     const arg = rawArgs[i];
@@ -126,12 +127,14 @@ function parseArgs(rawArgs) {
     if (!commandSet) {
       command = arg;
       commandSet = true;
+    } else {
+      extraArgs.push(arg);
     }
   }
 
   const normalizedCommand = COMMAND_ALIASES[command] || command;
 
-  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks };
+  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks, extraArgs };
 }
 
 const HELP = `
@@ -154,6 +157,9 @@ const HELP = `
     npx claudex-setup history          Show score history from saved snapshots
     npx claudex-setup compare          Compare latest vs previous snapshot
     npx claudex-setup trend --out r.md Export trend report as markdown
+
+  Multi-repo:
+    npx claudex-setup scan dir1 dir2   Compare multiple repos side-by-side
 
   Advanced:
     npx claudex-setup governance       Permission profiles, hooks, policy packs
@@ -249,7 +255,7 @@ async function main() {
     process.exit(1);
   }
 
-  if (options.require && normalizedCommand !== 'audit' && !['audit', 'discover'].includes(command)) {
+  if (options.require && options.require.length > 0 && normalizedCommand !== 'audit' && !['audit', 'discover'].includes(command)) {
     console.error(`\n  Warning: --require is only supported with the audit command. Ignoring for '${normalizedCommand}'.\n`);
   }
 
@@ -279,7 +285,74 @@ async function main() {
   }
 
   try {
-    if (normalizedCommand === 'history') {
+    if (normalizedCommand === 'scan') {
+      const scanDirs = parsed.extraArgs;
+      if (scanDirs.length === 0) {
+        console.error('\n  Error: scan requires at least one directory argument.');
+        console.error('  Usage: npx claudex-setup scan dir1 dir2 dir3\n');
+        process.exit(1);
+      }
+      const fs = require('fs');
+      const pathMod = require('path');
+      const rows = [];
+      for (const rawDir of scanDirs) {
+        const dir = pathMod.resolve(rawDir);
+        if (!fs.existsSync(dir)) {
+          rows.push({ name: pathMod.basename(rawDir), dir: rawDir, score: null, passed: '-', failed: '-', suggested: '-', error: 'directory not found' });
+          continue;
+        }
+        try {
+          const result = await audit({ dir, silent: true });
+          rows.push({
+            name: pathMod.basename(dir),
+            dir: rawDir,
+            score: result.score,
+            passed: result.passed,
+            failed: result.failed,
+            suggested: result.suggestedNextCommand || '-',
+            error: null,
+          });
+        } catch (err) {
+          rows.push({ name: pathMod.basename(dir), dir: rawDir, score: null, passed: '-', failed: '-', suggested: '-', error: err.message });
+        }
+      }
+
+      if (options.json) {
+        console.log(JSON.stringify(rows, null, 2));
+      } else {
+        // Find weakest
+        const validRows = rows.filter(r => r.score !== null);
+        const minScore = validRows.length > 0 ? Math.min(...validRows.map(r => r.score)) : null;
+        const weakest = validRows.length > 1 && validRows.filter(r => r.score > minScore).length > 0
+          ? validRows.find(r => r.score === minScore)
+          : null;
+
+        console.log('');
+        console.log('\x1b[1m  claudex-setup multi-repo scan\x1b[0m');
+        console.log('\x1b[2m  ═══════════════════════════════════════\x1b[0m');
+        console.log('');
+
+        // Table header
+        const nameW = Math.max(8, ...rows.map(r => r.name.length)) + 2;
+        const header = `  ${'Project'.padEnd(nameW)} ${'Score'.padStart(5)}  ${'Pass'.padStart(4)}  ${'Fail'.padStart(4)}  Suggested Command`;
+        console.log('\x1b[1m' + header + '\x1b[0m');
+        console.log('  ' + '─'.repeat(header.trim().length));
+
+        for (const row of rows) {
+          if (row.error) {
+            console.log(`  ${row.name.padEnd(nameW)} \x1b[31m${('ERR').padStart(5)}\x1b[0m  ${String(row.passed).padStart(4)}  ${String(row.failed).padStart(4)}  ${row.error}`);
+            continue;
+          }
+          const isWeak = weakest && row.name === weakest.name && row.dir === weakest.dir;
+          const scoreColor = row.score >= 70 ? '\x1b[32m' : row.score >= 40 ? '\x1b[33m' : '\x1b[31m';
+          const prefix = isWeak ? '\x1b[31m⚠ ' : '  ';
+          const suffix = isWeak ? ' ← weakest\x1b[0m' : '';
+          console.log(`${prefix}${row.name.padEnd(nameW)} ${scoreColor}${String(row.score).padStart(5)}\x1b[0m  ${String(row.passed).padStart(4)}  ${String(row.failed).padStart(4)}  ${row.suggested}${suffix}`);
+        }
+        console.log('');
+      }
+      process.exit(0);
+    } else if (normalizedCommand === 'history') {
       const { formatHistory } = require('../src/activity');
       console.log('');
       console.log(formatHistory(options.dir));

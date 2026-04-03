@@ -179,6 +179,16 @@ function printLiteAudit(result, dir) {
   console.log('');
 }
 
+/**
+ * Run a full audit of a project's Claude Code setup against the CLAUDEX technique database.
+ * @param {Object} options - Audit options.
+ * @param {string} options.dir - Project directory to audit.
+ * @param {boolean} [options.silent] - Skip all console output, return result only.
+ * @param {boolean} [options.json] - Output result as JSON.
+ * @param {boolean} [options.lite] - Show short top-3 quick scan.
+ * @param {boolean} [options.verbose] - Show all recommendations including medium-impact.
+ * @returns {Promise<Object>} Audit result with score, passed/failed counts, quickWins, and topNextActions.
+ */
 async function audit(options) {
   const silent = options.silent || false;
   const ctx = new ProjectContext(options.dir);

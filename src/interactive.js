@@ -98,7 +98,14 @@ async function interactive(options) {
   }
 
   console.log('');
-  console.log(c(`  Applying ${toFix.length} fixes...`, 'bold'));
+  console.log(c('  ── Summary ──', 'magenta'));
+  console.log(`  Selected ${c(String(toFix.length), 'bold')} improvements to apply:`);
+  for (const key of toFix) {
+    const item = results.find(r => r.key === key);
+    console.log(c(`    • ${item ? item.name : key}`, 'dim'));
+  }
+  console.log('');
+  console.log(c(`  Applying...`, 'bold'));
   console.log('');
 
   // Run setup in auto mode
