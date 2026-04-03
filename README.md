@@ -261,7 +261,7 @@ If you are using `npx` only, copy the same file from the GitHub repo at `content
 
 The skill runs `npx claudex-setup --json`, summarizes the score, shows the top next actions, and points to the right next command without applying changes.
 
-## 62 Checks Across 14 Categories
+## 84 Checks Across 14 Categories
 
 The exact applicable count can be lower on a given repo because stack-specific checks are skipped when they do not apply.
 
@@ -270,30 +270,30 @@ The exact applicable count can be lower on a given repo because stack-specific c
 | Memory | 8 | CLAUDE.md, architecture, conventions |
 | Quality | 7 | verification loops, self-correction |
 | Git Safety | 5 | hooks, force-push protection |
-| Workflow | 6 | commands, skills, rules, agents |
-| Security | 5 | permissions, secrets, deny rules |
+| Workflow | 8 | commands, skills, rules, agents |
+| Security | 6 | permissions, secrets, deny rules |
 | Automation | 5 | PreToolUse, PostToolUse, SessionStart |
 | Design | 4 | Mermaid, XML tags, structured prompts |
-| DevOps | 4 | Docker, CI, Terraform, K8s |
-| Hygiene | 6 | .gitignore, cleanup, structure |
+| DevOps | 6 | Docker, CI, Terraform, K8s, pipelines |
+| Hygiene | 7 | .gitignore, cleanup, structure |
 | Performance | 3 | context management, compaction |
 | MCP | 3 | servers, Context7, integrations |
-| Prompting | 3 | constraints, validation, patterns |
-| Features | 2 | /security-review, Channels |
-| **Quality Deep** | **9** | **freshness, contradictions, deprecated patterns, maxTurns, $ARGUMENTS** |
+| Prompting | 5 | constraints, validation, patterns, style |
+| Features | 3 | /security-review, Channels, modern features |
+| **Quality Deep** | **14** | **freshness, contradictions, deprecated patterns, maxTurns, $ARGUMENTS, hook specificity** |
 
 ## Stack Detection
 
-Auto-detects and tailors output for 22 stacks:
+Auto-detects and tailors output for 30 stacks:
 
 | | |
 |--|--|
-| **Frontend** | React, Vue, Angular, Next.js, Svelte |
-| **Backend** | Node.js, Python, Django, FastAPI |
-| **Mobile** | Flutter, Swift, Kotlin |
-| **Systems** | Rust, Go, Java, Ruby, C++, Bazel |
+| **Frontend** | React, Vue, Angular, Next.js, Svelte, Astro |
+| **Backend** | Node.js, Python, Django, FastAPI, Express, NestJS, Spring Boot |
+| **Mobile** | React Native, Expo, Flutter, Swift, Kotlin |
+| **Systems** | Rust, Go, Java, Ruby, C++, Bazel, Deno, Bun |
 | **Language** | TypeScript |
-| **Infra** | Docker, Terraform, Kubernetes |
+| **Infra** | Docker, Terraform, Kubernetes, Wrangler |
 
 ## GitHub Action
 
@@ -307,7 +307,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DnaFin/claudex-setup@v1.14.0
+      - uses: DnaFin/claudex-setup@v1.15.1
         with:
           threshold: 50
 ```

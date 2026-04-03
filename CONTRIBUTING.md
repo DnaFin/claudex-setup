@@ -1,57 +1,101 @@
 # Contributing to claudex-setup
 
+## Quick Start
+
+```bash
+git clone https://github.com/DnaFin/claudex-setup
+cd claudex-setup
+npm test                    # 73 unit tests
+node test/check-matrix.js   # 327 pass/fail scenario tests
+node test/golden-matrix.js  # 12 golden tests (real repo profiles)
+node bin/cli.js             # Run CLI locally
+```
+
+All 3 test suites must pass (412 total) before submitting a PR.
+
 ## Adding a New Check
 
 1. Open `src/techniques.js`
-2. Add an entry to the `CHECKS` array:
-   ```js
-   { id: 'my-check', category: 'Quality', weight: 10, label: 'Description',
-     test: (ctx) => fs.existsSync(path.join(ctx.root, 'some-file')),
-     fix: 'Add some-file to your project root.' }
-   ```
-3. The `test` function receives a context object with `root`, `stack`, and `files`
-4. Run `npm test` to verify
+2. Add a new entry to the `TECHNIQUES` object:
 
-## Adding a New Template
+```js
+myNewCheck: {
+  id: NEXT_ID,                    // Increment from last ID
+  name: 'Human-readable name',
+  check: (ctx) => {
+    // ctx.claudeMdContent()      — CLAUDE.md content (checks root + .claude/)
+    // ctx.fileContent('path')    — any file content
+    // ctx.files                  — array of root file/dir names
+    // ctx.hasDir('path')         — directory exists?
+    // ctx.jsonFile('path')       — parsed JSON file
+    // ctx.dirFiles('path')       — files in a directory
+    return true;                  // true=pass, false=fail, null=skip (not applicable)
+  },
+  impact: 'critical',             // critical | high | medium | low
+  rating: 5,                      // 1-5 (5 = game-changer)
+  category: 'quality',            // see CATEGORY_MODULES in audit.js
+  fix: 'Actionable fix text.',
+  template: null                  // null, or template key from TEMPLATES in setup.js
+},
+```
 
-1. Open `src/setup.js`
-2. Add a template function to `TEMPLATES`:
-   ```js
-   TEMPLATES['my-template'] = (ctx) => `file content for ${ctx.stack}`;
-   ```
-3. Register it in the `generateFiles()` function with its output path
-4. Templates receive the same context object as checks
+3. Run all 3 test suites to verify
 
-## Adding a New Stack
+## Adding a Domain Pack
 
-1. Open `src/techniques.js`
-2. Add an entry to the `STACKS` object:
-   ```js
-   STACKS['my-framework'] = {
-     detect: (ctx) => ctx.files.includes('my-framework.config.js'),
-     label: 'My Framework',
-     testCmd: 'my-framework test',
-     lintCmd: 'my-framework lint'
-   };
-   ```
-3. Stack detection runs before checks, so checks can reference `ctx.stack`
+Edit `src/domain-packs.js`:
+- Add to `DOMAIN_PACKS` array (key, label, useWhen, recommendedModules, recommendedMcpPacks, benchmarkFocus)
+- Add detection logic in `detectDomainPacks()` — use dependency checks, directory signals, or stack signals
+
+## Adding an MCP Pack
+
+Edit `src/mcp-packs.js`:
+- Add to `MCP_PACKS` array (key, label, useWhen, adoption, servers config)
+- Add recommendation logic in `recommendMcpPacks()` — gate on domain signals, not blanket recommendations
+
+## Adding a Stack
+
+Edit `src/techniques.js` — add to the `STACKS` object:
+
+```js
+'my-framework': {
+  key: 'my-framework',
+  label: 'My Framework',
+  detect: ['my-framework.config.js'],  // files that indicate this stack
+},
+```
+
+## Code Architecture
+
+```
+bin/cli.js         → CLI entry point, argument parsing, command routing
+src/context.js     → ProjectContext: file scanning, caching, helpers
+src/techniques.js  → 84 checks + 30 stacks (the knowledge base)
+src/audit.js       → Scoring engine, quickWins, topNextActions
+src/analyze.js     → augment/suggest-only analysis + markdown export
+src/plans.js       → Proposal bundles, apply, rollback
+src/governance.js  → Permission profiles, hooks, policy packs
+src/benchmark.js   → Isolated before/after measurement
+src/domain-packs.js → 16 domain detection packs
+src/mcp-packs.js   → 26 MCP server packs
+src/activity.js    → Snapshot/history/trend tracking
+src/setup.js       → CLAUDE.md generator, hooks, commands, templates
+```
+
+## Design Constraints
+
+- **Zero runtime dependencies** — this is a hard rule, not a suggestion
+- **No TypeScript, no build step** — vanilla Node.js, runs directly
+- **Cross-OS hooks** — generated hooks must be `.js` (Node.js), not `.sh` (bash)
+- **Trust-first** — audit before write, plan before apply, rollback for every change
 
 ## Research Backing
 
-Every check should trace back to a technique in the [CLAUDEX catalog](https://github.com/DnaFin/claudex-setup). When adding checks, reference the technique ID in a comment:
+Every check should trace to a technique in the [CLAUDEX catalog](https://github.com/DnaFin/claudex). Reference technique IDs in comments when adding checks.
 
-```js
-// CLAUDEX: T-042 (Mermaid diagrams reduce token usage by 73%)
-```
+## Reporting Issues
 
-## Running Tests
-
-```bash
-npm test
-```
-
-Tests run all checks against fixture projects in `test/fixtures/`.
-
-## Release Checklist
-
-Before publishing a new version, walk through [content/release-checklist.md](./content/release-checklist.md).
+Use the [issue templates](https://github.com/DnaFin/claudex/issues/new/choose):
+- **Wrong recommendation** — a check gave bad advice
+- **Wrong pack** — a domain or MCP pack was incorrectly recommended
+- **Domain pack proposal** — suggest a new domain pack

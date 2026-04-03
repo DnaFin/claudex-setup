@@ -1295,6 +1295,24 @@ const TECHNIQUES = {
     fix: 'CLAUDE.md references deprecated patterns (old model names or API formats). Update to current Claude 4.x conventions.',
     template: null
   },
+
+  claudeMdQuality: {
+    id: 102502,
+    name: 'CLAUDE.md has substantive content',
+    check: (ctx) => {
+      const md = ctx.claudeMdContent();
+      if (!md) return null;
+      const lines = md.split('\n').filter(l => l.trim());
+      const sections = (md.match(/^##\s/gm) || []).length;
+      const hasCommand = /\b(npm|yarn|pnpm|pytest|go |make |ruff |cargo |dotnet )\b/i.test(md);
+      return lines.length >= 15 && sections >= 2 && hasCommand;
+    },
+    impact: 'medium',
+    rating: 4,
+    category: 'quality-deep',
+    fix: 'CLAUDE.md exists but lacks substance. Add at least 2 sections (## headings) and include your test/build/lint commands.',
+    template: null
+  },
 };
 
 // Stack detection

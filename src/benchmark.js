@@ -114,6 +114,21 @@ function buildExecutiveSummary(before, after, workflowEvidence) {
   };
 }
 
+function buildPracticalValue(before, after, applyResult) {
+  const written = applyResult.writtenFiles || [];
+  return {
+    denyRulesAdded: written.includes('.claude/settings.json') ? 'yes' : 'no',
+    hooksCreated: written.filter(f => f.includes('hooks/')).length,
+    commandsCreated: written.filter(f => f.includes('commands/')).length,
+    agentsCreated: written.filter(f => f.includes('agents/')).length,
+    skillsCreated: written.filter(f => f.includes('skills/')).length,
+    rulesCreated: written.filter(f => f.includes('rules/')).length,
+    claudeMdCreated: written.includes('CLAUDE.md') ? 'yes' : 'no',
+    totalFilesCreated: written.length,
+    totalFilesPreserved: (applyResult.preservedFiles || []).length,
+  };
+}
+
 function buildCaseStudy(before, after, applyResult) {
   return {
     initialState: `Baseline score ${before.score}/100, organic ${before.organicScore}/100.`,
@@ -125,6 +140,7 @@ function buildCaseStudy(before, after, applyResult) {
       organicDelta: after.organicScore - before.organicScore,
       passedDelta: after.passed - before.passed,
     },
+    practicalValue: buildPracticalValue(before, after, applyResult),
   };
 }
 
