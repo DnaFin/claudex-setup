@@ -15,6 +15,21 @@
 - README and docs now reflect snapshot artifacts, governance export, and the Claude-native skill path
 - packaged content and public-facing counts are now aligned with the current CLAUDEX state
 
+## [1.11.0] - 2026-04-03
+
+### Added
+- `history` command — show score timeline from saved snapshots
+- `compare` command — diff latest vs previous snapshot with delta, regressions, improvements
+- `trend --out report.md` — export trend report as shareable markdown
+- `--require A,B` CI flag — exit code 1 if named checks fail (policy guardrails)
+- Agentic DX positioning in README
+- Real results table (4 case studies) in README
+- Claude-native integration guide (skill, hook, agent examples)
+- Trust-first help text reordering
+
+### Fixed
+- Hook checks (hooksInSettings, preToolUse, postToolUse, sessionStart) now OR across settings.json and settings.local.json
+
 ## [1.10.2] - 2026-04-02
 
 ### Fixed
