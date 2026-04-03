@@ -19,7 +19,7 @@ const COMMAND_ALIASES = {
   suggest: 'suggest-only',
   gov: 'governance',
 };
-const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -61,12 +61,13 @@ function parseArgs(rawArgs) {
   let only = [];
   let profile = 'safe-write';
   let mcpPacks = [];
+  let requireChecks = [];
   let commandSet = false;
 
   for (let i = 0; i < rawArgs.length; i++) {
     const arg = rawArgs[i];
 
-    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack') {
+    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack' || arg === '--require') {
       const value = rawArgs[i + 1];
       if (!value || value.startsWith('--')) {
         throw new Error(`${arg} requires a value`);
@@ -77,7 +78,13 @@ function parseArgs(rawArgs) {
       if (arg === '--only') only = value.split(',').map(item => item.trim()).filter(Boolean);
       if (arg === '--profile') profile = value.trim();
       if (arg === '--mcp-pack') mcpPacks = value.split(',').map(item => item.trim()).filter(Boolean);
+      if (arg === '--require') requireChecks = value.split(',').map(item => item.trim()).filter(Boolean);
       i++;
+      continue;
+    }
+
+    if (arg.startsWith('--require=')) {
+      requireChecks = arg.split('=').slice(1).join('=').split(',').map(item => item.trim()).filter(Boolean);
       continue;
     }
 
@@ -124,7 +131,7 @@ function parseArgs(rawArgs) {
 
   const normalizedCommand = COMMAND_ALIASES[command] || command;
 
-  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks };
+  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks };
 }
 
 const HELP = `
@@ -143,6 +150,11 @@ const HELP = `
     npx claudex-setup setup            Generate starter-safe baseline
     npx claudex-setup setup --auto     Apply all generated files without prompts
 
+  Track progress over time:
+    npx claudex-setup history          Show score history from saved snapshots
+    npx claudex-setup compare          Compare latest vs previous snapshot
+    npx claudex-setup trend --out r.md Export trend report as markdown
+
   Advanced:
     npx claudex-setup governance       Permission profiles, hooks, policy packs
     npx claudex-setup benchmark        Before/after in isolated temp copy
@@ -153,6 +165,7 @@ const HELP = `
 
   Options:
     --threshold N   Exit with code 1 if score is below N (useful for CI)
+    --require A,B   Exit with code 1 if named checks fail (e.g. --require secretsProtection,permissionDeny)
     --out FILE      Write JSON or markdown output to a file
     --plan FILE     Load a previously exported plan file
     --only A,B      Limit plan/apply to selected proposal ids or technique keys
@@ -227,6 +240,7 @@ async function main() {
     only: parsed.only,
     profile: parsed.profile,
     mcpPacks: parsed.mcpPacks,
+    require: parsed.requireChecks,
     dir: process.cwd()
   };
 
@@ -261,7 +275,48 @@ async function main() {
   }
 
   try {
-    if (normalizedCommand === 'badge') {
+    if (normalizedCommand === 'history') {
+      const { formatHistory } = require('../src/activity');
+      console.log('');
+      console.log(formatHistory(options.dir));
+      console.log('');
+      process.exit(0);
+    } else if (normalizedCommand === 'compare') {
+      const { compareLatest } = require('../src/activity');
+      const result = compareLatest(options.dir);
+      if (!result) {
+        console.log('\n  Need at least 2 snapshots to compare. Run `npx claudex-setup --snapshot` twice.\n');
+        process.exit(0);
+      }
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        const sign = result.delta.score >= 0 ? '+' : '';
+        console.log('');
+        console.log(`  Previous: ${result.previous.score}/100 (${result.previous.date?.split('T')[0]})`);
+        console.log(`  Current:  ${result.current.score}/100 (${result.current.date?.split('T')[0]})`);
+        console.log(`  Delta:    ${sign}${result.delta.score} points`);
+        console.log(`  Trend:    ${result.trend}`);
+        if (result.improvements.length > 0) console.log(`  Fixed:    ${result.improvements.join(', ')}`);
+        if (result.regressions.length > 0) console.log(`  New gaps: ${result.regressions.join(', ')}`);
+        console.log('');
+      }
+      process.exit(0);
+    } else if (normalizedCommand === 'trend') {
+      const { exportTrendReport } = require('../src/activity');
+      const report = exportTrendReport(options.dir);
+      if (!report) {
+        console.log('\n  No snapshots found. Run `npx claudex-setup --snapshot` to start tracking.\n');
+        process.exit(0);
+      }
+      if (options.out) {
+        require('fs').writeFileSync(options.out, report, 'utf8');
+        console.log(`\n  Trend report exported to ${options.out}\n`);
+      } else {
+        console.log(report);
+      }
+      process.exit(0);
+    } else if (normalizedCommand === 'badge') {
       const { getBadgeMarkdown } = require('../src/badge');
       const result = await audit({ ...options, silent: true });
       console.log(getBadgeMarkdown(result.score));
@@ -405,6 +460,19 @@ async function main() {
           console.error(`  Threshold failed: score ${result.score}/100 is below required ${options.threshold}/100.\n`);
         }
         process.exit(1);
+      }
+      if (options.require && options.require.length > 0) {
+        const failedRequired = options.require.filter(key => {
+          const check = result.results.find(r => r.key === key);
+          return !check || check.passed !== true;
+        });
+        if (failedRequired.length > 0) {
+          if (!options.json) {
+            console.error(`\n  Required checks failed: ${failedRequired.join(', ')}`);
+            console.error('  These must pass for CI to succeed.\n');
+          }
+          process.exit(1);
+        }
       }
     }
   } catch (err) {
