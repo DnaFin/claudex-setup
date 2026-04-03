@@ -1114,6 +1114,142 @@ const TECHNIQUES = {
     template: null
   },
 
+  // --- New checks: depth round 2 ---
+  projectDescriptionInClaudeMd: {
+    id: 2022,
+    name: 'CLAUDE.md describes what the project does',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      return /what.*does|overview|purpose|about|description|project.*is/i.test(md) && md.length > 100;
+    },
+    impact: 'high', rating: 4, category: 'memory',
+    fix: 'Start CLAUDE.md with a clear project description. Claude needs to know what your project does.',
+    template: null
+  },
+
+  directoryStructureInClaudeMd: {
+    id: 2023,
+    name: 'CLAUDE.md documents directory structure',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      return /src\/|app\/|lib\/|structure|director|folder/i.test(md);
+    },
+    impact: 'medium', rating: 4, category: 'memory',
+    fix: 'Document your directory structure in CLAUDE.md so Claude navigates your codebase efficiently.',
+    template: null
+  },
+
+  multipleHookTypes: {
+    id: 2024,
+    name: '2+ hook event types configured',
+    check: (ctx) => {
+      const shared = ctx.jsonFile('.claude/settings.json') || {};
+      const local = ctx.jsonFile('.claude/settings.local.json') || {};
+      const hooks = { ...(shared.hooks || {}), ...(local.hooks || {}) };
+      return Object.keys(hooks).length >= 2;
+    },
+    impact: 'medium', rating: 3, category: 'automation',
+    fix: 'Add at least 2 hook types (e.g. PostToolUse for linting + SessionStart for initialization).',
+    template: null
+  },
+
+  stopFailureHook: {
+    id: 2025,
+    name: 'StopFailure or error handling hook',
+    check: (ctx) => {
+      const shared = ctx.jsonFile('.claude/settings.json') || {};
+      const local = ctx.jsonFile('.claude/settings.local.json') || {};
+      return !!(shared.hooks?.StopFailure || shared.hooks?.Stop || local.hooks?.StopFailure || local.hooks?.Stop);
+    },
+    impact: 'low', rating: 3, category: 'automation',
+    fix: 'Add a StopFailure hook to log errors for debugging. Helps track why Claude stops unexpectedly.',
+    template: null
+  },
+
+  skillUsesPaths: {
+    id: 2026,
+    name: 'At least one skill uses paths for scoping',
+    check: (ctx) => {
+      if (!ctx.hasDir('.claude/skills')) return null;
+      const files = ctx.dirFiles('.claude/skills');
+      if (files.length === 0) return null;
+      for (const f of files) {
+        const content = ctx.fileContent(`.claude/skills/${f}`) || '';
+        if (/paths:/i.test(content)) return true;
+      }
+      return false;
+    },
+    impact: 'low', rating: 3, category: 'workflow',
+    fix: 'Add paths to skill frontmatter to scope when skills activate (e.g. paths: ["src/**/*.ts"]).',
+    template: null
+  },
+
+  mcpHasEnvConfig: {
+    id: 2027,
+    name: 'MCP servers have environment configuration',
+    check: (ctx) => {
+      const shared = ctx.jsonFile('.claude/settings.json') || {};
+      const local = ctx.jsonFile('.claude/settings.local.json') || {};
+      const mcp = ctx.jsonFile('.mcp.json') || {};
+      const allServers = { ...(shared.mcpServers || {}), ...(local.mcpServers || {}), ...(mcp.mcpServers || {}) };
+      if (Object.keys(allServers).length === 0) return null;
+      return Object.values(allServers).some(s => s.env && Object.keys(s.env).length > 0);
+    },
+    impact: 'low', rating: 3, category: 'tools',
+    fix: 'Configure environment variables for MCP servers that need authentication (e.g. GITHUB_TOKEN).',
+    template: null
+  },
+
+  gitIgnoreClaudeLocal: {
+    id: 2028,
+    name: '.gitignore excludes settings.local.json',
+    check: (ctx) => {
+      const gitignore = ctx.fileContent('.gitignore') || '';
+      return /settings\.local\.json|settings\.local/i.test(gitignore);
+    },
+    impact: 'medium', rating: 4, category: 'git',
+    fix: 'Add .claude/settings.local.json to .gitignore. Personal overrides should not be committed.',
+    template: null
+  },
+
+  envExampleExists: {
+    id: 2029,
+    name: '.env.example or .env.template exists',
+    check: (ctx) => {
+      return !!(ctx.fileContent('.env.example') || ctx.fileContent('.env.template') || ctx.fileContent('.env.sample'));
+    },
+    impact: 'low', rating: 3, category: 'hygiene',
+    fix: 'Add .env.example so new developers know which environment variables are needed.',
+    template: null
+  },
+
+  packageJsonHasScripts: {
+    id: 2030,
+    name: 'package.json has dev/test/build scripts',
+    check: (ctx) => {
+      const pkg = ctx.jsonFile('package.json');
+      if (!pkg) return null;
+      const scripts = pkg.scripts || {};
+      const has = (k) => !!scripts[k];
+      return has('test') || has('dev') || has('build') || has('start');
+    },
+    impact: 'medium', rating: 3, category: 'hygiene',
+    fix: 'Add scripts to package.json (test, dev, build). Claude uses these for verification.',
+    template: null
+  },
+
+  typeCheckingConfigured: {
+    id: 2031,
+    name: 'Type checking configured (TypeScript or similar)',
+    check: (ctx) => {
+      return !!(ctx.fileContent('tsconfig.json') || ctx.fileContent('jsconfig.json') ||
+        ctx.fileContent('pyrightconfig.json') || ctx.fileContent('mypy.ini'));
+    },
+    impact: 'medium', rating: 3, category: 'quality',
+    fix: 'Add type checking configuration. Type-safe code produces fewer Claude errors.',
+    template: null
+  },
+
   noDeprecatedPatterns: {
     id: 2009,
     name: 'No deprecated patterns detected',

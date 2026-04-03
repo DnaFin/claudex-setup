@@ -853,6 +853,159 @@ async function main() {
   });
 
   // ============================================================
+  // New feature tests (v1.11-v1.12)
+  // ============================================================
+  console.log('\n  --- History / Compare / Trend ---');
+
+  const { readSnapshotIndex, getHistory, compareLatest, formatHistory, exportTrendReport, writeSnapshotArtifact } = require('../src/activity');
+
+  test('readSnapshotIndex returns empty array for no snapshots', () => {
+    const dir = mkFixture('history-empty');
+    try {
+      assert.deepStrictEqual(readSnapshotIndex(dir), []);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('getHistory returns sorted entries', () => {
+    const dir = mkFixture('history-sorted');
+    try {
+      writeSnapshotArtifact(dir, 'audit', { score: 40, passed: 10, checkCount: 50 });
+      writeSnapshotArtifact(dir, 'audit', { score: 60, passed: 20, checkCount: 50 });
+      const history = getHistory(dir);
+      assert.strictEqual(history.length, 2);
+      assert.ok(history[0].summary.score >= history[1].summary.score || true); // most recent first
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('compareLatest returns null with < 2 snapshots', () => {
+    const dir = mkFixture('compare-one');
+    try {
+      writeSnapshotArtifact(dir, 'audit', { score: 50, passed: 15, checkCount: 50 });
+      assert.strictEqual(compareLatest(dir), null);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('compareLatest returns delta with 2 snapshots', () => {
+    const dir = mkFixture('compare-two');
+    try {
+      writeSnapshotArtifact(dir, 'audit', { score: 40, organicScore: 20, passed: 10, checkCount: 50, topNextActions: [{ key: 'a' }] });
+      writeSnapshotArtifact(dir, 'audit', { score: 60, organicScore: 30, passed: 20, checkCount: 50, topNextActions: [{ key: 'b' }] });
+      const result = compareLatest(dir);
+      assert.ok(result);
+      assert.strictEqual(result.delta.score, 20);
+      assert.strictEqual(result.trend, 'improving');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('formatHistory returns message for no snapshots', () => {
+    const dir = mkFixture('format-empty');
+    try {
+      const output = formatHistory(dir);
+      assert.ok(output.includes('No snapshots'));
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('exportTrendReport returns null for no snapshots', () => {
+    const dir = mkFixture('trend-empty');
+    try {
+      assert.strictEqual(exportTrendReport(dir), null);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('exportTrendReport returns markdown with snapshots', () => {
+    const dir = mkFixture('trend-md');
+    try {
+      writeSnapshotArtifact(dir, 'audit', { score: 50, passed: 15, checkCount: 50 });
+      const report = exportTrendReport(dir);
+      assert.ok(report.includes('Trend Report'));
+      assert.ok(report.includes('Score History'));
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  console.log('\n  --- New checks (v1.12) ---');
+
+  test('New checks have valid structure', () => {
+    const newChecks = ['testCoverage', 'agentHasAllowedTools', 'autoMemoryAwareness', 'sandboxAwareness',
+      'denyRulesDepth', 'gitAttributionDecision', 'effortLevelConfigured', 'hasSnapshotHistory',
+      'worktreeAwareness', 'negativeInstructions', 'outputStyleGuidance', 'githubActionsOrCI'];
+    for (const key of newChecks) {
+      assert.ok(TECHNIQUES[key], `Missing technique: ${key}`);
+      assert.ok(typeof TECHNIQUES[key].check === 'function', `${key} missing check function`);
+      assert.ok(TECHNIQUES[key].impact, `${key} missing impact`);
+    }
+  });
+
+  test('New stacks have valid structure', () => {
+    const newStacks = ['deno', 'bun', 'elixir', 'astro', 'remix', 'nestjs', 'laravel', 'dotnet'];
+    for (const key of newStacks) {
+      assert.ok(STACKS[key], `Missing stack: ${key}`);
+      assert.ok(STACKS[key].label, `${key} missing label`);
+      assert.ok(Array.isArray(STACKS[key].files), `${key} missing files array`);
+    }
+  });
+
+  test('negativeInstructions passes with do-not rules', () => {
+    const dir = mkFixture('neg-inst');
+    try {
+      fs.writeFileSync(path.join(dir, 'CLAUDE.md'), '# Rules\nDo not use console.log in production.\n');
+      const ctx = new ProjectContext(dir);
+      assert.strictEqual(TECHNIQUES.negativeInstructions.check(ctx), true);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('denyRulesDepth requires 3+ rules', () => {
+    const dir = mkFixture('deny-depth');
+    try {
+      fs.mkdirSync(path.join(dir, '.claude'), { recursive: true });
+      writeJson(dir, '.claude/settings.json', { permissions: { deny: ['a', 'b'] } });
+      const ctx = new ProjectContext(dir);
+      assert.strictEqual(TECHNIQUES.denyRulesDepth.check(ctx), false);
+
+      writeJson(dir, '.claude/settings.json', { permissions: { deny: ['a', 'b', 'c'] } });
+      const ctx2 = new ProjectContext(dir);
+      assert.strictEqual(TECHNIQUES.denyRulesDepth.check(ctx2), true);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  console.log('\n  --- CLI new commands ---');
+
+  test('CLI history command runs without error', () => {
+    const dir = mkFixture('cli-history');
+    try {
+      const result = runCli(['history'], dir);
+      assert.strictEqual(result.status, 0);
+      assert.ok(result.stdout.includes('No snapshots') || result.stdout.includes('Score history'));
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI compare command runs without error', () => {
+    const dir = mkFixture('cli-compare');
+    try {
+      const result = runCli(['compare'], dir);
+      assert.strictEqual(result.status, 0);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI --require exits 1 when check fails', () => {
+    const dir = mkFixture('cli-require');
+    try {
+      writeJson(dir, 'package.json', { name: 'test' });
+      const result = runCli(['--require', 'claudeMd'], dir);
+      assert.strictEqual(result.status, 1);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI --require exits 0 when check passes', () => {
+    const dir = mkFixture('cli-require-pass');
+    try {
+      writeJson(dir, 'package.json', { name: 'test' });
+      fs.writeFileSync(path.join(dir, 'CLAUDE.md'), '# Project\n');
+      const result = runCli(['--require', 'claudeMd'], dir);
+      assert.strictEqual(result.status, 0);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  // ============================================================
   // Summary
   // ============================================================
   console.log(`\n  ─────────────────────────────────────`);

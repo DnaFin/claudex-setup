@@ -1,6 +1,6 @@
 # claudex-setup
 
-> Score your repo's Claude Code setup against 74 checks. See what's missing, apply only what you approve with rollback, and benchmark the impact — without breaking existing config.
+> Score your repo's Claude Code setup against 84 checks. See what's missing, apply only what you approve with rollback, and benchmark the impact — without breaking existing config.
 
 [![npm version](https://img.shields.io/npm/v/claudex-setup)](https://www.npmjs.com/package/claudex-setup)
 [![npm downloads](https://img.shields.io/npm/dm/claudex-setup)](https://www.npmjs.com/package/claudex-setup)
@@ -89,7 +89,7 @@ Most common gaps found: missing secrets protection, no deny rules, no mermaid di
       design: none (0/2)
      devops: none (0/4)
 
-  29/74 checks passing
+  29/84 checks passing
   Next command: npx claudex-setup setup
 ```
 
@@ -105,7 +105,7 @@ That prints a compact top-3 quick scan with one clear next command.
 
 | Command | What it does |
 |---------|-------------|
-| `npx claudex-setup` | **Discover** - Score 0-100 against 74 checks |
+| `npx claudex-setup` | **Discover** - Score 0-100 against 84 checks |
 | `npx claudex-setup discover` | **Discover** - Alias for audit mode |
 | `npx claudex-setup setup` | **Starter** - Smart CLAUDE.md + hooks + commands + agents |
 | `npx claudex-setup starter` | **Starter** - Alias for setup mode |
@@ -305,7 +305,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DnaFin/claudex-setup@v1.12.0
+      - uses: DnaFin/claudex-setup@v1.13.0
         with:
           threshold: 50
 ```

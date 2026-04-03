@@ -15,6 +15,13 @@
 - README and docs now reflect snapshot artifacts, governance export, and the Claude-native skill path
 - packaged content and public-facing counts are now aligned with the current CLAUDEX state
 
+## [1.13.0] - 2026-04-03
+
+### Added
+- 10 new checks (74→84): project description, directory structure, multiple hook types, stop-failure hook, skill paths, MCP env config, gitignore local settings, .env.example, package scripts, type checking
+- 15 new tests (58→73): history/compare/trend, new checks structure, CLI commands, deny depth, negative instructions, --require flag
+- All references updated to 74→84 checks
+
 ## [1.12.0] - 2026-04-03
 
 ### Added
