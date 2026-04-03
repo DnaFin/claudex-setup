@@ -67,6 +67,10 @@ class ProjectContext {
     }
   }
 
+  claudeMdContent() {
+    return this.fileContent('CLAUDE.md') || this.fileContent('.claude/CLAUDE.md');
+  }
+
   fileContent(filePath) {
     if (this._cache[filePath] !== undefined) return this._cache[filePath];
     const fullPath = path.join(this.dir, filePath);

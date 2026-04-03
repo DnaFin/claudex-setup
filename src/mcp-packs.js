@@ -40,12 +40,11 @@ const MCP_PACKS = [
     key: 'postgres-mcp',
     label: 'PostgreSQL',
     useWhen: 'Repos with PostgreSQL databases that benefit from schema inspection and query assistance.',
-    adoption: 'Useful for backend-api and data-pipeline repos. Requires DATABASE_URL env var.',
+    adoption: 'Useful for backend-api and data-pipeline repos. Pass connection string as CLI argument.',
     servers: {
       postgres: {
         command: 'npx',
-        args: ['-y', '@modelcontextprotocol/server-postgres'],
-        env: { DATABASE_URL: '${DATABASE_URL}' },
+        args: ['-y', '@modelcontextprotocol/server-postgres', '${DATABASE_URL}'],
       },
     },
   },
@@ -77,7 +76,7 @@ const MCP_PACKS = [
     key: 'docker-mcp',
     label: 'Docker',
     useWhen: 'Repos with containerized workflows that benefit from container management during Claude sessions.',
-    adoption: 'Useful for infra-platform and backend repos. Requires Docker running locally.',
+    adoption: 'Community Docker MCP server. Requires Docker running locally. Note: community-maintained package.',
     servers: {
       docker: {
         command: 'npx',
@@ -128,7 +127,7 @@ const MCP_PACKS = [
     key: 'slack-mcp',
     label: 'Slack',
     useWhen: 'Teams using Slack that want Claude to draft, preview, or post messages.',
-    adoption: 'Useful for team workflows. Requires SLACK_BOT_TOKEN env var.',
+    adoption: 'Community Slack MCP server (supports OAuth and stealth mode). Requires SLACK_BOT_TOKEN or SLACK_COOKIES env var.',
     servers: {
       slack: {
         command: 'npx',
@@ -154,7 +153,7 @@ const MCP_PACKS = [
     key: 'figma-mcp',
     label: 'Figma',
     useWhen: 'Design-heavy repos where Claude needs access to Figma designs and components.',
-    adoption: 'Useful for frontend-ui repos with design systems. Requires FIGMA_ACCESS_TOKEN env var.',
+    adoption: 'Community Figma MCP server. Requires FIGMA_ACCESS_TOKEN env var. Note: community-maintained package.',
     servers: {
       figma: {
         command: 'npx',
@@ -202,8 +201,8 @@ const MCP_PACKS = [
   },
   {
     key: 'jira-confluence',
-    label: 'Jira + Confluence',
-    useWhen: 'Teams using Atlassian for issue tracking and documentation.',
+    label: 'Jira',
+    useWhen: 'Teams using Atlassian Jira for issue tracking and project management.',
     adoption: 'Requires ATLASSIAN_API_TOKEN and ATLASSIAN_EMAIL env vars.',
     servers: {
       jira: {
@@ -217,12 +216,12 @@ const MCP_PACKS = [
     key: 'ga4-analytics',
     label: 'Google Analytics 4',
     useWhen: 'Repos with web analytics needs — live GA4 data, attribution, and audience insights.',
-    adoption: 'Requires GA4 credentials. 1,641 stars.',
+    adoption: 'Requires GA4_PROPERTY_ID and either GOOGLE_APPLICATION_CREDENTIALS or ADC for auth.',
     servers: {
       ga4: {
         command: 'npx',
         args: ['-y', 'mcp-server-ga4'],
-        env: { GA4_PROPERTY_ID: '${GA4_PROPERTY_ID}' },
+        env: { GA4_PROPERTY_ID: '${GA4_PROPERTY_ID}', GOOGLE_APPLICATION_CREDENTIALS: '${GOOGLE_APPLICATION_CREDENTIALS}' },
       },
     },
   },
@@ -230,12 +229,12 @@ const MCP_PACKS = [
     key: 'search-console',
     label: 'Google Search Console',
     useWhen: 'SEO-focused repos that need search performance data, indexing status, and sitemap insights.',
-    adoption: 'Requires GSC credentials. 595 stars.',
+    adoption: 'Requires Google OAuth client credentials (client ID + secret). Uses OAuth consent flow.',
     servers: {
       gsc: {
         command: 'npx',
         args: ['-y', 'mcp-gsc@latest'],
-        env: { GSC_CREDENTIALS: '${GSC_CREDENTIALS}' },
+        env: { GOOGLE_CLIENT_ID: '${GOOGLE_CLIENT_ID}', GOOGLE_CLIENT_SECRET: '${GOOGLE_CLIENT_SECRET}' },
       },
     },
   },
@@ -243,7 +242,7 @@ const MCP_PACKS = [
     key: 'n8n-workflows',
     label: 'n8n Workflow Automation',
     useWhen: 'Teams using n8n for workflow automation with 1,396 integration nodes.',
-    adoption: 'Requires n8n instance URL. 17,092 stars.',
+    adoption: 'Requires n8n instance URL and API key.',
     servers: {
       n8n: {
         command: 'npx',
@@ -256,7 +255,7 @@ const MCP_PACKS = [
     key: 'zendesk-mcp',
     label: 'Zendesk',
     useWhen: 'Support teams using Zendesk for ticket management and help center content.',
-    adoption: 'Requires ZENDESK_API_TOKEN env var. 79 stars.',
+    adoption: 'Requires ZENDESK_API_TOKEN and ZENDESK_SUBDOMAIN env vars.',
     servers: {
       zendesk: {
         command: 'npx',
@@ -269,7 +268,7 @@ const MCP_PACKS = [
     key: 'infisical-secrets',
     label: 'Infisical Secrets',
     useWhen: 'Repos using Infisical for secrets management with auto-rotation.',
-    adoption: 'Requires INFISICAL_TOKEN env var. 25,629 stars.',
+    adoption: 'Requires INFISICAL_TOKEN env var.',
     servers: {
       infisical: {
         command: 'npx',
@@ -282,7 +281,7 @@ const MCP_PACKS = [
     key: 'shopify-mcp',
     label: 'Shopify',
     useWhen: 'Shopify stores and apps that need API schema access and deployment tooling.',
-    adoption: 'Official Shopify dev MCP. Requires SHOPIFY_ACCESS_TOKEN env var.',
+    adoption: 'Community Shopify MCP server for GraphQL API access. Requires SHOPIFY_ACCESS_TOKEN env var.',
     servers: {
       shopify: {
         command: 'npx',
@@ -307,7 +306,7 @@ const MCP_PACKS = [
   {
     key: 'blender-mcp',
     label: 'Blender 3D',
-    useWhen: '3D modeling, animation, or rendering repos that use Blender. 18,219 stars.',
+    useWhen: '3D modeling, animation, or rendering repos that use Blender.',
     adoption: 'Requires Blender installed locally. Python bridge.',
     servers: {
       blender: {
@@ -320,7 +319,7 @@ const MCP_PACKS = [
     key: 'wordpress-mcp',
     label: 'WordPress',
     useWhen: 'WordPress sites needing content management, site ops, and plugin workflows.',
-    adoption: 'Requires WP_URL and WP_AUTH_TOKEN env vars. 115 stars.',
+    adoption: 'Requires WP_URL and WP_AUTH_TOKEN env vars.',
     servers: {
       wordpress: {
         command: 'npx',
@@ -534,14 +533,17 @@ function recommendMcpPacks(stacks = [], domainPacks = [], options = {}) {
     recommended.add('jira-confluence');
   }
 
-  // Analytics for ecommerce and marketing
-  if (domainKeys.has('ecommerce') || domainKeys.has('docs-content')) {
+  // Analytics for ecommerce (docs-content repos rarely need GA4/GSC)
+  if (domainKeys.has('ecommerce')) {
     recommended.add('ga4-analytics');
     recommended.add('search-console');
   }
 
-  // Shopify for ecommerce
-  if (domainKeys.has('ecommerce')) {
+  // Shopify only when Shopify signals are present
+  if (domainKeys.has('ecommerce') && ctx && (
+    hasDependency(deps, 'shopify') || hasDependency(deps, '@shopify/shopify-api') ||
+    hasFileContentMatch(ctx, '.env', /shopify/i) || hasFileContentMatch(ctx, '.env.example', /shopify/i)
+  )) {
     recommended.add('shopify-mcp');
   }
 
@@ -550,8 +552,11 @@ function recommendMcpPacks(stacks = [], domainPacks = [], options = {}) {
     recommended.add('huggingface-mcp');
   }
 
-  // Zendesk for support
-  if (domainKeys.has('enterprise-governed')) {
+  // Zendesk only when Zendesk signals are present
+  if (domainKeys.has('enterprise-governed') && ctx && (
+    hasDependency(deps, 'zendesk') || hasDependency(deps, 'node-zendesk') ||
+    hasFileContentMatch(ctx, '.env', /zendesk/i) || hasFileContentMatch(ctx, '.env.example', /zendesk/i)
+  )) {
     recommended.add('zendesk-mcp');
   }
 

@@ -249,6 +249,10 @@ async function main() {
     process.exit(1);
   }
 
+  if (options.require && normalizedCommand !== 'audit' && !['audit', 'discover'].includes(command)) {
+    console.error(`\n  Warning: --require is only supported with the audit command. Ignoring for '${normalizedCommand}'.\n`);
+  }
+
   if (!KNOWN_COMMANDS.includes(normalizedCommand)) {
     const suggestion = suggestCommand(command);
     console.error(`\n  Error: Unknown command '${command}'.`);
@@ -326,7 +330,7 @@ async function main() {
     } else if (normalizedCommand === 'insights') {
       const https = require('https');
       const url = 'https://claudex-insights.claudex.workers.dev/v1/stats';
-      https.get(url, (res) => {
+      const req = https.get(url, (res) => {
         let data = '';
         res.on('data', chunk => data += chunk);
         res.on('end', () => {
@@ -356,6 +360,10 @@ async function main() {
         });
       }).on('error', () => {
         console.log('  Could not reach insights server. Run locally: npx claudex-setup');
+      });
+      req.setTimeout(10000, () => {
+        req.destroy();
+        console.log('  Insights request timed out. Run locally: npx claudex-setup');
       });
       return; // keep process alive for http
     } else if (normalizedCommand === 'augment' || normalizedCommand === 'suggest-only') {
@@ -445,6 +453,15 @@ async function main() {
       await watch(options);
     } else if (normalizedCommand === 'setup') {
       await setup(options);
+      if (options.snapshot) {
+        const postSetupResult = await audit({ dir: options.dir, silent: true });
+        const snapshot = writeSnapshotArtifact(options.dir, 'audit', postSetupResult, {
+          sourceCommand: 'setup',
+        });
+        if (!options.json) {
+          console.log(`  Snapshot saved: ${snapshot.relativePath}`);
+        }
+      }
     } else {
       const result = await audit(options);
       const snapshot = options.snapshot ? writeSnapshotArtifact(options.dir, 'audit', result, {

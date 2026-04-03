@@ -156,17 +156,18 @@ function detectDomainPacks(ctx, stacks, assets = null) {
   }
 
   const hasFrontend = stackKeys.has('react') || stackKeys.has('nextjs') || stackKeys.has('vue') ||
-    stackKeys.has('angular') || stackKeys.has('svelte') || ctx.hasDir('components') || ctx.hasDir('app') || ctx.hasDir('pages');
+    stackKeys.has('angular') || stackKeys.has('svelte') || ctx.hasDir('components') || ctx.hasDir('pages') ||
+    (ctx.hasDir('app') && (deps.next || deps.react || deps.vue || deps['@angular/core'] || deps.svelte));
   const hasBackend = stackKeys.has('node') || stackKeys.has('python') || stackKeys.has('django') ||
     stackKeys.has('fastapi') || stackKeys.has('go') || stackKeys.has('rust') || stackKeys.has('java') ||
     ctx.hasDir('api') || ctx.hasDir('routes') || ctx.hasDir('services') || ctx.hasDir('controllers');
   const hasData = ctx.hasDir('dags') || ctx.hasDir('jobs') || ctx.hasDir('workers') ||
-    ctx.hasDir('models') || ctx.hasDir('migrations') || ctx.hasDir('db') ||
+    ctx.hasDir('migrations') || ctx.hasDir('db') ||
     deps.dbt || deps['apache-airflow'] || deps.pandas || deps.polars || deps.duckdb;
   const hasInfra = stackKeys.has('docker') || stackKeys.has('terraform') || stackKeys.has('kubernetes') ||
     ctx.files.includes('wrangler.toml') || ctx.files.includes('serverless.yml') || ctx.files.includes('serverless.yaml') ||
     ctx.files.includes('cdk.json') || ctx.hasDir('infra') || ctx.hasDir('deploy') || ctx.hasDir('helm');
-  const isOss = !!ctx.fileContent('LICENSE') && !!ctx.fileContent('CONTRIBUTING.md') && pkg.private !== true;
+  const isOss = !!ctx.fileContent('LICENSE') && pkg.private !== true;
   const isEnterpriseGoverned = !!(assets && assets.permissions && assets.permissions.hasDenyRules) &&
     !!(assets && assets.files && assets.files.settings) && ctx.hasDir('.github/workflows');
 
@@ -218,7 +219,8 @@ function detectDomainPacks(ctx, stacks, assets = null) {
 
   // Monorepo detection
   const isMonorepo = ctx.files.includes('nx.json') || ctx.files.includes('turbo.json') ||
-    ctx.files.includes('lerna.json') || ctx.hasDir('packages') ||
+    ctx.files.includes('lerna.json') || ctx.files.includes('pnpm-workspace.yaml') ||
+    ctx.hasDir('packages') ||
     (pkg.workspaces && (Array.isArray(pkg.workspaces) ? pkg.workspaces.length > 0 : true));
   if (isMonorepo) {
     addMatch('monorepo', [
@@ -259,7 +261,8 @@ function detectDomainPacks(ctx, stacks, assets = null) {
   // E-commerce detection
   const isEcommerce = deps.stripe || deps['@stripe/stripe-js'] || deps.shopify || deps['@shopify/shopify-api'] ||
     deps.woocommerce || deps.paypal || deps['@paypal/react-paypal-js'] || deps.square || deps['@adyen/adyen-web'] ||
-    deps.medusa || deps.saleor ||
+    deps.medusa || deps.saleor || deps.braintree || deps['@mollie/api-client'] ||
+    deps.razorpay || deps['@paddle/paddle-node-sdk'] || deps['@lemonsqueezy/lemonsqueezy.js'] ||
     ctx.hasDir('products') || ctx.hasDir('checkout') || ctx.hasDir('cart');
   if (isEcommerce) {
     addMatch('ecommerce', [
@@ -274,8 +277,10 @@ function detectDomainPacks(ctx, stacks, assets = null) {
     deps['@anthropic-ai/sdk'] || deps.transformers || deps.torch || deps.tensorflow ||
     deps.llamaindex || deps['llama-index'] || deps.crewai || deps.autogen ||
     deps['@ai-sdk/core'] || deps.ollama ||
-    ctx.hasDir('chains') || ctx.hasDir('agents') || ctx.hasDir('models') || ctx.hasDir('prompts');
-  if (isAiMl && !hasData) {
+    deps['@microsoft/semantic-kernel'] || deps['haystack-ai'] || deps['dspy-ai'] ||
+    deps.instructor || deps['@google/generative-ai'] || deps.cohere || deps.mistralai ||
+    ctx.hasDir('chains') || ctx.hasDir('agents') || ctx.hasDir('prompts');
+  if (isAiMl) {
     addMatch('ai-ml', [
       'Detected AI/ML dependencies or agent structure.',
       deps.langchain ? 'LangChain detected.' : null,
@@ -287,7 +292,7 @@ function detectDomainPacks(ctx, stacks, assets = null) {
   const isDevopsCicd = ctx.hasDir('.github/workflows') || ctx.hasDir('.circleci') ||
     ctx.files.includes('Jenkinsfile') || ctx.files.includes('.gitlab-ci.yml') ||
     ctx.hasDir('deploy') || ctx.hasDir('scripts/deploy');
-  if (isDevopsCicd && !hasInfra) {
+  if (isDevopsCicd) {
     addMatch('devops-cicd', [
       'Detected CI/CD pipelines or deployment scripts.',
       ctx.hasDir('.github/workflows') ? 'GitHub Actions detected.' : null,
@@ -298,8 +303,10 @@ function detectDomainPacks(ctx, stacks, assets = null) {
   // Design system detection
   const isDesignSystem = deps.storybook || deps['@storybook/react'] || deps['@storybook/vue3'] ||
     deps.chromatic || deps['style-dictionary'] || deps['@tokens-studio/sd-transforms'] ||
-    ctx.hasDir('tokens') || ctx.hasDir('design-tokens') ||
-    ctx.hasDir('.storybook') || (ctx.hasDir('components') && ctx.hasDir('.storybook'));
+    deps['@radix-ui/react-primitives'] || deps['@headlessui/react'] ||
+    ctx.hasDir('tokens') || ctx.hasDir('design-tokens') || ctx.hasDir('primitives') ||
+    ctx.hasDir('.storybook') ||
+    (ctx.hasDir('components') && (deps['tailwindcss'] || deps.tailwindcss) && ctx.hasDir('packages'));
   if (isDesignSystem) {
     addMatch('design-system', [
       'Detected design system or component library signals.',
@@ -321,8 +328,9 @@ function detectDomainPacks(ctx, stacks, assets = null) {
   }
 
   // Security-focused detection
-  const isSecurityFocused = hasSecurityPolicy &&
-    (hasBackend || deps.bcrypt || deps.jsonwebtoken || deps.passport || deps['next-auth']);
+  const hasAuthDeps = deps.bcrypt || deps.jsonwebtoken || deps.passport || deps['next-auth'] ||
+    deps['@auth/core'] || deps['lucia'] || deps['better-auth'];
+  const isSecurityFocused = (hasSecurityPolicy || hasAuthDeps) && hasBackend;
   if (isSecurityFocused && !isRegulated) {
     addMatch('security-focused', [
       'Detected security-sensitive backend with auth dependencies.',

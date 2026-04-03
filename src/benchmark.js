@@ -21,6 +21,9 @@ function copyProject(sourceDir, targetDir) {
       copyProject(from, to);
     } else if (entry.isFile()) {
       fs.copyFileSync(from, to);
+    } else if (entry.isSymbolicLink && entry.isSymbolicLink()) {
+      // Symlinks are skipped in benchmark sandbox — log for awareness
+      process.stderr.write(`  Note: symlink skipped in benchmark: ${entry.name}\n`);
     }
   }
 }
@@ -89,7 +92,9 @@ function buildExecutiveSummary(before, after, workflowEvidence) {
   const workflowCoverage = workflowEvidence.summary.coverageScore;
   let headline = 'Benchmark did not improve the score in this run.';
 
-  if (scoreDelta > 0) {
+  if (scoreDelta < 0) {
+    headline = `Warning: score decreased by ${Math.abs(scoreDelta)} points. Setup may have introduced a regression.`;
+  } else if (scoreDelta > 0) {
     headline = `Benchmark improved readiness by ${scoreDelta} points without touching the original repo.`;
   } else if (before.score >= 85 && after.score >= before.score && workflowCoverage >= 80) {
     headline = 'Benchmark confirmed the repo already meets the starter-safe baseline without regression.';

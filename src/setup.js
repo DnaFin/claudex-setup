@@ -367,7 +367,7 @@ function generateMermaid(dirs, stacks) {
     nodes.push(addNode('Entry Point', 'round'));
   }
 
-  const root = ids['Next.js'] || ids['Django'] || ids['FastAPI'] || ids['Entry Point'];
+  const root = ids['Next.js'] || ids['Django'] || ids['FastAPI'] || ids['Entry Point'] || 'A';
   const pickNodeId = (...labels) => labels.map(label => ids[label]).find(Boolean) || root;
 
   // Detect layers

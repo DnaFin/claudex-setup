@@ -64,7 +64,7 @@ Key observations:
 | Metric | Before | After | Change |
 |--------|--------|-------|--------|
 | Audit score | X | X | +X |
-| Checks passing | X/58 | X/58 | +X |
+| Checks passing | X/84 | X/84 | +X |
 | Time to first productive session | Xm | Xm | -Xm |
 | [Other metric] | | | |
 

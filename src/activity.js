@@ -2,8 +2,18 @@ const fs = require('fs');
 const path = require('path');
 const { version } = require('../package.json');
 
+let _lastTimestamp = '';
+let _counter = 0;
+
 function timestampId() {
-  return new Date().toISOString().replace(/[:.]/g, '-');
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  if (ts === _lastTimestamp) {
+    _counter++;
+    return `${ts}-${_counter}`;
+  }
+  _lastTimestamp = ts;
+  _counter = 0;
+  return ts;
 }
 
 function ensureArtifactDirs(dir) {
@@ -122,6 +132,11 @@ function updateSnapshotIndex(snapshotDir, record) {
   }
 
   entries.push(record);
+  // Prune to keep last 200 entries
+  const MAX_INDEX_ENTRIES = 200;
+  if (entries.length > MAX_INDEX_ENTRIES) {
+    entries = entries.slice(entries.length - MAX_INDEX_ENTRIES);
+  }
   fs.writeFileSync(indexPath, JSON.stringify(entries, null, 2), 'utf8');
 }
 

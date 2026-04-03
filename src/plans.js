@@ -63,7 +63,7 @@ function previewContent(content) {
 }
 
 function riskFromImpact(impact) {
-  if (impact === 'critical') return 'medium';
+  if (impact === 'critical') return 'high';
   if (impact === 'high') return 'medium';
   return 'low';
 }

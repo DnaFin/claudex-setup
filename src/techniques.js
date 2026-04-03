@@ -30,7 +30,7 @@ const TECHNIQUES = {
     id: 51,
     name: 'Mermaid architecture diagram',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return md.includes('mermaid') || md.includes('graph ') || md.includes('flowchart ');
     },
     impact: 'high',
@@ -55,7 +55,7 @@ const TECHNIQUES = {
     id: 763,
     name: 'CLAUDE.md uses @import for modularity',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return md.includes('@import');
     },
     impact: 'medium',
@@ -69,8 +69,8 @@ const TECHNIQUES = {
     id: 681,
     name: 'CLAUDE.md under 200 lines (concise)',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
-      return md.split('\n').length < 200;
+      const md = ctx.claudeMdContent() || '';
+      return md.split('\n').length <= 200;
     },
     impact: 'medium',
     rating: 4,
@@ -87,8 +87,9 @@ const TECHNIQUES = {
     id: 93,
     name: 'Verification criteria in CLAUDE.md',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
-      return md.includes('test') || md.includes('verify') || md.includes('lint') || md.includes('check');
+      const md = ctx.claudeMdContent() || '';
+      return /\b(npm test|yarn test|pnpm test|pytest|go test|make test|npm run lint|yarn lint|npx |ruff |eslint)\b/i.test(md) ||
+        /\b(test command|lint command|build command|verify|run tests|run lint)\b/i.test(md);
     },
     impact: 'critical',
     rating: 5,
@@ -101,7 +102,7 @@ const TECHNIQUES = {
     id: 93001,
     name: 'CLAUDE.md contains a test command',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return /npm test|pytest|jest|vitest|cargo test|go test|mix test|rspec/.test(md);
     },
     impact: 'high',
@@ -115,7 +116,7 @@ const TECHNIQUES = {
     id: 93002,
     name: 'CLAUDE.md contains a lint command',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return /eslint|prettier|ruff|black|clippy|golangci-lint|rubocop|npm run lint|yarn lint|pnpm lint|bun lint/.test(md);
     },
     impact: 'high',
@@ -129,7 +130,7 @@ const TECHNIQUES = {
     id: 93003,
     name: 'CLAUDE.md contains a build command',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return /npm run build|cargo build|go build|make|tsc|gradle build|mvn compile/.test(md);
     },
     impact: 'medium',
@@ -199,7 +200,7 @@ const TECHNIQUES = {
     id: 1039,
     name: 'CLAUDE.md has no embedded API keys',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return !/sk-[a-zA-Z0-9]{20,}|xoxb-|AKIA[A-Z0-9]{16}/.test(md);
     },
     impact: 'critical',
@@ -328,6 +329,7 @@ const TECHNIQUES = {
     id: 24,
     name: 'Permission configuration',
     check: (ctx) => {
+      // Prefer local (effective config) — any settings file with permissions passes
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
       return !!(settings && settings.permissions);
     },
@@ -396,7 +398,7 @@ const TECHNIQUES = {
     id: 1031,
     name: 'Security review command awareness',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return md.includes('security') || md.includes('/security-review');
     },
     impact: 'high',
@@ -498,7 +500,7 @@ const TECHNIQUES = {
     name: 'Frontend design skill for anti-AI-slop',
     check: (ctx) => {
       if (!hasFrontendSignals(ctx)) return null;
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return md.includes('frontend_aesthetics') || md.includes('anti-AI-slop') || md.includes('frontend-design');
     },
     impact: 'medium',
@@ -553,11 +555,13 @@ const TECHNIQUES = {
   ciPipeline: {
     id: 260,
     name: 'CI pipeline configured',
-    check: (ctx) => ctx.hasDir('.github/workflows'),
+    check: (ctx) => ctx.hasDir('.github/workflows') || ctx.hasDir('.circleci') ||
+      ctx.files.includes('.gitlab-ci.yml') || ctx.files.includes('Jenkinsfile') ||
+      ctx.files.includes('.travis.yml') || ctx.files.includes('bitbucket-pipelines.yml'),
     impact: 'high',
     rating: 4,
     category: 'devops',
-    fix: 'Add .github/workflows/ with CI pipeline for automated testing and deployment.',
+    fix: 'Add a CI pipeline (GitHub Actions, GitLab CI, CircleCI, etc.) for automated testing and deployment.',
     template: null
   },
 
@@ -658,7 +662,7 @@ const TECHNIQUES = {
     id: 568,
     name: 'CLAUDE.md mentions /compact or compaction',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return /\/compact|compaction|context.*(limit|manage|budget)/i.test(md);
     },
     impact: 'medium',
@@ -672,7 +676,7 @@ const TECHNIQUES = {
     id: 45,
     name: 'Context management awareness',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return /context.*(manage|window|limit|budget|token)/i.test(md);
     },
     impact: 'medium',
@@ -744,7 +748,7 @@ const TECHNIQUES = {
     id: 96,
     name: 'XML tags for structured prompts',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       // Give credit for XML tags OR well-structured markdown with clear sections
       const hasXml = md.includes('<constraints') || md.includes('<rules') ||
         md.includes('<validation') || md.includes('<instructions');
@@ -764,7 +768,7 @@ const TECHNIQUES = {
     id: 9,
     name: 'CLAUDE.md contains code examples',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return (md.match(/```/g) || []).length >= 2;
     },
     impact: 'high',
@@ -778,8 +782,8 @@ const TECHNIQUES = {
     id: 10,
     name: 'CLAUDE.md defines a role or persona',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
-      return /you are|your role|act as|persona|behave as/i.test(md);
+      const md = ctx.claudeMdContent() || '';
+      return /^you are a |^your role is|^act as a |persona:|behave as a /im.test(md);
     },
     impact: 'medium',
     rating: 4,
@@ -792,7 +796,7 @@ const TECHNIQUES = {
     id: 9601,
     name: 'XML constraint blocks in CLAUDE.md',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return /<constraints|<rules|<requirements|<boundaries/i.test(md);
     },
     impact: 'high',
@@ -810,10 +814,10 @@ const TECHNIQUES = {
     id: 1102,
     name: 'Claude Code Channels awareness',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
       const settingsStr = JSON.stringify(settings || {});
-      return md.toLowerCase().includes('channel') || settingsStr.includes('channel');
+      return /\bchannels?\b.*\b(telegram|discord|imessage|slack|bridge)\b|\b(telegram|discord|imessage|slack|bridge)\b.*\bchannels?\b/i.test(md) || settingsStr.includes('channels');
     },
     impact: 'low',
     rating: 3,
@@ -831,7 +835,7 @@ const TECHNIQUES = {
     id: 2001,
     name: 'CLAUDE.md mentions current Claude features',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       if (md.length < 50) return false; // too short to evaluate
       // Check for awareness of features from 2025+
       const modernFeatures = ['hook', 'skill', 'agent', 'subagent', 'mcp', 'compact', '/clear', 'extended thinking', 'tool_use', 'worktree'];
@@ -845,13 +849,14 @@ const TECHNIQUES = {
     template: null
   },
 
+  // claudeMdNotOverlong removed — duplicate of underlines200 (id 681)
+
   claudeMdNotOverlong: {
     id: 2002,
     name: 'CLAUDE.md is concise (under 200 lines)',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md');
-      if (!md) return false; // no CLAUDE.md = not passing
-      return md.split('\n').length <= 200;
+      // Defer to underlines200 — this check always returns null (skipped)
+      return null;
     },
     impact: 'medium',
     rating: 4,
@@ -864,12 +869,20 @@ const TECHNIQUES = {
     id: 2003,
     name: 'CLAUDE.md has no obvious contradictions',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md');
+      const md = ctx.claudeMdContent();
       if (!md || md.length < 50) return false; // no CLAUDE.md or too short = not passing
       // Check for common contradictions
-      const hasNever = /never.*always|always.*never/i.test(md);
-      const hasBothStyles = /use tabs/i.test(md) && /use spaces/i.test(md);
-      return !hasNever && !hasBothStyles;
+      // Check for contradictions on the SAME topic (same line or adjacent sentence)
+      const lines = md.split('\n');
+      let hasContradiction = false;
+      for (const line of lines) {
+        if (/\balways\b.*\bnever\b|\bnever\b.*\balways\b/i.test(line)) {
+          hasContradiction = true;
+          break;
+        }
+      }
+      const hasBothStyles = /\buse tabs\b/i.test(md) && /\buse spaces\b/i.test(md);
+      return !hasContradiction && !hasBothStyles;
     },
     impact: 'high',
     rating: 4,
@@ -940,14 +953,15 @@ const TECHNIQUES = {
 
   securityReviewInWorkflow: {
     id: 2008,
-    name: '/security-review in workflow',
+    name: '/security-review command or workflow',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
       const hasCommand = ctx.hasDir('.claude/commands') &&
         (ctx.dirFiles('.claude/commands') || []).some(f => f.includes('security') || f.includes('review'));
-      return md.toLowerCase().includes('security') || hasCommand;
+      const md = ctx.claudeMdContent() || '';
+      const hasExplicitRef = /\/security-review|security review command|security workflow/i.test(md);
+      return hasCommand || hasExplicitRef;
     },
-    impact: 'high',
+    impact: 'medium',
     rating: 4,
     category: 'quality-deep',
     fix: 'Claude Code has built-in /security-review (OWASP Top 10). Add it to your workflow or create a /security command.',
@@ -959,7 +973,7 @@ const TECHNIQUES = {
     id: 2010,
     name: 'Test coverage or strategy mentioned',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return /coverage|test.*strateg|e2e|integration test|unit test/i.test(md);
     },
     impact: 'medium', rating: 3, category: 'quality',
@@ -991,7 +1005,7 @@ const TECHNIQUES = {
     id: 2012,
     name: 'Auto-memory or memory management mentioned',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return /auto.?memory|memory.*manage|remember|persistent.*context/i.test(md);
     },
     impact: 'low', rating: 3, category: 'memory',
@@ -1004,7 +1018,7 @@ const TECHNIQUES = {
     id: 2013,
     name: 'Sandbox or isolation mentioned',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       const settings = ctx.jsonFile('.claude/settings.json') || {};
       return /sandbox|isolat/i.test(md) || !!settings.sandbox;
     },
@@ -1047,7 +1061,7 @@ const TECHNIQUES = {
     id: 2016,
     name: 'Effort level or thinking configuration',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       const shared = ctx.jsonFile('.claude/settings.json') || {};
       const local = ctx.jsonFile('.claude/settings.local.json') || {};
       return /effort|thinking/i.test(md) || shared.effortLevel || local.effortLevel ||
@@ -1074,7 +1088,7 @@ const TECHNIQUES = {
     id: 2018,
     name: 'Worktree or parallel sessions mentioned',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       const shared = ctx.jsonFile('.claude/settings.json') || {};
       return /worktree|parallel.*session/i.test(md) || !!shared.worktree;
     },
@@ -1088,7 +1102,7 @@ const TECHNIQUES = {
     id: 2019,
     name: 'CLAUDE.md includes "do not" instructions',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return /do not|don't|never|avoid|must not/i.test(md);
     },
     impact: 'medium', rating: 4, category: 'prompting',
@@ -1100,8 +1114,8 @@ const TECHNIQUES = {
     id: 2020,
     name: 'CLAUDE.md includes output or style guidance',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
-      return /style|format|convention|naming|pattern|prefer/i.test(md);
+      const md = ctx.claudeMdContent() || '';
+      return /coding style|naming convention|code style|style guide|formatting rules|\bprefer\b.*\b(single|double|tabs|spaces|camel|snake|kebab|named|default|const|let|arrow|function)\b/i.test(md);
     },
     impact: 'medium', rating: 3, category: 'prompting',
     fix: 'Add coding style and naming conventions to CLAUDE.md so Claude matches your project patterns.',
@@ -1127,7 +1141,7 @@ const TECHNIQUES = {
     id: 2022,
     name: 'CLAUDE.md describes what the project does',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return /what.*does|overview|purpose|about|description|project.*is/i.test(md) && md.length > 100;
     },
     impact: 'high', rating: 4, category: 'memory',
@@ -1139,7 +1153,7 @@ const TECHNIQUES = {
     id: 2023,
     name: 'CLAUDE.md documents directory structure',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md') || '';
+      const md = ctx.claudeMdContent() || '';
       return /src\/|app\/|lib\/|structure|director|folder/i.test(md);
     },
     impact: 'medium', rating: 4, category: 'memory',
@@ -1265,15 +1279,15 @@ const TECHNIQUES = {
     id: 2009,
     name: 'No deprecated patterns detected',
     check: (ctx) => {
-      const md = ctx.fileContent('CLAUDE.md');
+      const md = ctx.claudeMdContent();
       if (!md) return false; // no CLAUDE.md = not passing
       // Check for patterns deprecated in Claude 4.x
-      const deprecated = [
-        'prefill', // deprecated in 4.6
-        'claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku', // old model names
-        'human_prompt', 'assistant_prompt', // old API format
+      const deprecatedPatterns = [
+        /\bprefill\b/i, // deprecated API pattern in 4.6
+        /\bclaude-3-opus\b/i, /\bclaude-3-sonnet\b/i, /\bclaude-3-haiku\b/i, // old model names
+        /\bhuman_prompt\b/i, /\bassistant_prompt\b/i, // old API format
       ];
-      return !deprecated.some(d => md.toLowerCase().includes(d));
+      return !deprecatedPatterns.some(p => p.test(md));
     },
     impact: 'medium',
     rating: 3,

@@ -424,7 +424,9 @@ function printAnalysis(report, options = {}) {
       if (item.risk || item.confidence) {
         console.log(c(`     Risk: ${item.risk || 'low'} | Confidence: ${item.confidence || 'medium'}`, 'dim'));
       }
-      console.log(c(`     Fix: ${item.fix}`, 'dim'));
+      if (item.fix && item.fix !== item.why) {
+        console.log(c(`     Fix: ${item.fix}`, 'dim'));
+      }
     });
     console.log('');
   }
@@ -515,7 +517,9 @@ function exportMarkdown(report) {
       if (item.risk || item.confidence) {
         lines.push(`   - Risk / Confidence: ${item.risk || 'low'} / ${item.confidence || 'medium'}`);
       }
-      lines.push(`   - Fix: ${item.fix}`);
+      if (item.fix && item.fix !== item.why) {
+        lines.push(`   - Fix: ${item.fix}`);
+      }
     });
     lines.push('');
   }

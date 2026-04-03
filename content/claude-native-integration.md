@@ -28,14 +28,10 @@ Add to `.claude/settings.json`:
   "hooks": {
     "SessionStart": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node -e \"try{const r=require('child_process').execSync('npx claudex-setup --json 2>/dev/null',{timeout:15000}).toString();const d=JSON.parse(r);if(d.score<50)console.log(JSON.stringify({systemMessage:'⚠️ Claude Code setup score: '+d.score+'/100. Consider running: npx claudex-setup --lite'}))}catch(e){console.log('{}')}\"",
-            "timeout": 20,
-            "statusMessage": "Checking Claude Code setup..."
-          }
-        ]
+        "type": "command",
+        "command": "node -e \"try{const r=require('child_process').execSync('npx claudex-setup --json 2>/dev/null',{timeout:15000}).toString();const d=JSON.parse(r);if(d.score<50)console.log(JSON.stringify({systemMessage:'⚠️ Claude Code setup score: '+d.score+'/100. Consider running: npx claudex-setup --lite'}))}catch(e){console.log('{}')}\"",
+        "timeout": 20,
+        "statusMessage": "Checking Claude Code setup..."
       }
     ]
   }
