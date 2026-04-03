@@ -244,12 +244,15 @@ function toGaps(results) {
 }
 
 function toRecommendations(auditResult) {
-  const failed = auditResult.results
-    .filter(r => r.passed === false)
-    .sort((a, b) => {
-      const order = { critical: 3, high: 2, medium: 1, low: 0 };
-      return (order[b.impact] || 0) - (order[a.impact] || 0);
-    });
+  const failed = auditResult.results.filter(r => r.passed === false);
+  const topActionOrder = new Map((auditResult.topNextActions || []).map((item, index) => [item.key, index]));
+  failed.sort((a, b) => {
+    const rankedA = topActionOrder.has(a.key) ? topActionOrder.get(a.key) : Number.MAX_SAFE_INTEGER;
+    const rankedB = topActionOrder.has(b.key) ? topActionOrder.get(b.key) : Number.MAX_SAFE_INTEGER;
+    if (rankedA !== rankedB) return rankedA - rankedB;
+    const order = { critical: 3, high: 2, medium: 1, low: 0 };
+    return (order[b.impact] || 0) - (order[a.impact] || 0);
+  });
 
   return failed.slice(0, 10).map((r, index) => ({
     priority: index + 1,
@@ -259,6 +262,8 @@ function toRecommendations(auditResult) {
     module: moduleFromCategory(r.category),
     risk: riskFromImpact(r.impact),
     why: r.fix,
+    evidenceClass: (auditResult.topNextActions || []).find(item => item.key === r.key)?.evidenceClass || 'estimated',
+    rankingAdjustment: (auditResult.topNextActions || []).find(item => item.key === r.key)?.rankingAdjustment || 0,
   }));
 }
 

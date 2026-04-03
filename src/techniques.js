@@ -10,6 +10,8 @@ function hasFrontendSignals(ctx) {
     ctx.files.some(f => /tailwind\.config|vite\.config|next\.config|svelte\.config|nuxt\.config|pages\/|components\/|app\//i.test(f));
 }
 
+const { containsEmbeddedSecret } = require('./secret-patterns');
+
 const TECHNIQUES = {
   // ============================================================
   // === MEMORY & CONTEXT (category: 'memory') ==================
@@ -201,7 +203,7 @@ const TECHNIQUES = {
     name: 'CLAUDE.md has no embedded API keys',
     check: (ctx) => {
       const md = ctx.claudeMdContent() || '';
-      return !/sk-[a-zA-Z0-9]{20,}|xoxb-|AKIA[A-Z0-9]{16}/.test(md);
+      return !containsEmbeddedSecret(md);
     },
     impact: 'critical',
     rating: 5,
@@ -1349,4 +1351,4 @@ const STACKS = {
   dotnet: { files: ['global.json', 'Directory.Build.props'], content: {}, label: '.NET' },
 };
 
-module.exports = { TECHNIQUES, STACKS };
+module.exports = { TECHNIQUES, STACKS, containsEmbeddedSecret };

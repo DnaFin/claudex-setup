@@ -6,6 +6,7 @@ const { getGovernanceSummary } = require('./governance');
 const { runBenchmark } = require('./benchmark');
 const { DOMAIN_PACKS, detectDomainPacks } = require('./domain-packs');
 const { MCP_PACKS, getMcpPack, mergeMcpServers, getMcpPackPreflight, recommendMcpPacks } = require('./mcp-packs');
+const { recordRecommendationOutcome, getRecommendationOutcomeSummary, formatRecommendationOutcomeSummary } = require('./activity');
 
 module.exports = {
   audit,
@@ -22,4 +23,7 @@ module.exports = {
   mergeMcpServers,
   getMcpPackPreflight,
   recommendMcpPacks,
+  recordRecommendationOutcome,
+  getRecommendationOutcomeSummary,
+  formatRecommendationOutcomeSummary,
 };

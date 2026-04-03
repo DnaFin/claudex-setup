@@ -6,6 +6,7 @@ const { TECHNIQUES, STACKS } = require('./techniques');
 const { ProjectContext } = require('./context');
 const { getBadgeMarkdown } = require('./badge');
 const { sendInsights, getLocalInsights } = require('./insights');
+const { getRecommendationOutcomeSummary, getRecommendationAdjustment } = require('./activity');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -98,18 +99,35 @@ function getQuickWins(failed) {
     .slice(0, 3);
 }
 
-function buildTopNextActions(failed, limit = 5) {
+function getRecommendationPriorityScore(item, outcomeSummaryByKey = {}) {
+  const impactScore = (IMPACT_ORDER[item.impact] ?? 0) * 100;
+  const feedbackAdjustment = getRecommendationAdjustment(outcomeSummaryByKey, item.key);
+  const brevityPenalty = Math.min((item.fix || '').length, 240) / 20;
+  return impactScore + (feedbackAdjustment * 10) - brevityPenalty;
+}
+
+function buildTopNextActions(failed, limit = 5, outcomeSummaryByKey = {}) {
   const pool = getPrioritizedFailed(failed);
 
   return [...pool]
     .sort((a, b) => {
-      const impactA = IMPACT_ORDER[a.impact] ?? 0;
-      const impactB = IMPACT_ORDER[b.impact] ?? 0;
-      if (impactA !== impactB) return impactB - impactA;
-      return (a.fix || '').length - (b.fix || '').length;
+      return getRecommendationPriorityScore(b, outcomeSummaryByKey) - getRecommendationPriorityScore(a, outcomeSummaryByKey);
     })
     .slice(0, limit)
-    .map(({ key, name, impact, fix, category }) => ({
+    .map(({ key, name, impact, fix, category }) => {
+      const feedback = outcomeSummaryByKey[key] || null;
+      const rankingAdjustment = getRecommendationAdjustment(outcomeSummaryByKey, key);
+      const signals = [
+        `failed-check:${key}`,
+        `impact:${impact}`,
+        `category:${category}`,
+      ];
+      if (feedback) {
+        signals.push(`feedback:${feedback.total}`);
+        signals.push(`ranking-adjustment:${rankingAdjustment >= 0 ? '+' : ''}${rankingAdjustment}`);
+      }
+
+      return ({
       key,
       name,
       impact,
@@ -119,12 +137,20 @@ function buildTopNextActions(failed, limit = 5) {
       why: ACTION_RATIONALES[key] || fix,
       risk: riskFromImpact(impact),
       confidence: confidenceFromImpact(impact),
-      signals: [
-        `failed-check:${key}`,
-        `impact:${impact}`,
-        `category:${category}`,
-      ],
-    }));
+      signals,
+      evidenceClass: feedback ? 'measured' : 'estimated',
+      rankingAdjustment,
+      feedback: feedback ? {
+        total: feedback.total,
+        accepted: feedback.accepted,
+        rejected: feedback.rejected,
+        deferred: feedback.deferred,
+        positive: feedback.positive,
+        negative: feedback.negative,
+        avgScoreDelta: feedback.avgScoreDelta,
+      } : null,
+    });
+    });
 }
 
 function inferSuggestedNextCommand(result) {
@@ -194,6 +220,7 @@ async function audit(options) {
   const ctx = new ProjectContext(options.dir);
   const stacks = ctx.detectStacks(STACKS);
   const results = [];
+  const outcomeSummary = getRecommendationOutcomeSummary(options.dir);
 
   // Run all technique checks
   for (const [key, technique] of Object.entries(TECHNIQUES)) {
@@ -235,7 +262,7 @@ async function audit(options) {
   const organicEarned = organicPassed.reduce((sum, r) => sum + (weights[r.impact] || 5), 0);
   const organicScore = maxScore > 0 ? Math.round((organicEarned / maxScore) * 100) : 0;
   const quickWins = getQuickWins(failed);
-  const topNextActions = buildTopNextActions(failed, 5);
+  const topNextActions = buildTopNextActions(failed, 5, outcomeSummary.byKey);
   const result = {
     score,
     organicScore,
@@ -248,6 +275,10 @@ async function audit(options) {
     results,
     quickWins: quickWins.map(({ key, name, impact, fix, category }) => ({ key, name, impact, category, fix })),
     topNextActions,
+    recommendationOutcomes: {
+      totalEntries: outcomeSummary.totalEntries,
+      keysTracked: outcomeSummary.keys,
+    },
   };
   result.suggestedNextCommand = inferSuggestedNextCommand(result);
   result.liteSummary = {
@@ -344,6 +375,10 @@ async function audit(options) {
       console.log(colorize(`        Why: ${item.why}`, 'dim'));
       console.log(colorize(`        Trace: ${item.signals.join(' | ')}`, 'dim'));
       console.log(colorize(`        Risk: ${item.risk} | Confidence: ${item.confidence}`, 'dim'));
+      if (item.feedback) {
+        const avgDelta = Number.isFinite(item.feedback.avgScoreDelta) ? ` | Avg score delta: ${item.feedback.avgScoreDelta >= 0 ? '+' : ''}${item.feedback.avgScoreDelta}` : '';
+        console.log(colorize(`        Feedback: accepted ${item.feedback.accepted}, rejected ${item.feedback.rejected}, positive ${item.feedback.positive}, negative ${item.feedback.negative}${avgDelta}`, 'dim'));
+      }
       console.log(colorize(`        Fix: ${item.fix}`, 'dim'));
     }
     console.log('');
@@ -382,4 +417,4 @@ async function audit(options) {
   return result;
 }
 
-module.exports = { audit };
+module.exports = { audit, buildTopNextActions };

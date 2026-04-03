@@ -1,6 +1,7 @@
 /**
  * Watch mode - monitors project for Claude Code config changes and re-audits.
- * Uses Node.js fs.watch (zero dependencies).
+ * Uses Node.js fs.watch (zero dependencies) with a recursive-directory fallback
+ * on platforms where native recursive watch is not reliable.
  */
 
 const fs = require('fs');
@@ -13,20 +14,129 @@ const COLORS = {
 };
 const c = (text, color) => `${COLORS[color] || ''}${text}${COLORS.reset}`;
 
-const WATCH_PATHS = [
+const FILE_WATCH_PATHS = [
   'CLAUDE.md',
-  '.claude',
   '.gitignore',
   'package.json',
   'tsconfig.json',
+];
+
+const DIRECTORY_WATCH_PATHS = [
+  '.claude',
   '.github',
 ];
 
+function supportsNativeRecursiveWatch(platform = process.platform) {
+  return platform === 'win32' || platform === 'darwin';
+}
+
+function statIfExists(fullPath) {
+  try {
+    return fs.statSync(fullPath);
+  } catch (e) {
+    return null;
+  }
+}
+
+function listRecursiveDirectories(dir) {
+  const directories = [dir];
+  let entries = [];
+
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch (e) {
+    return directories;
+  }
+
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      directories.push(...listRecursiveDirectories(path.join(dir, entry.name)));
+    }
+  }
+
+  return directories;
+}
+
+function buildWatchPlan(rootDir, platform = process.platform) {
+  const plan = [];
+  const seen = new Set();
+  const recursiveSupported = supportsNativeRecursiveWatch(platform);
+
+  const addTarget = (fullPath, recursive, source) => {
+    const resolved = path.resolve(fullPath);
+    const key = `${resolved}|${recursive}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    plan.push({ path: resolved, recursive, source });
+  };
+
+  addTarget(rootDir, false, 'repo-root');
+
+  for (const watchPath of FILE_WATCH_PATHS) {
+    const fullPath = path.join(rootDir, watchPath);
+    const stat = statIfExists(fullPath);
+    if (stat && stat.isFile()) {
+      addTarget(fullPath, false, watchPath);
+    }
+  }
+
+  for (const watchPath of DIRECTORY_WATCH_PATHS) {
+    const fullPath = path.join(rootDir, watchPath);
+    const stat = statIfExists(fullPath);
+    if (!stat || !stat.isDirectory()) continue;
+
+    if (recursiveSupported) {
+      addTarget(fullPath, true, watchPath);
+      continue;
+    }
+
+    for (const dir of listRecursiveDirectories(fullPath)) {
+      addTarget(dir, false, watchPath);
+    }
+  }
+
+  return plan;
+}
+
+function registerWatchers(rootDir, watchers, onChange, platform = process.platform) {
+  const plan = buildWatchPlan(rootDir, platform);
+
+  for (const item of plan) {
+    const key = `${item.path}|${item.recursive}`;
+    if (watchers.has(key)) continue;
+
+    try {
+      const watcher = fs.watch(item.path, { recursive: item.recursive }, (eventType, filename) => {
+        onChange(item, eventType, filename);
+      });
+      watchers.set(key, watcher);
+    } catch (e) {
+      // Ignore unsupported or transient watch registration failures.
+    }
+  }
+
+  return watchers.size;
+}
+
+function closeWatchers(watchers) {
+  for (const watcher of watchers.values()) {
+    try {
+      watcher.close();
+    } catch (e) {
+      // Ignore close errors during shutdown.
+    }
+  }
+  watchers.clear();
+}
+
 async function watch(options) {
+  const recursiveSupported = supportsNativeRecursiveWatch();
+
   console.log('');
   console.log(c('  claudex-setup watch mode', 'bold'));
   console.log(c('  ═══════════════════════════════════════', 'dim'));
   console.log(c(`  Watching: ${options.dir}`, 'dim'));
+  console.log(c(`  Mode: ${recursiveSupported ? 'native recursive directories' : 'expanded directory fallback (cross-platform safe)'}`, 'dim'));
   console.log(c('  Press Ctrl+C to stop', 'dim'));
   console.log('');
 
@@ -43,50 +153,64 @@ async function watch(options) {
   }
 
   // Watch relevant paths
-  const watchers = [];
+  const watchers = new Map();
   let debounceTimer = null;
+  let shuttingDown = false;
 
-  for (const watchPath of WATCH_PATHS) {
-    const fullPath = path.join(options.dir, watchPath);
-    try {
-      const watcher = fs.watch(fullPath, { recursive: true }, (eventType, filename) => {
-        // Debounce: wait 500ms after last change
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(async () => {
-          const timestamp = new Date().toLocaleTimeString();
-          console.log(c(`  [${timestamp}] Change detected: ${filename || watchPath}`, 'dim'));
+  const cleanupAndExit = () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    clearTimeout(debounceTimer);
+    closeWatchers(watchers);
+    console.log('');
+    console.log(c('  Watch mode stopped.', 'dim'));
+    process.exit(0);
+  };
 
-          try {
-            const result = await audit({ ...options, silent: true });
-            const delta = lastScore !== null ? result.score - lastScore : 0;
-            const arrow = delta > 0 ? c(`+${delta}`, 'green') : delta < 0 ? c(String(delta), 'yellow') : '';
+  const handleChange = (item, eventType, filename) => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(async () => {
+      const changedLabel = filename
+        ? String(filename)
+        : path.relative(options.dir, item.path) || path.basename(item.path);
+      const timestamp = new Date().toLocaleTimeString();
 
-            console.log(`  Score: ${scoreColor(result.score)} ${arrow}  (${result.passed}/${result.passed + result.failed} passing)`);
+      // Pick up newly created directories or newly materialized watch paths.
+      registerWatchers(options.dir, watchers, handleChange);
 
-            if (result.score > lastScore) {
-              console.log(c('  Nice improvement!', 'green'));
-            } else if (result.score < lastScore) {
-              console.log(c('  Score dropped - check what changed.', 'yellow'));
-            }
-            lastScore = result.score;
-            console.log('');
-          } catch (e) {
-            // Ignore transient errors during file saves
-          }
-        }, 500);
-      });
-      watchers.push(watcher);
-    } catch (e) {
-      // Path doesn't exist yet - that's fine
-    }
-  }
+      console.log(c(`  [${timestamp}] Change detected: ${changedLabel}`, 'dim'));
 
-  if (watchers.length === 0) {
-    console.log(c('  No watchable paths found. Create CLAUDE.md or .claude/ to start.', 'yellow'));
+      try {
+        const result = await audit({ ...options, silent: true });
+        const delta = lastScore !== null ? result.score - lastScore : 0;
+        const arrow = delta > 0 ? c(`+${delta}`, 'green') : delta < 0 ? c(String(delta), 'yellow') : '';
+
+        console.log(`  Score: ${scoreColor(result.score)} ${arrow}  (${result.passed}/${result.passed + result.failed} passing)`);
+
+        if (lastScore !== null && result.score > lastScore) {
+          console.log(c('  Nice improvement!', 'green'));
+        } else if (lastScore !== null && result.score < lastScore) {
+          console.log(c('  Score dropped - check what changed.', 'yellow'));
+        }
+        lastScore = result.score;
+        console.log('');
+      } catch (e) {
+        // Ignore transient errors during file saves.
+      }
+    }, 500);
+  };
+
+  registerWatchers(options.dir, watchers, handleChange);
+
+  if (watchers.size === 0) {
+    console.log(c('  Could not register any filesystem watchers in this environment.', 'yellow'));
     return;
   }
 
-  console.log(c(`  Watching ${watchers.length} paths for changes...`, 'dim'));
+  process.once('SIGINT', cleanupAndExit);
+  process.once('SIGTERM', cleanupAndExit);
+
+  console.log(c(`  Watching ${watchers.size} targets for changes...`, 'dim'));
   console.log('');
 
   // Keep alive
@@ -98,4 +222,8 @@ function scoreColor(score) {
   return c(`${score}/100`, color);
 }
 
-module.exports = { watch };
+module.exports = {
+  watch,
+  buildWatchPlan,
+  supportsNativeRecursiveWatch,
+};

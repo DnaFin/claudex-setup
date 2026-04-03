@@ -143,7 +143,7 @@ function uniqueByKey(items) {
 function detectDomainPacks(ctx, stacks, assets = null) {
   const stackKeys = new Set((stacks || []).map(stack => stack.key));
   const pkg = ctx.jsonFile('package.json') || {};
-  const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+  const deps = ctx.projectDependencies ? ctx.projectDependencies() : { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
   const matches = [];
 
   function addMatch(key, reasons) {
@@ -163,7 +163,8 @@ function detectDomainPacks(ctx, stacks, assets = null) {
     ctx.hasDir('api') || ctx.hasDir('routes') || ctx.hasDir('services') || ctx.hasDir('controllers');
   const hasData = ctx.hasDir('dags') || ctx.hasDir('jobs') || ctx.hasDir('workers') ||
     ctx.hasDir('migrations') || ctx.hasDir('db') ||
-    deps.dbt || deps['apache-airflow'] || deps.pandas || deps.polars || deps.duckdb;
+    deps.dbt || deps['apache-airflow'] || deps.pandas || deps.polars || deps.duckdb ||
+    deps.prefect || deps.dagster || deps['kedro'] || deps['great-expectations'];
   const hasInfra = stackKeys.has('docker') || stackKeys.has('terraform') || stackKeys.has('kubernetes') ||
     ctx.files.includes('wrangler.toml') || ctx.files.includes('serverless.yml') || ctx.files.includes('serverless.yaml') ||
     ctx.files.includes('cdk.json') || ctx.hasDir('infra') || ctx.hasDir('deploy') || ctx.hasDir('helm');
@@ -279,12 +280,20 @@ function detectDomainPacks(ctx, stacks, assets = null) {
     deps['@ai-sdk/core'] || deps.ollama ||
     deps['@microsoft/semantic-kernel'] || deps['haystack-ai'] || deps['dspy-ai'] ||
     deps.instructor || deps['@google/generative-ai'] || deps.cohere || deps.mistralai ||
-    ctx.hasDir('chains') || ctx.hasDir('agents') || ctx.hasDir('prompts');
+    deps.langgraph || deps.litellm || deps['smolagents'] || deps.chromadb ||
+    deps['qdrant-client'] || deps['weaviate-client'] || deps['pinecone-client'] ||
+    deps['sentence-transformers'] || deps.mlflow || deps.wandb ||
+    ctx.hasDir('chains') || ctx.hasDir('agents') || ctx.hasDir('prompts') ||
+    ctx.hasDir('rag') || ctx.hasDir('retrievers') || ctx.hasDir('vectorstores') ||
+    ctx.hasDir('embeddings') || ctx.hasDir('datasets') || ctx.hasDir('experiments') ||
+    ctx.hasDir('notebooks') || ctx.files.includes('langgraph.json') || ctx.files.includes('chainlit.md');
   if (isAiMl) {
     addMatch('ai-ml', [
       'Detected AI/ML dependencies or agent structure.',
-      deps.langchain ? 'LangChain detected.' : null,
+      deps.langchain || deps.langgraph ? 'LangChain or LangGraph detected.' : null,
+      deps.anthropic || deps['@anthropic-ai/sdk'] ? 'Anthropic SDK detected.' : null,
       ctx.hasDir('chains') ? 'Chain directory detected.' : null,
+      ctx.hasDir('rag') ? 'RAG directory detected.' : null,
     ]);
   }
 

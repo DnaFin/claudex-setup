@@ -788,6 +788,18 @@ async function main() {
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
+  test('CLI feedback records an outcome artifact and returns summary JSON', () => {
+    const dir = mkFixture('cli-feedback');
+    try {
+      const result = runCli(['feedback', '--key', 'permissionDeny', '--status', 'accepted', '--effect', 'positive', '--score-delta', '12', '--json'], dir);
+      assert.equal(result.status, 0, 'feedback --json should succeed');
+      const payload = JSON.parse(result.stdout);
+      assert.ok(payload.artifact, 'feedback should return artifact metadata');
+      assert.equal(payload.summary.totalEntries, 1, 'feedback summary should include the new outcome');
+      assert.ok(fs.existsSync(path.join(dir, '.claude', 'claudex-setup', 'outcomes', 'index.json')), 'feedback should create an outcomes index');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
   test('CLI benchmark can export markdown report', () => {
     const dir = mkFixture('cli-benchmark');
     try {

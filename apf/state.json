@@ -1,7 +1,7 @@
 {
   "project": "claudex-setup",
   "launched": "2026-03-30",
-  "version": "1.15.1",
+  "version": "1.16.0",
   "metrics": {
     "npm_downloads_total": 2385,
     "github_stars": 0,
@@ -22,7 +22,21 @@
   "content": {
     "devto_articles_published": 1,
     "reddit_posts": 1,
-    "launch_posts_ready": 5
+    "launch_posts_ready": 5,
+    "launch_posts_proof_backed": 5,
+    "proof_artifact_links_embedded": true,
+    "case_studies_linked": 3
+  },
+  "proof": {
+    "measured_with_version": "1.10.3",
+    "measured_on": "2026-04-03",
+    "current_npm_latest": "1.16.0",
+    "proof_artifact_index": "https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/README.md",
+    "external_case_studies": 3,
+    "self_dogfood_trace": true,
+    "repeat_run_evidence_repos": 1,
+    "governance_packets_ready": 1,
+    "design_partner_readiness_packet": true
   },
   "last_session": "2026-04-03",
   "sessions_total": 2

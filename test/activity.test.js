@@ -1,7 +1,16 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { readSnapshotIndex, getHistory, compareLatest, formatHistory, exportTrendReport } = require('../src/activity');
+const {
+  readSnapshotIndex,
+  getHistory,
+  compareLatest,
+  formatHistory,
+  exportTrendReport,
+  recordRecommendationOutcome,
+  getRecommendationOutcomeSummary,
+  getRecommendationAdjustment,
+} = require('../src/activity');
 
 function mkFixture(name) {
   return fs.mkdtempSync(path.join(os.tmpdir(), `claudex-jest-activity-${name}-`));
@@ -47,6 +56,32 @@ describe('Activity - Snapshots', () => {
     const dir = mkFixture('no-trend');
     try {
       expect(exportTrendReport(dir)).toBeNull();
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+});
+
+describe('Activity - Recommendation outcomes', () => {
+  test('recordRecommendationOutcome writes artifacts and aggregates summary', () => {
+    const dir = mkFixture('outcomes');
+    try {
+      recordRecommendationOutcome(dir, {
+        key: 'permissionDeny',
+        status: 'accepted',
+        effect: 'positive',
+        scoreDelta: 12,
+      });
+      recordRecommendationOutcome(dir, {
+        key: 'permissionDeny',
+        status: 'rejected',
+        effect: 'negative',
+      });
+
+      const summary = getRecommendationOutcomeSummary(dir);
+      expect(summary.totalEntries).toBe(2);
+      expect(summary.byKey.permissionDeny.accepted).toBe(1);
+      expect(summary.byKey.permissionDeny.rejected).toBe(1);
+      expect(summary.byKey.permissionDeny.avgScoreDelta).toBe(12);
+      expect(typeof getRecommendationAdjustment(summary.byKey, 'permissionDeny')).toBe('number');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 });

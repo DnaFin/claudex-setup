@@ -1,159 +1,226 @@
-# Launch Posts — Ready to Publish
+# Launch Posts — Proof-Backed Distribution Assets
+
+**Status:** Complete — every asset below is anchored in measured proof, a canonical artifact, or a verified runtime surface  
+**Date:** 2026-04-03
+
+## Shared Proof Anchors
+
+Use these links as the canonical sources behind public claims:
+
+- Proof artifact index: https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/README.md
+- CLAUDEX self-dogfood trace: https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/claudex-self-dogfood-proof-trace-2026-04-03.md
+- VTCLE case study: https://github.com/DnaFin/claudex/blob/main/research/case-study-vtcle-2026-04-03.md
+- Social case study: https://github.com/DnaFin/claudex/blob/main/research/case-study-social-2026-04-03.md
+- Polymiro case study: https://github.com/DnaFin/claudex/blob/main/research/case-study-polymiro-2026-04-03.md
+- Public proof metrics source: https://github.com/DnaFin/claudex/blob/main/research/claudex-proof-metrics-source-2026-04-03.md
+
+Measured-result boundary to preserve:
+
+- before/after scores were measured with `claudex-setup@1.10.3` on `2026-04-03`
+- current npm latest is `1.16.0`
+- current product surface is `85 checks`
 
 ## Post 1: Reddit r/ClaudeAI
 
-**Title:** I built a tool that audits your project for Claude Code optimization — scores you 0-100
+**Title:** I built a CLI that audits your Claude Code setup — 85 checks, measured on 4 real repos
 
 **Body:**
-After cataloging 1,107 Claude Code entries and verifying 948 of them with evidence, I built a CLI that checks if your project is actually set up to get the most out of Claude Code. It runs 84 checks across CLAUDE.md, hooks, commands, agents, diagrams, and more.
+I built a zero-dependency CLI that audits how well a repo is set up for Claude Code.
 
-I tested it on 4 real repos. A FastAPI marketing engine went from 46 to 64. A React Native social app went from 40 to 48. A Polymiro project jumped from 35 to 48. The CLAUDEX catalog repo itself: 62 to 90.
+It checks `85` things across `CLAUDE.md`, hooks, commands, agents, skills, MCP config, permissions, diagrams, and verification loops.
 
-```
+Measured on `2026-04-03` with `claudex-setup@1.10.3`:
+- CLAUDEX: `62 -> 90`
+- VTCLE: `46 -> 64`
+- Social: `40 -> 48`
+- Polymiro: `35 -> 48`
+
+```bash
 npx claudex-setup
 ```
 
-Then `npx claudex-setup setup` auto-creates everything that's missing, tailored to your stack (React, Python, TypeScript, etc).
+It starts trust-first:
+- audit first
+- plan / suggest-only before writes
+- apply only what you approve
+- rollback artifacts for every applied batch
 
-Zero dependencies. No API keys. Runs entirely local.
+Zero dependencies. No API keys. Runs local.
 
 GitHub: https://github.com/DnaFin/claudex-setup
 
-Would love feedback!
+Proof and case studies:
+- https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/README.md
+- https://github.com/DnaFin/claudex/blob/main/research/case-study-vtcle-2026-04-03.md
+- https://github.com/DnaFin/claudex/blob/main/research/case-study-social-2026-04-03.md
+- https://github.com/DnaFin/claudex/blob/main/research/case-study-polymiro-2026-04-03.md
+
+Would love feedback on what checks or rollout surfaces are still missing.
+
+**Evidence anchor:** proof artifact index + 3 external case studies + current proof source
 
 ---
 
 ## Post 2: Reddit r/ChatGPTCoding
 
-**Title:** Your Claude Code project is probably running at 10% efficiency. Here's how to check.
+**Title:** Most Claude Code repos are missing the safety layer, not the model
 
 **Body:**
-I spent weeks cataloging every Claude Code feature, technique, and best practice — 1,107 total, 948 verified with real evidence.
+The interesting problem with Claude Code is not "can it write code?".
+It's "is the repo actually set up so Claude can work safely and predictably?".
 
-Turns out most projects are missing basic stuff that makes a huge difference:
-- No CLAUDE.md (Claude doesn't know your project conventions)
-- No hooks (no auto-lint, no auto-test)
-- No custom commands (repeating the same prompts manually)
-- No Mermaid diagrams (wasting 73% more tokens on prose descriptions)
+I built `claudex-setup` to audit that surface:
+- `85` checks
+- zero dependencies
+- local-only by default
+- trust-first flow: audit -> plan -> apply -> rollback
 
-I tested 4 real repos with 84 checks. Before optimization: scores ranged from 35 to 62. After: 48 to 90. A VTCLE FastAPI project jumped from 46→64 just from adding missing hooks and commands.
+Measured on 4 real repos:
+- FastAPI repo: `46 -> 64`
+- React Native repo: `40 -> 48`
+- Python/Docker repo: `35 -> 48`
+- research engine repo: `62 -> 90`
 
-```
+```bash
 npx claudex-setup
 ```
 
-Scores your project 0-100, tells you exactly what to fix, and can auto-apply everything.
+The most common misses were not exotic:
+- no deny rules
+- no secrets protection
+- no mermaid architecture
+- no hooks registered in settings
 
-Free, open source, zero dependencies: https://github.com/DnaFin/claudex-setup
+Proof:
+https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/README.md
+
+**Evidence anchor:** measured before/after traces + common gap summary from public proof set
 
 ---
 
 ## Post 3: Dev.to Article
 
-**Title:** 1,107 Claude Code Entries: What I Learned Building the Most Comprehensive Catalog
+**Title:** What 4 Real Repos Taught Me About Claude Code Readiness
 
 **Body (excerpt):**
-I set out to catalog every single Claude Code capability, technique, and best practice. After repeated research cycles, I have 1,107 entries — 948 verified with real evidence. I packaged this into an 84-check CLI audit and tested it on 4 real projects — scores before optimization ranged from 35 to 62, and after: 48 to 90.
+I tested `claudex-setup` on 4 real repos and the pattern was clear:
 
-Here are the top 10 things most developers are missing:
+- the best teams still miss permission deny rules
+- mature repos often have hooks in files but not actually registered
+- non-standard settings formats are a real adoption trap
+- shared `settings.json` matters more than personal local overrides
 
-1. **CLAUDE.md** — Claude reads this at the start of every session. Without it, Claude doesn't know your build commands, code style, or project rules.
+Measured on `2026-04-03` with `claudex-setup@1.10.3`:
+- CLAUDEX: `62 -> 90`
+- VTCLE: `46 -> 64`
+- Social: `40 -> 48`
+- Polymiro: `35 -> 48`
 
-2. **Mermaid diagrams** — A Mermaid architecture diagram saves 73% tokens compared to describing your project in prose.
+The product today is strongest as:
 
-3. **Hooks** — Auto-lint after every edit. Auto-test before every commit. Hooks fire 100% of the time, CLAUDE.md rules fire ~80%.
+`audit -> plan -> safe apply -> governance -> benchmark`
 
-4. **Custom commands** — `/test`, `/deploy`, `/review` — package your repeated workflows.
+Not a code generator. Not an MCP installer. A trust layer for Claude Code repos.
 
-5. **Verification loops** — Tell Claude how to verify its own work. Include test commands in CLAUDE.md.
+Proof packet:
+https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/README.md
 
-6. **Path-specific rules** — Different conventions for frontend vs backend files.
-
-7. **XML tags** — `<constraints>`, `<validation>` in CLAUDE.md = unambiguous instructions.
-
-8. **Custom agents** — Security reviewer, test writer — specialized subagents for focused tasks.
-
-9. **Skills** — Domain-specific workflows that load on demand, not every session.
-
-10. **MCP servers** — Connect Claude to your database, ticket system, Slack.
-
-I packaged this into a CLI that checks your project:
-```
-npx claudex-setup
-```
-
-Full catalog: https://github.com/DnaFin/claudex-setup
+**Evidence anchor:** proof artifact index + case-study docs + current proof source
 
 ---
 
 ## Post 4: Twitter/X Thread
 
 **Tweet 1:**
-I cataloged 1,107 Claude Code entries and verified 948 of them with evidence.
+I built a zero-dependency CLI that audits Claude Code readiness across `85` checks.
 
-Most projects use less than 5% of what Claude Code can do.
+Measured on 4 real repos:
+- `62 -> 90`
+- `46 -> 64`
+- `40 -> 48`
+- `35 -> 48`
 
-Tested on 4 real repos — a React Native app scored 40, a FastAPI engine scored 46. After auto-setup: 48 and 64. Here's the free 84-check audit:
+`npx claudex-setup`
 
-npx claudex-setup
-
-Thread 🧵👇
+Proof: github.com/DnaFin/claudex/blob/main/research/proof-artifacts/README.md
 
 **Tweet 2:**
-The #1 thing you're probably missing: CLAUDE.md
+The most common misses were boring and important:
+- no deny rules
+- no secrets protection
+- no mermaid diagram
+- no hooks registered in settings
 
-It's a file Claude reads at the start of every session. Without it, Claude doesn't know your:
-- Build commands
-- Code style
-- Testing framework
-- Project architecture
-
-Takes 2 minutes to create. Impact: massive.
+It is much more "trust layer" than "AI magic".
 
 **Tweet 3:**
-#2: Mermaid diagrams in CLAUDE.md
-
-A few hundred tokens of Mermaid syntax conveys what takes thousands of tokens in prose.
-
-73% token savings = faster responses, lower cost, better context.
+What it does well today:
+- audit first
+- suggest / plan before writes
+- apply selectively
+- emit rollback artifacts
+- benchmark on isolated copy
 
 **Tweet 4:**
-#3: Hooks > CLAUDE.md rules
+Best result so far:
+- CLAUDEX self-dogfood: `62 -> 90`
 
-CLAUDE.md instructions = ~80% compliance
-Hooks = 100% enforcement
+Best external proof:
+- VTCLE: `46 -> 64`
 
-Auto-lint after edits. Block commits without tests. Prevent force-push.
-
-Hooks are deterministic. Instructions are advisory.
+Case studies:
+- github.com/DnaFin/claudex/blob/main/research/case-study-vtcle-2026-04-03.md
+- github.com/DnaFin/claudex/blob/main/research/case-study-social-2026-04-03.md
+- github.com/DnaFin/claudex/blob/main/research/case-study-polymiro-2026-04-03.md
 
 **Tweet 5:**
-Want to check your project in 10 seconds?
+Measured results were captured on `claudex-setup@1.10.3` on `2026-04-03`.
+Current npm latest is `1.16.0`, so exact scores can move slightly, but the proof packet is explicit about that boundary.
 
-npx claudex-setup
-
-Scores 0-100. Shows what's missing. Auto-fixes with `setup`.
-
-Free. Open source. Zero dependencies.
-
-https://github.com/DnaFin/claudex-setup
+**Evidence anchor:** proof artifact index + per-repo traces
 
 ---
 
 ## Post 5: Hacker News (Show HN)
 
-**Title:** Show HN: claudex-setup – Audit any project for Claude Code optimization (1,107 entries)
+**Title:** Show HN: claudex-setup — audit Claude Code readiness with 85 checks
 
 **Body:**
-I built a CLI tool that scores your project against Claude Code best practices.
+I built a CLI that audits how well a repo is set up for Claude Code.
 
-After researching 1,107 entries (948 verified with evidence), I tested 4 real repos with 84 checks. Scores before optimization: 35–62. After auto-setup: 48–90. The biggest jump was a research catalog repo going from 62 to 90.
+This is not a code-quality linter and not an MCP installer.
+It focuses on Claude workflow quality:
+- `CLAUDE.md`
+- hooks
+- commands
+- agents
+- skills
+- MCP config
+- permissions / deny rules
+- diagrams
+- verification loops
 
-npx claudex-setup → audit (84 checks, 0-100 score)
-npx claudex-setup setup → auto-fix
+Core workflow:
+- `npx claudex-setup`
+- `npx claudex-setup suggest-only`
+- `npx claudex-setup plan`
+- `npx claudex-setup apply`
+- `npx claudex-setup benchmark`
 
-Detects your stack (React, Python, TS, Rust, Go, etc) and tailors recommendations.
+Measured on 4 real repos on `2026-04-03` with `claudex-setup@1.10.3`:
+- CLAUDEX: `62 -> 90`
+- VTCLE: `46 -> 64`
+- Social: `40 -> 48`
+- Polymiro: `35 -> 48`
 
-Zero dependencies, no API keys, runs locally.
+Trust decisions that mattered:
+- zero dependencies
+- audit before write
+- rollback artifacts
+- cross-platform Node hooks
+- explicit proof packets instead of vague claims
 
-https://github.com/DnaFin/claudex-setup
+Proof packet:
+https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/README.md
+
+**Evidence anchor:** proof artifact index + current npm proof source

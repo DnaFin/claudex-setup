@@ -104,7 +104,7 @@ Most projects score 10-20 out of 100. After running setup, they jump to 70+.
 
     npx claudex-setup
 
-It checks 84 Claude Code setup signals: CLAUDE.md, hooks, commands, skills, agents, Mermaid diagrams, XML tags, path rules, MCP config, permissions, and more.
+It checks 85 Claude Code setup signals: CLAUDE.md, hooks, commands, skills, agents, Mermaid diagrams, XML tags, path rules, MCP config, permissions, and more.
 
 Then npx claudex-setup setup creates everything that's missing, tailored to your stack (React, Python, TypeScript, Rust, Go, etc).
 

@@ -346,6 +346,9 @@ function hasFileContentMatch(ctx, filePath, pattern) {
 
 function getProjectDependencies(ctx) {
   if (!ctx) return {};
+  if (typeof ctx.projectDependencies === 'function') {
+    return ctx.projectDependencies();
+  }
   const pkg = ctx.jsonFile('package.json') || {};
   return {
     ...(pkg.dependencies || {}),
@@ -550,6 +553,19 @@ function recommendMcpPacks(stacks = [], domainPacks = [], options = {}) {
   // HuggingFace for AI/ML
   if (domainKeys.has('ai-ml')) {
     recommended.add('huggingface-mcp');
+    recommended.add('sequential-thinking');
+    if (
+      hasDependency(deps, 'langgraph') ||
+      hasDependency(deps, 'langchain') ||
+      hasDependency(deps, '@langchain/core') ||
+      hasDependency(deps, 'chromadb') ||
+      hasDependency(deps, 'qdrant-client') ||
+      hasFileContentMatch(ctx, 'langgraph.json', /\S/) ||
+      ctx?.hasDir('rag') ||
+      ctx?.hasDir('retrievers')
+    ) {
+      recommended.add('memory-mcp');
+    }
   }
 
   // Zendesk only when Zendesk signals are present

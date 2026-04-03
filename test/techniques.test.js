@@ -1,4 +1,4 @@
-const { TECHNIQUES, STACKS } = require('../src/techniques');
+const { TECHNIQUES, STACKS, containsEmbeddedSecret } = require('../src/techniques');
 
 describe('Techniques', () => {
   test('all techniques have required fields', () => {
@@ -25,6 +25,18 @@ describe('Techniques', () => {
 
   test('technique count is 85', () => {
     expect(Object.keys(TECHNIQUES).length).toBe(85);
+  });
+
+  test('embedded secret detector catches Anthropic-style keys with dashes', () => {
+    expect(containsEmbeddedSecret('ANTHROPIC_API_KEY=sk-ant-api03-fakekeyfakekey1234567890abcdef')).toBe(true);
+  });
+
+  test('embedded secret detector catches AWS access key ids', () => {
+    expect(containsEmbeddedSecret('AWS_ACCESS_KEY_ID=AKIA1234567890ABCDEF')).toBe(true);
+  });
+
+  test('embedded secret detector ignores placeholder guidance text', () => {
+    expect(containsEmbeddedSecret('Set ANTHROPIC_API_KEY in your environment before running the review.')).toBe(false);
   });
 });
 

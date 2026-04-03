@@ -14,6 +14,7 @@ class ProjectContext {
     this.dir = dir;
     this.files = [];
     this._cache = {};
+    this._dependencyCache = null;
     this._scan();
   }
 
@@ -107,6 +108,52 @@ class ProjectContext {
     }
   }
 
+  projectDependencies() {
+    if (this._dependencyCache) return this._dependencyCache;
+
+    const deps = {};
+    const addDependency = (name, source) => {
+      if (!name) return;
+      const normalized = `${name}`.trim().toLowerCase().replace(/\[.*\]$/, '');
+      if (!normalized || normalized === 'python') return;
+      if (!deps[normalized]) {
+        deps[normalized] = source || true;
+      }
+    };
+
+    const pkg = this.jsonFile('package.json') || {};
+    for (const source of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
+      for (const name of Object.keys(pkg[source] || {})) {
+        addDependency(name, 'package.json');
+      }
+    }
+
+    const pyproject = this.fileContent('pyproject.toml') || '';
+    for (const name of extractPyprojectDependencies(pyproject)) {
+      addDependency(name, 'pyproject.toml');
+    }
+
+    const requirementFiles = [
+      'requirements.txt',
+      'requirements-dev.txt',
+      'requirements-dev.in',
+      'requirements-prod.txt',
+      'requirements/base.txt',
+      'requirements/dev.txt',
+      'requirements/test.txt',
+    ];
+    for (const filePath of requirementFiles) {
+      const content = this.fileContent(filePath);
+      if (!content) continue;
+      for (const name of extractRequirementsDependencies(content)) {
+        addDependency(name, filePath);
+      }
+    }
+
+    this._dependencyCache = deps;
+    return deps;
+  }
+
   detectStacks(STACKS) {
     const detected = [];
     for (const [key, stack] of Object.entries(STACKS)) {
@@ -130,6 +177,65 @@ class ProjectContext {
     }
     return detected;
   }
+}
+
+function extractPyprojectDependencies(content) {
+  if (!content) return [];
+
+  const deps = new Set();
+  const add = (value) => {
+    if (!value) return;
+    deps.add(value.trim().toLowerCase().replace(/\[.*\]$/, ''));
+  };
+
+  const extractSection = (sectionName) => {
+    const escaped = sectionName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`\\[${escaped}\\]([\\s\\S]*?)(?:\\n\\s*\\[|$)`);
+    const match = content.match(pattern);
+    return match ? match[1] : '';
+  };
+
+  const poetryDeps = extractSection('tool.poetry.dependencies');
+  for (const match of poetryDeps.matchAll(/^\s*([A-Za-z0-9_.-]+)\s*=/gm)) {
+    add(match[1]);
+  }
+
+  const projectDeps = extractSection('project');
+  const projectDepsArrayMatch = projectDeps.match(/dependencies\s*=\s*\[([\s\S]*?)\]/m);
+  if (projectDepsArrayMatch) {
+    for (const item of projectDepsArrayMatch[1].matchAll(/["']([^"']+)["']/g)) {
+      const name = item[1].split(/[<>=!~ ]/)[0];
+      add(name);
+    }
+  }
+
+  const optionalDepsSection = extractSection('project.optional-dependencies');
+  for (const item of optionalDepsSection.matchAll(/["']([^"']+)["']/g)) {
+    const name = item[1].split(/[<>=!~ ]/)[0];
+    add(name);
+  }
+
+  const dependencyGroupsSection = extractSection('dependency-groups');
+  for (const item of dependencyGroupsSection.matchAll(/["']([^"']+)["']/g)) {
+    const name = item[1].split(/[<>=!~ ]/)[0];
+    add(name);
+  }
+
+  return [...deps].filter(Boolean);
+}
+
+function extractRequirementsDependencies(content) {
+  if (!content) return [];
+
+  const deps = new Set();
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.replace(/#.*$/, '').trim();
+    if (!line || line.startsWith('-')) continue;
+    const match = line.match(/^([A-Za-z0-9_.-]+)/);
+    if (!match) continue;
+    deps.add(match[1].toLowerCase().replace(/\[.*\]$/, ''));
+  }
+  return [...deps];
 }
 
 module.exports = { ProjectContext };

@@ -21,10 +21,12 @@ function ensureArtifactDirs(dir) {
   const activityDir = path.join(root, 'activity');
   const rollbackDir = path.join(root, 'rollbacks');
   const snapshotDir = path.join(root, 'snapshots');
+  const outcomesDir = path.join(root, 'outcomes');
   fs.mkdirSync(activityDir, { recursive: true });
   fs.mkdirSync(rollbackDir, { recursive: true });
   fs.mkdirSync(snapshotDir, { recursive: true });
-  return { root, activityDir, rollbackDir, snapshotDir };
+  fs.mkdirSync(outcomesDir, { recursive: true });
+  return { root, activityDir, rollbackDir, snapshotDir, outcomesDir };
 }
 
 function writeJson(filePath, payload) {
@@ -322,6 +324,192 @@ function exportTrendReport(dir) {
   return lines.join('\n');
 }
 
+function readOutcomeIndex(dir) {
+  const indexPath = path.join(dir, '.claude', 'claudex-setup', 'outcomes', 'index.json');
+  if (!fs.existsSync(indexPath)) return [];
+  try {
+    const entries = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+    return Array.isArray(entries) ? entries : [];
+  } catch {
+    return [];
+  }
+}
+
+function updateOutcomeIndex(outcomesDir, record) {
+  const indexPath = path.join(outcomesDir, 'index.json');
+  let entries = [];
+
+  if (fs.existsSync(indexPath)) {
+    try {
+      entries = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
+      if (!Array.isArray(entries)) entries = [];
+    } catch {
+      entries = [];
+    }
+  }
+
+  entries.push(record);
+  const MAX_INDEX_ENTRIES = 500;
+  if (entries.length > MAX_INDEX_ENTRIES) {
+    entries = entries.slice(entries.length - MAX_INDEX_ENTRIES);
+  }
+  fs.writeFileSync(indexPath, JSON.stringify(entries, null, 2), 'utf8');
+}
+
+function normalizeOutcomeStatus(value) {
+  const normalized = `${value || ''}`.trim().toLowerCase();
+  if (!['accepted', 'rejected', 'deferred'].includes(normalized)) {
+    throw new Error('feedback status must be one of: accepted, rejected, deferred');
+  }
+  return normalized;
+}
+
+function normalizeOutcomeEffect(value) {
+  const normalized = `${value || ''}`.trim().toLowerCase();
+  if (!['positive', 'neutral', 'negative'].includes(normalized)) {
+    throw new Error('feedback effect must be one of: positive, neutral, negative');
+  }
+  return normalized;
+}
+
+function recordRecommendationOutcome(dir, payload) {
+  const key = `${payload.key || ''}`.trim();
+  if (!key) {
+    throw new Error('feedback requires a recommendation key');
+  }
+
+  const status = normalizeOutcomeStatus(payload.status);
+  const effect = normalizeOutcomeEffect(payload.effect || 'neutral');
+  const scoreDelta = Number.isFinite(payload.scoreDelta) ? payload.scoreDelta : (
+    payload.scoreDelta === null || payload.scoreDelta === undefined || payload.scoreDelta === ''
+      ? null
+      : Number(payload.scoreDelta)
+  );
+
+  if (scoreDelta !== null && !Number.isFinite(scoreDelta)) {
+    throw new Error('feedback scoreDelta must be a number when provided');
+  }
+
+  const id = timestampId();
+  const { outcomesDir } = ensureArtifactDirs(dir);
+  const filePath = path.join(outcomesDir, `${id}.json`);
+  const record = {
+    id,
+    createdAt: new Date().toISOString(),
+    key,
+    status,
+    effect,
+    source: `${payload.source || 'manual-cli'}`.trim() || 'manual-cli',
+    notes: `${payload.notes || ''}`.trim(),
+    scoreDelta,
+  };
+
+  writeJson(filePath, record);
+  updateOutcomeIndex(outcomesDir, {
+    ...record,
+    relativePath: path.relative(dir, filePath),
+  });
+
+  return {
+    id,
+    filePath,
+    relativePath: path.relative(dir, filePath),
+    record,
+  };
+}
+
+function summarizeOutcomeEntries(entries = []) {
+  const byKey = {};
+
+  for (const entry of entries) {
+    if (!entry || !entry.key) continue;
+    const bucket = byKey[entry.key] || {
+      key: entry.key,
+      total: 0,
+      accepted: 0,
+      rejected: 0,
+      deferred: 0,
+      positive: 0,
+      neutral: 0,
+      negative: 0,
+      scoreDeltaTotal: 0,
+      scoreDeltaCount: 0,
+      latestAt: null,
+    };
+
+    bucket.total += 1;
+    if (bucket[entry.status] !== undefined) bucket[entry.status] += 1;
+    if (bucket[entry.effect] !== undefined) bucket[entry.effect] += 1;
+    if (Number.isFinite(entry.scoreDelta)) {
+      bucket.scoreDeltaTotal += entry.scoreDelta;
+      bucket.scoreDeltaCount += 1;
+    }
+    if (!bucket.latestAt || new Date(entry.createdAt) > new Date(bucket.latestAt)) {
+      bucket.latestAt = entry.createdAt;
+    }
+
+    byKey[entry.key] = bucket;
+  }
+
+  for (const bucket of Object.values(byKey)) {
+    bucket.avgScoreDelta = bucket.scoreDeltaCount > 0
+      ? Number((bucket.scoreDeltaTotal / bucket.scoreDeltaCount).toFixed(2))
+      : null;
+    bucket.evidenceClass = bucket.total > 0 ? 'measured' : 'estimated';
+  }
+
+  return {
+    totalEntries: entries.length,
+    byKey,
+    keys: Object.keys(byKey).sort(),
+  };
+}
+
+function getRecommendationOutcomeSummary(dir) {
+  return summarizeOutcomeEntries(readOutcomeIndex(dir));
+}
+
+function getRecommendationAdjustment(summaryByKey, key) {
+  const bucket = summaryByKey && summaryByKey[key];
+  if (!bucket) return 0;
+
+  let adjustment = 0;
+  adjustment += bucket.accepted * 2;
+  adjustment += bucket.positive * 3;
+  adjustment -= bucket.rejected * 3;
+  adjustment -= bucket.negative * 4;
+
+  if (Number.isFinite(bucket.avgScoreDelta)) {
+    if (bucket.avgScoreDelta > 0) adjustment += Math.min(4, Math.round(bucket.avgScoreDelta / 4));
+    if (bucket.avgScoreDelta < 0) adjustment -= Math.min(4, Math.round(Math.abs(bucket.avgScoreDelta) / 4));
+  }
+
+  if (adjustment > 8) return 8;
+  if (adjustment < -8) return -8;
+  return adjustment;
+}
+
+function formatRecommendationOutcomeSummary(dir) {
+  const summary = getRecommendationOutcomeSummary(dir);
+  if (summary.totalEntries === 0) {
+    return 'No recommendation outcomes recorded yet. Use `npx claudex-setup feedback --key permissionDeny --status accepted --effect positive` after a real run.';
+  }
+
+  const lines = [
+    'Recommendation outcome summary:',
+    '',
+  ];
+
+  for (const key of summary.keys) {
+    const bucket = summary.byKey[key];
+    const avg = Number.isFinite(bucket.avgScoreDelta) ? ` | avg score delta ${bucket.avgScoreDelta >= 0 ? '+' : ''}${bucket.avgScoreDelta}` : '';
+    const adjustment = getRecommendationAdjustment(summary.byKey, key);
+    lines.push(`  ${key}: total ${bucket.total} | accepted ${bucket.accepted} | rejected ${bucket.rejected} | deferred ${bucket.deferred} | positive ${bucket.positive} | negative ${bucket.negative}${avg} | ranking ${adjustment >= 0 ? '+' : ''}${adjustment}`);
+  }
+
+  return lines.join('\n');
+}
+
 module.exports = {
   ensureArtifactDirs,
   writeActivityArtifact,
@@ -332,4 +520,10 @@ module.exports = {
   compareLatest,
   formatHistory,
   exportTrendReport,
+  readOutcomeIndex,
+  recordRecommendationOutcome,
+  summarizeOutcomeEntries,
+  getRecommendationOutcomeSummary,
+  getRecommendationAdjustment,
+  formatRecommendationOutcomeSummary,
 };

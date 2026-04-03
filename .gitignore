@@ -8,3 +8,4 @@ node_modules/
 .claude/claudex-setup/
 .claude/logs/
 .claude/settings.local.json
+coverage/

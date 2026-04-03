@@ -60,6 +60,37 @@ describe('Domain Packs', () => {
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
+  test('python pyproject with Anthropic and LangGraph gets ai-ml', () => {
+    const dir = mkFixture('python-ai', {
+      'pyproject.toml': [
+        '[project]',
+        'name = "python-ai"',
+        'dependencies = [',
+        '  "anthropic>=0.30.0",',
+        '  "langgraph>=0.2.0",',
+        ']',
+      ].join('\n'),
+      'rag/README.md': 'retrieval notes',
+    });
+    try {
+      const ctx = new ProjectContext(dir);
+      const packs = detectDomainPacks(ctx, [{ key: 'python', label: 'Python' }]);
+      expect(packs.some(p => p.key === 'ai-ml')).toBe(true);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('requirements.txt with vector db and experiment signals gets ai-ml', () => {
+    const dir = mkFixture('requirements-ai', {
+      'requirements.txt': 'openai>=1.0.0\nchromadb==0.5.0\n',
+      'experiments/notes.md': 'ml experiments',
+    });
+    try {
+      const ctx = new ProjectContext(dir);
+      const packs = detectDomainPacks(ctx, [{ key: 'python', label: 'Python' }]);
+      expect(packs.some(p => p.key === 'ai-ml')).toBe(true);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
   test('pnpm-workspace.yaml triggers monorepo', () => {
     const dir = mkFixture('pnpm-mono', {
       'package.json': { name: 'mono' },
@@ -93,5 +124,28 @@ describe('MCP Packs', () => {
 
   test('getMcpPack returns null for unknown key', () => {
     expect(getMcpPack('nonexistent')).toBeNull();
+  });
+
+  test('ai-ml python repo recommends huggingface, sequential-thinking, and memory for RAG signals', () => {
+    const dir = mkFixture('mcp-ai', {
+      'pyproject.toml': [
+        '[project]',
+        'name = "mcp-ai"',
+        'dependencies = [',
+        '  "langgraph>=0.2.0",',
+        '  "chromadb>=0.5.0",',
+        ']',
+      ].join('\n'),
+      'langgraph.json': '{ "graph": true }',
+      'retrievers/readme.md': 'retriever code',
+    });
+    try {
+      const ctx = new ProjectContext(dir);
+      const packs = recommendMcpPacks([{ key: 'python', label: 'Python' }], [{ key: 'ai-ml', label: 'AI / ML', recommendedMcpPacks: ['context7-docs'] }], { ctx });
+      const keys = packs.map(pack => pack.key);
+      expect(keys).toContain('huggingface-mcp');
+      expect(keys).toContain('sequential-thinking');
+      expect(keys).toContain('memory-mcp');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 });

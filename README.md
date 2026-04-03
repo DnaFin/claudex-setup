@@ -1,6 +1,6 @@
 # claudex-setup
 
-> Score your repo's Claude Code setup against 84 checks. See what's missing, apply only what you approve with rollback, and benchmark the impact — without breaking existing config.
+> Score your repo's Claude Code setup against 85 checks. See what's missing, apply only what you approve with rollback, and benchmark the impact — without breaking existing config.
 
 [![npm version](https://img.shields.io/npm/v/claudex-setup)](https://www.npmjs.com/package/claudex-setup)
 [![npm downloads](https://img.shields.io/npm/dm/claudex-setup)](https://www.npmjs.com/package/claudex-setup)
@@ -51,7 +51,11 @@ Tested on 4 real projects — not demos:
 
 Most common gaps found: missing secrets protection, no deny rules, no mermaid diagram, no hooks in settings.
 
-> Scores measured with claudex-setup@1.10.3 on 2026-04-03. Full case studies: [VTCLE](https://github.com/DnaFin/claudex/blob/main/research/case-study-vtcle-2026-04-03.md) | [Social](https://github.com/DnaFin/claudex/blob/main/research/case-study-social-2026-04-03.md) | [Polymiro](https://github.com/DnaFin/claudex/blob/main/research/case-study-polymiro-2026-04-03.md)
+> Scores measured with claudex-setup@1.10.3 on 2026-04-03. Current npm latest: 1.16.0, so exact scores may differ slightly on the newer release.
+>
+> Canonical proof artifacts: [Index](https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/README.md) | [CLAUDEX trace](https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/claudex-self-dogfood-proof-trace-2026-04-03.md) | [VTCLE trace](https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/vtcle-proof-trace-2026-04-03.md) | [Social trace](https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/social-proof-trace-2026-04-03.md) | [Polymiro trace](https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/polymiro-proof-trace-2026-04-03.md)
+>
+> Narrative case studies: [VTCLE](https://github.com/DnaFin/claudex/blob/main/research/case-study-vtcle-2026-04-03.md) | [Social](https://github.com/DnaFin/claudex/blob/main/research/case-study-social-2026-04-03.md) | [Polymiro](https://github.com/DnaFin/claudex/blob/main/research/case-study-polymiro-2026-04-03.md)
 
 ## What You Get
 
@@ -91,7 +95,7 @@ Most common gaps found: missing secrets protection, no deny rules, no mermaid di
       design: none (0/2)
      devops: none (0/4)
 
-  29/84 checks passing
+  29/85 checks passing
   Next command: npx claudex-setup setup
 ```
 
@@ -107,7 +111,7 @@ That prints a compact top-3 quick scan with one clear next command.
 
 | Command | What it does |
 |---------|-------------|
-| `npx claudex-setup` | **Discover** - Score 0-100 against 84 checks |
+| `npx claudex-setup` | **Discover** - Score 0-100 against 85 checks |
 | `npx claudex-setup discover` | **Discover** - Alias for audit mode |
 | `npx claudex-setup setup` | **Starter** - Smart CLAUDE.md + hooks + commands + agents |
 | `npx claudex-setup starter` | **Starter** - Alias for setup mode |
@@ -119,10 +123,13 @@ That prints a compact top-3 quick scan with one clear next command.
 | `npx claudex-setup governance` | **Governance** - Permission profiles, hook registry, policy packs, pilot kit |
 | `npx claudex-setup benchmark` | **Benchmark** - Before/after evidence from an isolated temp copy |
 | `npx claudex-setup interactive` | **Wizard** - Step-by-step guided tour |
-| `npx claudex-setup watch` | **Watch** - Live monitoring with score delta |
+| `npx claudex-setup watch` | **Watch** - Live monitoring with score delta and cross-platform directory fallback |
 | `npx claudex-setup badge` | **Badge** - Generate shields.io badge for README |
-| `npx claudex-setup deep-review` | **Deep Review** - AI-powered config analysis (needs API key) |
+| `npx claudex-setup feedback` | **Feedback** - Record local recommendation outcomes or show outcome summary |
+| `npx claudex-setup deep-review` | **Deep Review** - AI-powered config analysis (Claude Code or API key, selected config only) |
 | `npx claudex-setup insights` | **Insights** - View community aggregate stats |
+
+> Note: the `feedback` command is currently validated on the main working tree for the next release. If your installed npm build does not expose it yet, use the rest of the trust-first flow and pick it up on the next publish.
 
 ### Options
 
@@ -134,6 +141,10 @@ That prints a compact top-3 quick scan with one clear next command.
 | `--only A,B` | Limit plan/apply to selected proposal ids |
 | `--profile NAME` | Choose a permission profile for write-capable flows |
 | `--mcp-pack A,B` | Merge named MCP packs into generated or patched settings |
+| `--key NAME` | Recommendation key for `feedback` logging |
+| `--status VALUE` | Outcome status: `accepted`, `rejected`, or `deferred` |
+| `--effect VALUE` | Outcome effect: `positive`, `neutral`, or `negative` |
+| `--score-delta N` | Optional observed score delta tied to the feedback event |
 | `--snapshot` | Save a normalized artifact under `.claude/claudex-setup/snapshots/` |
 | `--lite` | Show a short top-3 quick scan with one clear next command |
 | `--dry-run` | Preview apply without writing files |
@@ -246,6 +257,19 @@ npx claudex-setup benchmark --snapshot
 
 Snapshots are written to `.claude/claudex-setup/snapshots/` with a shared envelope and an `index.json` history file.
 
+If you want a local-first recommendation loop, record what actually helped:
+
+```bash
+npx claudex-setup feedback --key permissionDeny --status accepted --effect positive --score-delta 12
+npx claudex-setup feedback
+```
+
+Feedback stays under `.claude/claudex-setup/outcomes/` and is used only as a local ranking signal. Recommendations with repeated positive outcomes get a measured boost; recommendations with repeated negative or rejected outcomes get pushed down.
+
+If your currently installed npm build does not expose `feedback` yet, treat this as next-release behavior rather than current npm-latest behavior.
+
+`watch` uses native `fs.watch` with recursive directory watches where the platform supports them, and an expanded directory fallback elsewhere. That keeps nested `.claude/` and `.github/` changes visible on Linux too, while staying zero-dependency. Native filesystem watch semantics can still be noisier on very large repos or network filesystems, so the command is best treated as fast local feedback rather than a CI-grade signal.
+
 ## Use Inside Claude Code
 
 If you want the first Claude-native entry point, copy the shipped skill template into your repo.
@@ -261,26 +285,26 @@ If you are using `npx` only, copy the same file from the GitHub repo at `content
 
 The skill runs `npx claudex-setup --json`, summarizes the score, shows the top next actions, and points to the right next command without applying changes.
 
-## 84 Checks Across 14 Categories
+## 85 Checks Across 14 Categories
 
 The exact applicable count can be lower on a given repo because stack-specific checks are skipped when they do not apply.
 
 | Category | Checks | Key items |
 |----------|-------:|-----------|
-| Memory | 8 | CLAUDE.md, architecture, conventions |
-| Quality | 7 | verification loops, self-correction |
-| Git Safety | 5 | hooks, force-push protection |
-| Workflow | 8 | commands, skills, rules, agents |
-| Security | 6 | permissions, secrets, deny rules |
-| Automation | 5 | PreToolUse, PostToolUse, SessionStart |
-| Design | 4 | Mermaid, XML tags, structured prompts |
-| DevOps | 6 | Docker, CI, Terraform, K8s, pipelines |
-| Hygiene | 7 | .gitignore, cleanup, structure |
-| Performance | 3 | context management, compaction |
-| MCP | 3 | servers, Context7, integrations |
-| Prompting | 5 | constraints, validation, patterns, style |
-| Features | 3 | /security-review, Channels, modern features |
-| **Quality Deep** | **14** | **freshness, contradictions, deprecated patterns, maxTurns, $ARGUMENTS, hook specificity** |
+| Memory | 8 | CLAUDE.md, architecture, conventions, imports |
+| Quality | 6 | verification loops, test/lint/build, testing strategy |
+| Git Safety | 6 | .gitignore, env protection, attribution, secret detection |
+| Workflow | 12 | commands, skills, rules, agents, snapshots |
+| Security | 7 | permissions, secrets, deny rules, sandbox awareness |
+| Automation | 7 | hook coverage, specificity, session and error hooks |
+| Design | 2 | frontend anti-slop guidance, styling signals |
+| DevOps | 5 | Docker, CI, Terraform, infra signals |
+| Hygiene | 8 | README, changelog, license, env example, version pinning |
+| Performance | 3 | context management, compaction, effort level |
+| MCP & Tools | 4 | servers, Context7, tool companions, env config |
+| Prompting | 6 | constraints, examples, negative rules, style guidance |
+| Features | 2 | channels, worktrees |
+| **Quality Deep** | **9** | **freshness, contradictions, deprecated patterns, maxTurns, $ARGUMENTS, hook specificity** |
 
 ## Stack Detection
 
@@ -307,7 +331,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DnaFin/claudex-setup@v1.15.1
+      - uses: DnaFin/claudex-setup@v1.16.0
         with:
           threshold: 50
 ```
@@ -333,6 +357,14 @@ npx claudex-setup deep-review
 
 Claude reads your actual config and gives specific feedback: what's strong, what has issues, what's missing for your stack. This is an AI-assisted review, not a local heuristic audit. Your config goes to the Anthropic API only when you run this command; we do not receive it.
 
+Deep-review trust boundary:
+
+- sends only selected Claude-facing config surfaces: `CLAUDE.md`, settings, commands, agents, rules, hooks, and package scripts
+- truncates large files before sending
+- redacts embedded secrets before sending
+- treats embedded repo text as untrusted review data, not as instructions to follow
+- keeps all non-`deep-review` flows local
+
 ### Quality-Deep Checks
 
 The v0.4.0 quality-deep checks catch what basic audits miss:
@@ -355,7 +387,8 @@ These checks evaluate **quality**, not just existence. A well-configured project
 
 - **Zero dependencies** - nothing extra to audit
 - **Core flows run locally** - audit, setup, augment, plan, apply, governance, and benchmark run on your machine
-- **Deep review is opt-in** - only `deep-review` sends selected config to Anthropic for analysis
+- **Deep review is opt-in** - only `deep-review` sends selected config to Anthropic or your local Claude Code session for analysis
+- **Deep review sanitizes before send** - selected snippets are truncated, secret-redacted, and wrapped as untrusted review data
 - **Benchmark uses an isolated temp copy** - your live repo is not touched
 - **Anonymous insights** - opt-in, no PII, no file contents (enable with `--insights`)
 - **MIT Licensed** - use anywhere

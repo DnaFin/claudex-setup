@@ -2,13 +2,12 @@
 
 ## Priority 1 (Next Session)
 - [ ] Measure: npm downloads, GitHub stars, Dev.to article views
-- [ ] Write Dev.to article #2: "5 CLAUDE.md mistakes killing your Claude Code productivity"
-- [ ] Improve CLI: add more technique checks (currently 12, target 25)
+- [ ] Write Dev.to article #2 using the proof-backed 4-repo results packet
 - [ ] Try Reddit again (comment on existing posts to build karma first)
 - [ ] Check if awesome-claude-code PR/issue got response
 
 ## Priority 2 (This Week)
-- [ ] Write Dev.to article #3: "Hooks vs CLAUDE.md: Why 100% beats 80%"
+- [ ] Write Dev.to article #3: "Hooks vs CLAUDE.md: Why deterministic enforcement wins"
 - [ ] Add `--fix` flag to audit (suggest specific fixes inline)
 - [ ] Add JSON schema validation for .claude/settings.json
 - [ ] Create newsletter signup (Buttondown free tier)
@@ -38,3 +37,8 @@
 - [x] Setup n8n weekly publisher
 - [x] Create publish.js automation tool
 - [x] Redesign landing page (anti-AI-slop)
+- [x] Replace generic launch copy with proof-backed distribution assets
+- [x] Improve AI-native repo detection for Python/LLM-heavy repos
+- [x] Produce first repeat-run evidence packet on VTCLE
+- [x] Export approval-grade governance packet
+- [x] Prepare design-partner readiness packet

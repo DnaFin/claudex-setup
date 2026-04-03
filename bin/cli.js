@@ -6,7 +6,7 @@ const { analyzeProject, printAnalysis, exportMarkdown } = require('../src/analyz
 const { buildProposalBundle, printProposalBundle, writePlanFile, applyProposalBundle, printApplyResult } = require('../src/plans');
 const { getGovernanceSummary, printGovernanceSummary, ensureWritableProfile, renderGovernanceMarkdown } = require('../src/governance');
 const { runBenchmark, printBenchmark, writeBenchmarkReport } = require('../src/benchmark');
-const { writeSnapshotArtifact } = require('../src/activity');
+const { writeSnapshotArtifact, recordRecommendationOutcome, formatRecommendationOutcomeSummary, getRecommendationOutcomeSummary } = require('../src/activity');
 const { version } = require('../package.json');
 
 const args = process.argv.slice(2);
@@ -18,8 +18,9 @@ const COMMAND_ALIASES = {
   starter: 'setup',
   suggest: 'suggest-only',
   gov: 'governance',
+  outcome: 'feedback',
 };
-const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -62,13 +63,19 @@ function parseArgs(rawArgs) {
   let profile = 'safe-write';
   let mcpPacks = [];
   let requireChecks = [];
+  let feedbackKey = null;
+  let feedbackStatus = null;
+  let feedbackEffect = null;
+  let feedbackNotes = null;
+  let feedbackSource = null;
+  let feedbackScoreDelta = null;
   let commandSet = false;
   let extraArgs = [];
 
   for (let i = 0; i < rawArgs.length; i++) {
     const arg = rawArgs[i];
 
-    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack' || arg === '--require') {
+    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack' || arg === '--require' || arg === '--key' || arg === '--status' || arg === '--effect' || arg === '--notes' || arg === '--source' || arg === '--score-delta') {
       const value = rawArgs[i + 1];
       if (!value || value.startsWith('--')) {
         throw new Error(`${arg} requires a value`);
@@ -80,6 +87,12 @@ function parseArgs(rawArgs) {
       if (arg === '--profile') profile = value.trim();
       if (arg === '--mcp-pack') mcpPacks = value.split(',').map(item => item.trim()).filter(Boolean);
       if (arg === '--require') requireChecks = value.split(',').map(item => item.trim()).filter(Boolean);
+      if (arg === '--key') feedbackKey = value.trim();
+      if (arg === '--status') feedbackStatus = value.trim();
+      if (arg === '--effect') feedbackEffect = value.trim();
+      if (arg === '--notes') feedbackNotes = value;
+      if (arg === '--source') feedbackSource = value.trim();
+      if (arg === '--score-delta') feedbackScoreDelta = value.trim();
       i++;
       continue;
     }
@@ -119,6 +132,36 @@ function parseArgs(rawArgs) {
       continue;
     }
 
+    if (arg.startsWith('--key=')) {
+      feedbackKey = arg.split('=').slice(1).join('=').trim();
+      continue;
+    }
+
+    if (arg.startsWith('--status=')) {
+      feedbackStatus = arg.split('=').slice(1).join('=').trim();
+      continue;
+    }
+
+    if (arg.startsWith('--effect=')) {
+      feedbackEffect = arg.split('=').slice(1).join('=').trim();
+      continue;
+    }
+
+    if (arg.startsWith('--notes=')) {
+      feedbackNotes = arg.split('=').slice(1).join('=');
+      continue;
+    }
+
+    if (arg.startsWith('--source=')) {
+      feedbackSource = arg.split('=').slice(1).join('=').trim();
+      continue;
+    }
+
+    if (arg.startsWith('--score-delta=')) {
+      feedbackScoreDelta = arg.split('=').slice(1).join('=').trim();
+      continue;
+    }
+
     if (arg.startsWith('--')) {
       flags.push(arg);
       continue;
@@ -134,7 +177,7 @@ function parseArgs(rawArgs) {
 
   const normalizedCommand = COMMAND_ALIASES[command] || command;
 
-  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks, extraArgs };
+  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks, feedbackKey, feedbackStatus, feedbackEffect, feedbackNotes, feedbackSource, feedbackScoreDelta, extraArgs };
 }
 
 const HELP = `
@@ -166,8 +209,9 @@ const HELP = `
     npx claudex-setup benchmark        Before/after in isolated temp copy
     npx claudex-setup deep-review      AI-powered config review (opt-in, uses API)
     npx claudex-setup interactive      Step-by-step guided wizard
-    npx claudex-setup watch            Live monitoring on config changes
+    npx claudex-setup watch            Live monitoring on config changes with cross-platform watch fallback
     npx claudex-setup badge            Generate shields.io badge markdown
+    npx claudex-setup feedback         Record recommendation outcomes or show local outcome summary
 
   Options:
     --threshold N   Exit with code 1 if score is below N (useful for CI)
@@ -177,6 +221,12 @@ const HELP = `
     --only A,B      Limit plan/apply to selected proposal ids or technique keys
     --profile NAME  Choose permission profile (read-only, suggest-only, safe-write, power-user, internal-research)
     --mcp-pack A,B  Merge named MCP packs into generated settings (e.g. context7-docs,next-devtools)
+    --key NAME      Recommendation key for feedback logging (e.g. permissionDeny)
+    --status VALUE  Feedback status: accepted, rejected, deferred
+    --effect VALUE  Feedback effect: positive, neutral, negative
+    --notes TEXT    Short notes to store with a feedback event
+    --source NAME   Source label for feedback event (default: manual-cli)
+    --score-delta N Optional observed score delta tied to the outcome
     --snapshot      Save a normalized snapshot artifact under .claude/claudex-setup/snapshots/
     --lite          Show a short top-3 quick scan with one clear next command
     --dry-run       Preview apply without writing files
@@ -203,6 +253,8 @@ const HELP = `
     npx claudex-setup apply --profile power-user --only claude-md,hooks
     npx claudex-setup governance --json
     npx claudex-setup benchmark --out benchmark.md
+    npx claudex-setup feedback
+    npx claudex-setup feedback --key permissionDeny --status accepted --effect positive --score-delta 12
     npx claudex-setup --json --threshold 60
     npx claudex-setup setup --auto
     npx claudex-setup interactive
@@ -439,6 +491,41 @@ async function main() {
         console.log('  Insights request timed out. Run locally: npx claudex-setup');
       });
       return; // keep process alive for http
+    } else if (normalizedCommand === 'feedback') {
+      if (parsed.feedbackKey) {
+        if (!parsed.feedbackStatus) {
+          console.error('\n  Error: feedback logging requires --status when --key is provided.\n');
+          process.exit(1);
+        }
+        const artifact = recordRecommendationOutcome(options.dir, {
+          key: parsed.feedbackKey,
+          status: parsed.feedbackStatus,
+          effect: parsed.feedbackEffect || 'neutral',
+          notes: parsed.feedbackNotes || '',
+          source: parsed.feedbackSource || 'manual-cli',
+          scoreDelta: parsed.feedbackScoreDelta !== null ? Number(parsed.feedbackScoreDelta) : null,
+        });
+        const summary = getRecommendationOutcomeSummary(options.dir);
+        if (options.json) {
+          console.log(JSON.stringify({ artifact, summary }, null, 2));
+        } else {
+          console.log('');
+          console.log(`  Feedback recorded for ${parsed.feedbackKey}`);
+          console.log(`  Artifact: ${artifact.relativePath}`);
+          console.log('');
+          console.log(formatRecommendationOutcomeSummary(options.dir));
+          console.log('');
+        }
+      } else {
+        if (options.json) {
+          console.log(JSON.stringify(getRecommendationOutcomeSummary(options.dir), null, 2));
+        } else {
+          console.log('');
+          console.log(formatRecommendationOutcomeSummary(options.dir));
+          console.log('');
+        }
+      }
+      process.exit(0);
     } else if (normalizedCommand === 'augment' || normalizedCommand === 'suggest-only') {
       const report = await analyzeProject({ ...options, mode: normalizedCommand });
       const snapshot = options.snapshot ? writeSnapshotArtifact(options.dir, normalizedCommand, report, {
