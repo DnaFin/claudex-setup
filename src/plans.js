@@ -260,7 +260,7 @@ function buildAgentPatchFiles(ctx) {
 
 function buildHookSettings(ctx, plannedHookFiles, options = {}) {
   const existing = ctx.hasDir('.claude/hooks')
-    ? ctx.dirFiles('.claude/hooks').filter(file => file.endsWith('.sh'))
+    ? ctx.dirFiles('.claude/hooks').filter(file => file.endsWith('.sh') || file.endsWith('.js'))
     : [];
   const hookFiles = [...new Set([...existing, ...plannedHookFiles])].sort();
   if (hookFiles.length === 0) {
@@ -385,7 +385,7 @@ async function buildProposalBundle(options) {
     if (templateKey === 'hooks') {
       const plannedHookFiles = templateFiles
         .map(file => path.basename(file.path))
-        .filter(file => file.endsWith('.sh'));
+        .filter(file => file.endsWith('.sh') || file.endsWith('.js'));
       const settingsFile = buildHookSettings(ctx, plannedHookFiles, options);
       if (settingsFile) {
         templateFiles.push(settingsFile);
@@ -476,7 +476,7 @@ function applyRuntimeSettingsOverlays(bundle, options) {
 
   const ctx = new ProjectContext(options.dir);
   const existingHooks = ctx.hasDir('.claude/hooks')
-    ? ctx.dirFiles('.claude/hooks').filter(file => file.endsWith('.sh'))
+    ? ctx.dirFiles('.claude/hooks').filter(file => file.endsWith('.sh') || file.endsWith('.js'))
     : [];
 
   const proposals = bundle.proposals.map((proposal) => {

@@ -254,36 +254,46 @@ function buildHookConfig(hookFiles, profileKey) {
     return {};
   }
 
+  // Detect hook runtime: .js files use node, .sh files use bash
+  const hookCommand = (file) => {
+    if (file.endsWith('.js')) return `node .claude/hooks/${file}`;
+    return `bash .claude/hooks/${file}`;
+  };
+  const isSecrets = (f) => f === 'protect-secrets.sh' || f === 'protect-secrets.js';
+  const isSession = (f) => f === 'session-start.sh' || f === 'session-start.js';
+
   const hookConfig = {
     PostToolUse: [{
       matcher: 'Write|Edit',
       hooks: uniqueFiles
-        .filter(file => file !== 'protect-secrets.sh' && file !== 'session-start.sh')
+        .filter(file => !isSecrets(file) && !isSession(file))
         .map(file => ({
           type: 'command',
-          command: `bash .claude/hooks/${file}`,
+          command: hookCommand(file),
           timeout: 10,
         })),
     }],
   };
 
-  if (uniqueFiles.includes('protect-secrets.sh')) {
+  const secretsFile = uniqueFiles.find(isSecrets);
+  if (secretsFile) {
     hookConfig.PreToolUse = [{
       matcher: 'Read|Write|Edit',
       hooks: [{
         type: 'command',
-        command: 'bash .claude/hooks/protect-secrets.sh',
+        command: hookCommand(secretsFile),
         timeout: 5,
       }],
     }];
   }
 
-  if (uniqueFiles.includes('session-start.sh')) {
+  const sessionFile = uniqueFiles.find(isSession);
+  if (sessionFile) {
     hookConfig.SessionStart = [{
       matcher: '*',
       hooks: [{
         type: 'command',
-        command: 'bash .claude/hooks/session-start.sh',
+        command: hookCommand(sessionFile),
         timeout: 5,
       }],
     }];

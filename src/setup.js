@@ -782,66 +782,64 @@ ${verificationSteps.join('\n')}
   },
 
   'hooks': () => ({
-    'on-edit-lint.sh': `#!/bin/bash
-# PostToolUse hook - runs linter after file edits
-# Detects which linter is available and runs it
-
-if command -v npx &>/dev/null; then
-  if [ -f "package.json" ] && grep -q '"lint"' package.json 2>/dev/null; then
-    npm run lint --silent 2>/dev/null
-  elif [ -f ".eslintrc" ] || [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
-    npx eslint --fix . --quiet 2>/dev/null
-  fi
-elif command -v ruff &>/dev/null; then
-  ruff check --fix . 2>/dev/null
-fi
+    'on-edit-lint.js': `#!/usr/bin/env node
+// PostToolUse hook - runs linter after file edits
+const { execSync } = require('child_process');
+const fs = require('fs');
+try {
+  if (fs.existsSync('package.json')) {
+    const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+    if (pkg.scripts && pkg.scripts.lint) {
+      execSync('npm run lint --silent', { stdio: 'ignore', timeout: 30000 });
+    }
+  }
+} catch (e) { /* linter not available or failed - non-blocking */ }
 `,
-    'protect-secrets.sh': `#!/bin/bash
-# PreToolUse hook - blocks reads of secret files
-INPUT=$(cat -)
-FILE_PATH=$(echo "$INPUT" | sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p')
-
-if echo "$FILE_PATH" | grep -qiE '\\.env$|\\.env\\.|secrets/|credentials|\\.pem$|\\.key$'; then
-  echo '{"decision": "block", "reason": "Blocked: accessing secret/credential files is not allowed."}'
-  exit 0
-fi
-echo '{"decision": "allow"}'
+    'protect-secrets.js': `#!/usr/bin/env node
+// PreToolUse hook - blocks reads of secret files
+let input = '';
+process.stdin.on('data', d => input += d);
+process.stdin.on('end', () => {
+  try {
+    const data = JSON.parse(input);
+    const fp = (data.tool_input && data.tool_input.file_path) || '';
+    if (/\\.env$|\\.env\\.|secrets[\\/\\\\]|credentials|\\.pem$|\\.key$/i.test(fp)) {
+      console.log(JSON.stringify({ decision: 'block', reason: 'Blocked: accessing secret/credential files is not allowed.' }));
+    } else {
+      console.log(JSON.stringify({ decision: 'allow' }));
+    }
+  } catch (e) {
+    console.log(JSON.stringify({ decision: 'allow' }));
+  }
+});
 `,
-    'log-changes.sh': `#!/bin/bash
-# PostToolUse hook - logs all file changes with timestamps
-# Appends to .claude/logs/file-changes.log
-
-INPUT=$(cat -)
-TOOL_NAME=$(echo "$INPUT" | sed -n 's/.*"tool_name"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p')
-TOOL_NAME=\${TOOL_NAME:-unknown}
-FILE_PATH=$(echo "$INPUT" | sed -n 's/.*"file_path"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p')
-
-if [ -z "$FILE_PATH" ]; then
-  exit 0
-fi
-
-LOG_DIR=".claude/logs"
-LOG_FILE="$LOG_DIR/file-changes.log"
-
-mkdir -p "$LOG_DIR"
-
-TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-echo "[$TIMESTAMP] $TOOL_NAME: $FILE_PATH" >> "$LOG_FILE"
-
-exit 0
+    'log-changes.js': `#!/usr/bin/env node
+// PostToolUse hook - logs all file changes with timestamps
+const fs = require('fs');
+const path = require('path');
+let input = '';
+process.stdin.on('data', d => input += d);
+process.stdin.on('end', () => {
+  try {
+    const data = JSON.parse(input);
+    const fp = (data.tool_input && data.tool_input.file_path) || '';
+    if (!fp) process.exit(0);
+    const toolName = data.tool_name || 'unknown';
+    const logDir = path.join('.claude', 'logs');
+    fs.mkdirSync(logDir, { recursive: true });
+    const ts = new Date().toISOString().replace('T', ' ').split('.')[0];
+    fs.appendFileSync(path.join(logDir, 'file-changes.log'), \`[\${ts}] \${toolName}: \${fp}\\n\`);
+  } catch (e) { /* non-blocking */ }
+});
 `,
-    'session-start.sh': `#!/bin/bash
-# SessionStart hook - prepares logs and records session entry
-
-LOG_DIR=".claude/logs"
-LOG_FILE="$LOG_DIR/sessions.log"
-
-mkdir -p "$LOG_DIR"
-
-TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-echo "[$TIMESTAMP] session started" >> "$LOG_FILE"
-
-exit 0
+    'session-start.js': `#!/usr/bin/env node
+// SessionStart hook - prepares logs and records session entry
+const fs = require('fs');
+const path = require('path');
+const logDir = path.join('.claude', 'logs');
+fs.mkdirSync(logDir, { recursive: true });
+const ts = new Date().toISOString().replace('T', ' ').split('.')[0];
+fs.appendFileSync(path.join(logDir, 'sessions.log'), \`[\${ts}] session started\\n\`);
 `,
   }),
 
@@ -1219,7 +1217,7 @@ async function setup(options) {
   const hooksDir = path.join(options.dir, '.claude/hooks');
   const settingsPath = path.join(options.dir, '.claude/settings.json');
   if (fs.existsSync(hooksDir) && !fs.existsSync(settingsPath)) {
-    const hookFiles = fs.readdirSync(hooksDir).filter(f => f.endsWith('.sh'));
+    const hookFiles = fs.readdirSync(hooksDir).filter(f => f.endsWith('.sh') || f.endsWith('.js'));
     if (hookFiles.length > 0) {
       const settings = buildSettingsForProfile({
         profileKey: options.profile || 'safe-write',
