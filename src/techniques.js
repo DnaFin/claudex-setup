@@ -425,9 +425,11 @@ const TECHNIQUES = {
     id: 8801,
     name: 'Hooks configured in settings',
     check: (ctx) => {
-      const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      if (!settings || !settings.hooks) return false;
-      return Object.keys(settings.hooks).length > 0;
+      const shared = ctx.jsonFile('.claude/settings.json');
+      const local = ctx.jsonFile('.claude/settings.local.json');
+      const hasSharedHooks = shared && shared.hooks && Object.keys(shared.hooks).length > 0;
+      const hasLocalHooks = local && local.hooks && Object.keys(local.hooks).length > 0;
+      return hasSharedHooks || hasLocalHooks;
     },
     impact: 'high',
     rating: 4,
@@ -440,9 +442,9 @@ const TECHNIQUES = {
     id: 8802,
     name: 'PreToolUse hook configured',
     check: (ctx) => {
-      const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      if (!settings || !settings.hooks) return false;
-      return !!settings.hooks.PreToolUse;
+      const shared = ctx.jsonFile('.claude/settings.json');
+      const local = ctx.jsonFile('.claude/settings.local.json');
+      return !!(shared?.hooks?.PreToolUse || local?.hooks?.PreToolUse);
     },
     impact: 'high',
     rating: 4,
@@ -455,9 +457,9 @@ const TECHNIQUES = {
     id: 8803,
     name: 'PostToolUse hook configured',
     check: (ctx) => {
-      const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      if (!settings || !settings.hooks) return false;
-      return !!settings.hooks.PostToolUse;
+      const shared = ctx.jsonFile('.claude/settings.json');
+      const local = ctx.jsonFile('.claude/settings.local.json');
+      return !!(shared?.hooks?.PostToolUse || local?.hooks?.PostToolUse);
     },
     impact: 'high',
     rating: 4,
@@ -470,9 +472,10 @@ const TECHNIQUES = {
     id: 8804,
     name: 'SessionStart hook configured',
     check: (ctx) => {
-      const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      if (!settings || !settings.hooks) return false;
-      return !!settings.hooks.SessionStart;
+      const shared = ctx.jsonFile('.claude/settings.json');
+      const local = ctx.jsonFile('.claude/settings.local.json');
+      if (!(shared?.hooks || local?.hooks)) return false;
+      return !!(shared?.hooks?.SessionStart || local?.hooks?.SessionStart);
     },
     impact: 'medium',
     rating: 4,

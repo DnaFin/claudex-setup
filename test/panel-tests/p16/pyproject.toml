@@ -1,0 +1,4 @@
+[project]
+name = "ai-copilot"
+version = "0.1.0"
+description = "AI-powered copilot for research"

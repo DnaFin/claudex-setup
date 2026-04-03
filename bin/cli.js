@@ -129,26 +129,26 @@ function parseArgs(rawArgs) {
 
 const HELP = `
   claudex-setup v${version}
-  Audit and optimize any project for Claude Code.
-  Backed by CLAUDEX research and evidence.
+  Score your repo's Claude Code setup. Fix gaps safely. Benchmark the impact.
 
-  Usage:
-    npx claudex-setup                  Run audit on current directory
-    npx claudex-setup --lite           Run the quick-scan beginner view
-    npx claudex-setup discover         Discover the highest-value improvements
-    npx claudex-setup audit            Same as above
-    npx claudex-setup starter          Alias for setup
-    npx claudex-setup setup            Apply recommended configuration
-    npx claudex-setup setup --auto     Apply all without prompts
-    npx claudex-setup augment          Repo-aware augment plan (no writes)
-    npx claudex-setup suggest-only     Structured suggestion report (no writes)
-    npx claudex-setup plan             Exportable proposal bundles with file previews
-    npx claudex-setup apply            Apply ready proposal bundles with rollback manifest
-    npx claudex-setup governance       Profiles, hooks, and pilot rollout guidance
-    npx claudex-setup benchmark        Measure before/after impact in an isolated temp copy
-    npx claudex-setup deep-review      AI-powered config review (uses Claude Code or API key)
+  Start here (read-only, nothing changes):
+    npx claudex-setup                  Audit your project (10 seconds)
+    npx claudex-setup --lite           Quick scan: top 3 gaps + next command
+    npx claudex-setup augment          Repo-aware analysis, no writes
+    npx claudex-setup suggest-only     Structured report, no writes
+
+  Plan and apply (when you're ready to change things):
+    npx claudex-setup plan             Export proposal bundles with previews
+    npx claudex-setup apply            Apply proposals selectively with rollback
+    npx claudex-setup setup            Generate starter-safe baseline
+    npx claudex-setup setup --auto     Apply all generated files without prompts
+
+  Advanced:
+    npx claudex-setup governance       Permission profiles, hooks, policy packs
+    npx claudex-setup benchmark        Before/after in isolated temp copy
+    npx claudex-setup deep-review      AI-powered config review (opt-in, uses API)
     npx claudex-setup interactive      Step-by-step guided wizard
-    npx claudex-setup watch            Monitor changes and re-audit live
+    npx claudex-setup watch            Live monitoring on config changes
     npx claudex-setup badge            Generate shields.io badge markdown
 
   Options:

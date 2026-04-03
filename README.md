@@ -8,6 +8,7 @@
 
 ### What this is
 
+- The **Agentic DX layer for Claude Code** — audit, improve, govern, and benchmark how Claude works with your repo
 - A **Claude Code workflow audit and improvement tool** — not an MCP installer, not a code generator
 - Scores your repo 0-100 across CLAUDE.md, hooks, commands, agents, skills, MCP, security, and more
 - Proposes changes as diffs you review — applies only what you approve, with rollback for every change
@@ -36,6 +37,19 @@ npx claudex-setup --threshold 60   # Fail CI if score is below 60
 ```
 
 No install. No config. No dependencies.
+
+## Real Results
+
+Tested on 4 real projects — not demos:
+
+| Project | Type | Before | After | Delta |
+|---------|------|--------|-------|-------|
+| CLAUDEX | Research engine, Python | 62 | 90 | **+28** |
+| VTCLE | Marketing automation, FastAPI | 46 | 64 | **+18** |
+| Social | Mobile app, React Native | 40 | 48 | **+8** |
+| Polymiro | Prediction system, Python/Docker | 35 | 48 | **+13** |
+
+Most common gaps found: missing secrets protection, no deny rules, no mermaid diagram, no hooks in settings.
 
 ## What You Get
 
