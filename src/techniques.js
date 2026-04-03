@@ -413,7 +413,12 @@ const TECHNIQUES = {
   hooks: {
     id: 19,
     name: 'Hooks for automation',
-    check: (ctx) => ctx.hasDir('.claude/hooks') && ctx.dirFiles('.claude/hooks').length > 0,
+    check: (ctx) => {
+      if (ctx.hasDir('.claude/hooks') && ctx.dirFiles('.claude/hooks').length > 0) return true;
+      const shared = ctx.jsonFile('.claude/settings.json') || {};
+      const local = ctx.jsonFile('.claude/settings.local.json') || {};
+      return !!(shared.hooks && Object.keys(shared.hooks).length > 0) || !!(local.hooks && Object.keys(local.hooks).length > 0);
+    },
     impact: 'high',
     rating: 4,
     category: 'automation',
@@ -717,9 +722,12 @@ const TECHNIQUES = {
     id: 110,
     name: 'Context7 MCP for real-time docs',
     check: (ctx) => {
-      const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      if (!settings || !settings.mcpServers) return false;
-      return Object.keys(settings.mcpServers).some(k => /context7/i.test(k));
+      const shared = ctx.jsonFile('.claude/settings.json') || {};
+      const local = ctx.jsonFile('.claude/settings.local.json') || {};
+      const mcp = ctx.jsonFile('.mcp.json') || {};
+      const all = { ...(shared.mcpServers || {}), ...(local.mcpServers || {}), ...(mcp.mcpServers || {}) };
+      if (Object.keys(all).length === 0) return false;
+      return Object.keys(all).some(k => /context7/i.test(k));
     },
     impact: 'medium',
     rating: 4,
@@ -1171,11 +1179,14 @@ const TECHNIQUES = {
     name: 'At least one skill uses paths for scoping',
     check: (ctx) => {
       if (!ctx.hasDir('.claude/skills')) return null;
-      const files = ctx.dirFiles('.claude/skills');
-      if (files.length === 0) return null;
-      for (const f of files) {
-        const content = ctx.fileContent(`.claude/skills/${f}`) || '';
-        if (/paths:/i.test(content)) return true;
+      const entries = ctx.dirFiles('.claude/skills');
+      if (entries.length === 0) return null;
+      for (const entry of entries) {
+        // Skills can be files or dirs with SKILL.md inside
+        const direct = ctx.fileContent(`.claude/skills/${entry}`) || '';
+        if (/paths:/i.test(direct)) return true;
+        const nested = ctx.fileContent(`.claude/skills/${entry}/SKILL.md`) || '';
+        if (/paths:/i.test(nested)) return true;
       }
       return false;
     },
