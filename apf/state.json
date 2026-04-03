@@ -1,9 +1,9 @@
 {
   "project": "claudex-setup",
   "launched": "2026-03-30",
-  "version": "0.1.0",
+  "version": "1.15.1",
   "metrics": {
-    "npm_downloads_total": 0,
+    "npm_downloads_total": 2385,
     "github_stars": 0,
     "devto_views": 0,
     "devto_reactions": 0,
@@ -24,6 +24,6 @@
     "reddit_posts": 1,
     "launch_posts_ready": 5
   },
-  "last_session": "2026-03-30",
-  "sessions_total": 1
+  "last_session": "2026-04-03",
+  "sessions_total": 2
 }

@@ -5,15 +5,13 @@
 **Title:** I built a tool that audits your project for Claude Code optimization — scores you 0-100
 
 **Body:**
-After cataloging 1,107 Claude Code entries and verifying 948 of them with evidence, I built a CLI that checks if your project is actually set up to get the most out of Claude Code.
+After cataloging 1,107 Claude Code entries and verifying 948 of them with evidence, I built a CLI that checks if your project is actually set up to get the most out of Claude Code. It runs 84 checks across CLAUDE.md, hooks, commands, agents, diagrams, and more.
 
-Most projects score around 10-20/100. After running setup, they jump to 70+.
+I tested it on 4 real repos. A FastAPI marketing engine went from 46 to 64. A React Native social app went from 40 to 48. A Polymiro project jumped from 35 to 48. The CLAUDEX catalog repo itself: 62 to 90.
 
 ```
 npx claudex-setup
 ```
-
-It checks for: CLAUDE.md, hooks, custom commands, skills, agents, Mermaid diagrams, XML tags, path rules, MCP config, permissions, and more.
 
 Then `npx claudex-setup setup` auto-creates everything that's missing, tailored to your stack (React, Python, TypeScript, etc).
 
@@ -38,7 +36,8 @@ Turns out most projects are missing basic stuff that makes a huge difference:
 - No custom commands (repeating the same prompts manually)
 - No Mermaid diagrams (wasting 73% more tokens on prose descriptions)
 
-Built a quick checker:
+I tested 4 real repos with 84 checks. Before optimization: scores ranged from 35 to 62. After: 48 to 90. A VTCLE FastAPI project jumped from 46→64 just from adding missing hooks and commands.
+
 ```
 npx claudex-setup
 ```
@@ -54,7 +53,7 @@ Free, open source, zero dependencies: https://github.com/DnaFin/claudex-setup
 **Title:** 1,107 Claude Code Entries: What I Learned Building the Most Comprehensive Catalog
 
 **Body (excerpt):**
-I set out to catalog every single Claude Code capability, technique, and best practice. After repeated research cycles, I have 1,107 entries — 948 verified with real evidence.
+I set out to catalog every single Claude Code capability, technique, and best practice. After repeated research cycles, I have 1,107 entries — 948 verified with real evidence. I packaged this into an 84-check CLI audit and tested it on 4 real projects — scores before optimization ranged from 35 to 62, and after: 48 to 90.
 
 Here are the top 10 things most developers are missing:
 
@@ -94,7 +93,7 @@ I cataloged 1,107 Claude Code entries and verified 948 of them with evidence.
 
 Most projects use less than 5% of what Claude Code can do.
 
-Here's a free tool that checks your project and tells you exactly what's missing:
+Tested on 4 real repos — a React Native app scored 40, a FastAPI engine scored 46. After auto-setup: 48 and 64. Here's the free 84-check audit:
 
 npx claudex-setup
 
@@ -148,9 +147,9 @@ https://github.com/DnaFin/claudex-setup
 **Body:**
 I built a CLI tool that scores your project against Claude Code best practices.
 
-After researching 1,107 entries (948 verified with evidence), most projects score 10-20 out of 100 because they're missing basic optimizations like CLAUDE.md files, hooks, custom commands, and architecture diagrams.
+After researching 1,107 entries (948 verified with evidence), I tested 4 real repos with 84 checks. Scores before optimization: 35–62. After auto-setup: 48–90. The biggest jump was a research catalog repo going from 62 to 90.
 
-npx claudex-setup → audit (0-100 score)
+npx claudex-setup → audit (84 checks, 0-100 score)
 npx claudex-setup setup → auto-fix
 
 Detects your stack (React, Python, TS, Rust, Go, etc) and tailors recommendations.

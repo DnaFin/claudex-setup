@@ -51,6 +51,8 @@ Tested on 4 real projects — not demos:
 
 Most common gaps found: missing secrets protection, no deny rules, no mermaid diagram, no hooks in settings.
 
+> Scores measured with claudex-setup@1.10.3 on 2026-04-03. Full case studies: [VTCLE](https://github.com/DnaFin/claudex/blob/main/research/case-study-vtcle-2026-04-03.md) | [Social](https://github.com/DnaFin/claudex/blob/main/research/case-study-social-2026-04-03.md) | [Polymiro](https://github.com/DnaFin/claudex/blob/main/research/case-study-polymiro-2026-04-03.md)
+
 ## What You Get
 
 ```
