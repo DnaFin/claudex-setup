@@ -15,6 +15,18 @@
 - README and docs now reflect snapshot artifacts, governance export, and the Claude-native skill path
 - packaged content and public-facing counts are now aligned with the current CLAUDEX state
 
+## [1.14.0] - 2026-04-03
+
+### Added
+- Check-level test matrix: 327 verified scenarios across all 84 checks
+- Golden matrix: 12 repo profile tests with expected results
+
+### Fixed
+- `hooks` check now detects hooks in settings.json (not only .claude/hooks/ dir)
+- `context7Mcp` check now reads .mcp.json
+- `skillUsesPaths` now traverses skill subdirectories (skills/name/SKILL.md)
+- `lintCommand` now matches npm/yarn/pnpm/bun lint commands
+
 ## [1.13.0] - 2026-04-03
 
 ### Added
