@@ -15,6 +15,17 @@
 - README and docs now reflect snapshot artifacts, governance export, and the Claude-native skill path
 - packaged content and public-facing counts are now aligned with the current CLAUDEX state
 
+## [1.12.0] - 2026-04-03
+
+### Added
+- 12 new checks (62→74): test coverage, agent tool restrictions, auto-memory, sandbox, deny rule depth, git attribution, effort level, snapshot history, worktree, negative instructions, output style, CI variants
+- 8 new stacks (22→30): Deno, Bun, Elixir, Astro, Remix, NestJS, Laravel, .NET
+- Deeper domain detection: llamaindex, crewai, autogen, ollama for AI/ML; paypal, square, adyen, medusa for ecommerce; chromatic, style-dictionary for design; capacitor, ionic for mobile
+
+### Fixed
+- `githubActionsOrCI` check used non-existent `ctx.hasFile()` — now uses `ctx.fileContent()`
+- `.NET` stack detection no longer uses glob patterns
+
 ## [1.11.0] - 2026-04-03
 
 ### Added

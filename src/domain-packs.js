@@ -231,6 +231,7 @@ function detectDomainPacks(ctx, stacks, assets = null) {
 
   // Mobile detection
   const isMobile = deps['react-native'] || deps.expo || deps.flutter ||
+    deps['@capacitor/core'] || deps['@ionic/angular'] || deps['@ionic/react'] ||
     ctx.files.includes('Podfile') || ctx.files.includes('build.gradle') ||
     ctx.files.includes('build.gradle.kts') || ctx.hasDir('ios') || ctx.hasDir('android');
   if (isMobile) {
@@ -257,7 +258,9 @@ function detectDomainPacks(ctx, stacks, assets = null) {
 
   // E-commerce detection
   const isEcommerce = deps.stripe || deps['@stripe/stripe-js'] || deps.shopify || deps['@shopify/shopify-api'] ||
-    deps.woocommerce || ctx.hasDir('products') || ctx.hasDir('checkout') || ctx.hasDir('cart');
+    deps.woocommerce || deps.paypal || deps['@paypal/react-paypal-js'] || deps.square || deps['@adyen/adyen-web'] ||
+    deps.medusa || deps.saleor ||
+    ctx.hasDir('products') || ctx.hasDir('checkout') || ctx.hasDir('cart');
   if (isEcommerce) {
     addMatch('ecommerce', [
       'Detected e-commerce dependencies or storefront structure.',
@@ -269,6 +272,8 @@ function detectDomainPacks(ctx, stacks, assets = null) {
   // AI/ML detection
   const isAiMl = deps.langchain || deps['@langchain/core'] || deps.openai || deps.anthropic ||
     deps['@anthropic-ai/sdk'] || deps.transformers || deps.torch || deps.tensorflow ||
+    deps.llamaindex || deps['llama-index'] || deps.crewai || deps.autogen ||
+    deps['@ai-sdk/core'] || deps.ollama ||
     ctx.hasDir('chains') || ctx.hasDir('agents') || ctx.hasDir('models') || ctx.hasDir('prompts');
   if (isAiMl && !hasData) {
     addMatch('ai-ml', [
@@ -292,8 +297,9 @@ function detectDomainPacks(ctx, stacks, assets = null) {
 
   // Design system detection
   const isDesignSystem = deps.storybook || deps['@storybook/react'] || deps['@storybook/vue3'] ||
+    deps.chromatic || deps['style-dictionary'] || deps['@tokens-studio/sd-transforms'] ||
     ctx.hasDir('tokens') || ctx.hasDir('design-tokens') ||
-    (ctx.hasDir('components') && ctx.hasDir('.storybook'));
+    ctx.hasDir('.storybook') || (ctx.hasDir('components') && ctx.hasDir('.storybook'));
   if (isDesignSystem) {
     addMatch('design-system', [
       'Detected design system or component library signals.',

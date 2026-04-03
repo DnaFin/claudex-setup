@@ -946,6 +946,174 @@ const TECHNIQUES = {
     template: null
   },
 
+  // --- New checks: testing depth ---
+  testCoverage: {
+    id: 2010,
+    name: 'Test coverage or strategy mentioned',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      return /coverage|test.*strateg|e2e|integration test|unit test/i.test(md);
+    },
+    impact: 'medium', rating: 3, category: 'quality',
+    fix: 'Mention your testing strategy in CLAUDE.md (unit, integration, E2E, coverage targets).',
+    template: null
+  },
+
+  // --- New checks: agent depth ---
+  agentHasAllowedTools: {
+    id: 2011,
+    name: 'At least one agent restricts tools',
+    check: (ctx) => {
+      if (!ctx.hasDir('.claude/agents')) return null;
+      const files = ctx.dirFiles('.claude/agents');
+      if (files.length === 0) return null;
+      for (const f of files) {
+        const content = ctx.fileContent(`.claude/agents/${f}`) || '';
+        if (/tools:\s*\[/.test(content)) return true;
+      }
+      return false;
+    },
+    impact: 'medium', rating: 3, category: 'workflow',
+    fix: 'Add a tools restriction to agent frontmatter (e.g. tools: [Read, Grep]) for safer delegation.',
+    template: null
+  },
+
+  // --- New checks: memory / auto-memory ---
+  autoMemoryAwareness: {
+    id: 2012,
+    name: 'Auto-memory or memory management mentioned',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      return /auto.?memory|memory.*manage|remember|persistent.*context/i.test(md);
+    },
+    impact: 'low', rating: 3, category: 'memory',
+    fix: 'Claude Code supports auto-memory for cross-session learning. Mention your memory strategy if relevant.',
+    template: null
+  },
+
+  // --- New checks: sandbox / security depth ---
+  sandboxAwareness: {
+    id: 2013,
+    name: 'Sandbox or isolation mentioned',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      const settings = ctx.jsonFile('.claude/settings.json') || {};
+      return /sandbox|isolat/i.test(md) || !!settings.sandbox;
+    },
+    impact: 'medium', rating: 3, category: 'security',
+    fix: 'Claude Code supports sandboxed command execution. Consider enabling it for untrusted operations.',
+    template: null
+  },
+
+  denyRulesDepth: {
+    id: 2014,
+    name: 'Deny rules cover 3+ patterns',
+    check: (ctx) => {
+      const shared = ctx.jsonFile('.claude/settings.json');
+      const local = ctx.jsonFile('.claude/settings.local.json');
+      const deny = (shared?.permissions?.deny || []).concat(local?.permissions?.deny || []);
+      return deny.length >= 3;
+    },
+    impact: 'high', rating: 4, category: 'security',
+    fix: 'Add at least 3 deny rules: rm -rf, force-push, and .env reads. More patterns = safer Claude.',
+    template: null
+  },
+
+  // --- New checks: git depth ---
+  gitAttributionDecision: {
+    id: 2015,
+    name: 'Git attribution configured',
+    check: (ctx) => {
+      const shared = ctx.jsonFile('.claude/settings.json') || {};
+      const local = ctx.jsonFile('.claude/settings.local.json') || {};
+      return shared.attribution !== undefined || local.attribution !== undefined ||
+             shared.includeCoAuthoredBy !== undefined || local.includeCoAuthoredBy !== undefined;
+    },
+    impact: 'low', rating: 3, category: 'git',
+    fix: 'Decide on git attribution: set attribution.commit or includeCoAuthoredBy in settings.',
+    template: null
+  },
+
+  // --- New checks: performance ---
+  effortLevelConfigured: {
+    id: 2016,
+    name: 'Effort level or thinking configuration',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      const shared = ctx.jsonFile('.claude/settings.json') || {};
+      const local = ctx.jsonFile('.claude/settings.local.json') || {};
+      return /effort|thinking/i.test(md) || shared.effortLevel || local.effortLevel ||
+             shared.alwaysThinkingEnabled !== undefined || local.alwaysThinkingEnabled !== undefined;
+    },
+    impact: 'low', rating: 3, category: 'performance',
+    fix: 'Configure effortLevel or mention thinking strategy in CLAUDE.md for task-appropriate reasoning depth.',
+    template: null
+  },
+
+  // --- New checks: workflow depth ---
+  hasSnapshotHistory: {
+    id: 2017,
+    name: 'Audit snapshot history exists',
+    check: (ctx) => {
+      return !!ctx.fileContent('.claude/claudex-setup/snapshots/index.json');
+    },
+    impact: 'low', rating: 3, category: 'workflow',
+    fix: 'Run `npx claudex-setup --snapshot` to start tracking your setup score over time.',
+    template: null
+  },
+
+  worktreeAwareness: {
+    id: 2018,
+    name: 'Worktree or parallel sessions mentioned',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      const shared = ctx.jsonFile('.claude/settings.json') || {};
+      return /worktree|parallel.*session/i.test(md) || !!shared.worktree;
+    },
+    impact: 'low', rating: 3, category: 'features',
+    fix: 'Claude Code supports git worktrees for parallel isolated sessions. Mention if relevant.',
+    template: null
+  },
+
+  // --- New checks: prompting depth ---
+  negativeInstructions: {
+    id: 2019,
+    name: 'CLAUDE.md includes "do not" instructions',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      return /do not|don't|never|avoid|must not/i.test(md);
+    },
+    impact: 'medium', rating: 4, category: 'prompting',
+    fix: 'Add explicit "do not" rules to CLAUDE.md. Negative constraints reduce common mistakes.',
+    template: null
+  },
+
+  outputStyleGuidance: {
+    id: 2020,
+    name: 'CLAUDE.md includes output or style guidance',
+    check: (ctx) => {
+      const md = ctx.fileContent('CLAUDE.md') || '';
+      return /style|format|convention|naming|pattern|prefer/i.test(md);
+    },
+    impact: 'medium', rating: 3, category: 'prompting',
+    fix: 'Add coding style and naming conventions to CLAUDE.md so Claude matches your project patterns.',
+    template: null
+  },
+
+  // --- New checks: devops depth ---
+  githubActionsOrCI: {
+    id: 2021,
+    name: 'GitHub Actions or CI configured',
+    check: (ctx) => {
+      return ctx.hasDir('.github/workflows') || !!ctx.fileContent('.circleci/config.yml') ||
+             !!ctx.fileContent('.gitlab-ci.yml') || !!ctx.fileContent('Jenkinsfile') ||
+             !!ctx.fileContent('.travis.yml') || !!ctx.fileContent('bitbucket-pipelines.yml');
+    },
+    impact: 'medium', rating: 3, category: 'devops',
+    fix: 'Add CI pipeline for automated testing. Claude Code has a GitHub Action for audit gates.',
+    template: null
+  },
+
   noDeprecatedPatterns: {
     id: 2009,
     name: 'No deprecated patterns detected',
@@ -992,6 +1160,14 @@ const STACKS = {
   kubernetes: { files: ['k8s', 'kubernetes', 'helm'], content: {}, label: 'Kubernetes' },
   cpp: { files: ['CMakeLists.txt', 'Makefile', '.clang-format'], content: {}, label: 'C++' },
   bazel: { files: ['BUILD', 'WORKSPACE', 'BUILD.bazel', 'WORKSPACE.bazel'], content: {}, label: 'Bazel' },
+  deno: { files: ['deno.json', 'deno.jsonc', 'deno.lock'], content: {}, label: 'Deno' },
+  bun: { files: ['bun.lockb', 'bunfig.toml'], content: {}, label: 'Bun' },
+  elixir: { files: ['mix.exs'], content: {}, label: 'Elixir' },
+  astro: { files: ['astro.config.mjs', 'astro.config.ts'], content: {}, label: 'Astro' },
+  remix: { files: ['remix.config.js', 'remix.config.ts'], content: {}, label: 'Remix' },
+  nestjs: { files: ['nest-cli.json'], content: {}, label: 'NestJS' },
+  laravel: { files: ['artisan'], content: {}, label: 'Laravel' },
+  dotnet: { files: ['global.json', 'Directory.Build.props'], content: {}, label: '.NET' },
 };
 
 module.exports = { TECHNIQUES, STACKS };
