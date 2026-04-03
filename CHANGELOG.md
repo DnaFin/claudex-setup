@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.16.2] - 2026-04-03
+
+### Changed
+- bumped the local release line to `1.16.2` so the next publish does not overwrite the already-live `1.16.1` npm release
+- synchronized README, docs, launch copy, and proof-facing state to distinguish clearly between public npm latest (`1.16.1`) and local release prep (`1.16.2`)
+
+### Fixed
+- release-truth drift across package metadata, docs, and public-facing proof references
+
+## [1.16.1] - 2026-04-03
+
+### Added
+- `feedback` command validation on the public npm package line
+- stronger secret detection coverage for Anthropic-style keys
+- deep-review sanitization and secret redaction hardening
+- watch-mode resilience improvements across recursive and non-recursive platforms
+
+### Changed
+- increased verified check count from `84` to `85`
+- proof-backed product copy and case-study traceability improvements
+
 ## [1.10.3] - 2026-04-02
 
 ### Added

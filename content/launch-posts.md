@@ -17,7 +17,7 @@ Use these links as the canonical sources behind public claims:
 Measured-result boundary to preserve:
 
 - before/after scores were measured with `claudex-setup@1.10.3` on `2026-04-03`
-- current npm latest is `1.16.0`
+- current npm latest is `1.16.1`
 - current product surface is `85 checks`
 
 ## Post 1: Reddit r/ClaudeAI
@@ -175,7 +175,7 @@ Case studies:
 
 **Tweet 5:**
 Measured results were captured on `claudex-setup@1.10.3` on `2026-04-03`.
-Current npm latest is `1.16.0`, so exact scores can move slightly, but the proof packet is explicit about that boundary.
+Current npm latest is `1.16.1`, so exact scores can move slightly, but the proof packet is explicit about that boundary.
 
 **Evidence anchor:** proof artifact index + per-repo traces
 

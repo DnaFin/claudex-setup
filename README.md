@@ -51,7 +51,7 @@ Tested on 4 real projects — not demos:
 
 Most common gaps found: missing secrets protection, no deny rules, no mermaid diagram, no hooks in settings.
 
-> Scores measured with claudex-setup@1.10.3 on 2026-04-03. Current npm latest: 1.16.0, so exact scores may differ slightly on the newer release.
+> Scores measured with claudex-setup@1.10.3 on 2026-04-03. Current npm latest: 1.16.1, so exact scores may differ slightly on the newer release.
 >
 > Canonical proof artifacts: [Index](https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/README.md) | [CLAUDEX trace](https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/claudex-self-dogfood-proof-trace-2026-04-03.md) | [VTCLE trace](https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/vtcle-proof-trace-2026-04-03.md) | [Social trace](https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/social-proof-trace-2026-04-03.md) | [Polymiro trace](https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/polymiro-proof-trace-2026-04-03.md)
 >
@@ -128,8 +128,6 @@ That prints a compact top-3 quick scan with one clear next command.
 | `npx claudex-setup feedback` | **Feedback** - Record local recommendation outcomes or show outcome summary |
 | `npx claudex-setup deep-review` | **Deep Review** - AI-powered config analysis (Claude Code or API key, selected config only) |
 | `npx claudex-setup insights` | **Insights** - View community aggregate stats |
-
-> Note: the `feedback` command is currently validated on the main working tree for the next release. If your installed npm build does not expose it yet, use the rest of the trust-first flow and pick it up on the next publish.
 
 ### Options
 
@@ -266,8 +264,6 @@ npx claudex-setup feedback
 
 Feedback stays under `.claude/claudex-setup/outcomes/` and is used only as a local ranking signal. Recommendations with repeated positive outcomes get a measured boost; recommendations with repeated negative or rejected outcomes get pushed down.
 
-If your currently installed npm build does not expose `feedback` yet, treat this as next-release behavior rather than current npm-latest behavior.
-
 `watch` uses native `fs.watch` with recursive directory watches where the platform supports them, and an expanded directory fallback elsewhere. That keeps nested `.claude/` and `.github/` changes visible on Linux too, while staying zero-dependency. Native filesystem watch semantics can still be noisier on very large repos or network filesystems, so the command is best treated as fast local feedback rather than a CI-grade signal.
 
 ## Use Inside Claude Code
@@ -331,7 +327,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DnaFin/claudex-setup@v1.16.0
+      - uses: DnaFin/claudex-setup@v1.16.1
         with:
           threshold: 50
 ```
