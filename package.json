@@ -16,7 +16,10 @@
   "scripts": {
     "start": "node bin/cli.js",
     "build": "npm pack --dry-run",
-    "test": "node test/run.js"
+    "test": "node test/run.js",
+    "test:jest": "jest",
+    "test:coverage": "jest --coverage",
+    "test:all": "node test/run.js && node test/check-matrix.js && node test/golden-matrix.js && node test/security-tests.js && jest"
   },
   "keywords": [
     "claude",
@@ -42,5 +45,8 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "jest": "^30.3.0"
   }
 }
