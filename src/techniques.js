@@ -116,7 +116,7 @@ const TECHNIQUES = {
     name: 'CLAUDE.md contains a lint command',
     check: (ctx) => {
       const md = ctx.fileContent('CLAUDE.md') || '';
-      return /eslint|prettier|ruff|black|clippy|golangci-lint|rubocop/.test(md);
+      return /eslint|prettier|ruff|black|clippy|golangci-lint|rubocop|npm run lint|yarn lint|pnpm lint|bun lint/.test(md);
     },
     impact: 'high',
     rating: 4,
