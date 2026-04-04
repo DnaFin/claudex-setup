@@ -751,7 +751,8 @@ async function main() {
       assert.ok(fs.existsSync(path.join(dir, 'AGENTS.md')), 'AGENTS.md should exist after codex setup');
       assert.ok(fs.existsSync(path.join(dir, '.codex', 'config.toml')), '.codex/config.toml should exist after codex setup');
       const config = fs.readFileSync(path.join(dir, '.codex', 'config.toml'), 'utf8');
-      assert.ok(config.includes('undo = false'), 'codex setup should emit explicit undo posture');
+      // undo key removed from Codex config schema (2026-04-05) — verify core keys instead
+      assert.ok(config.includes('approval_policy'), 'codex setup should emit approval_policy');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
