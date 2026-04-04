@@ -2,11 +2,30 @@
  * Audit engine - evaluates project against CLAUDEX technique database.
  */
 
-const { TECHNIQUES, STACKS } = require('./techniques');
+const { TECHNIQUES: CLAUDE_TECHNIQUES, STACKS } = require('./techniques');
 const { ProjectContext } = require('./context');
+const { CODEX_TECHNIQUES } = require('./codex/techniques');
+const { detectCodexDomainPacks } = require('./codex/domain-packs');
+const { CodexProjectContext, detectCodexVersion } = require('./codex/context');
+const { GEMINI_TECHNIQUES } = require('./gemini/techniques');
+const { detectGeminiDomainPacks } = require('./gemini/domain-packs');
+const { GeminiProjectContext, detectGeminiVersion } = require('./gemini/context');
+const { COPILOT_TECHNIQUES } = require('./copilot/techniques');
+const { detectCopilotDomainPacks } = require('./copilot/domain-packs');
+const { CopilotProjectContext } = require('./copilot/context');
+const { CURSOR_TECHNIQUES } = require('./cursor/techniques');
+const { detectCursorDomainPacks } = require('./cursor/domain-packs');
+const { CursorProjectContext } = require('./cursor/context');
+const { WINDSURF_TECHNIQUES } = require('./windsurf/techniques');
+const { WindsurfProjectContext } = require('./windsurf/context');
+const { AIDER_TECHNIQUES } = require('./aider/techniques');
+const { AiderProjectContext } = require('./aider/context');
+const { OPENCODE_TECHNIQUES } = require('./opencode/techniques');
+const { OpenCodeProjectContext } = require('./opencode/context');
 const { getBadgeMarkdown } = require('./badge');
 const { sendInsights, getLocalInsights } = require('./insights');
 const { getRecommendationOutcomeSummary, getRecommendationAdjustment } = require('./activity');
+const { formatSarif } = require('./formatters/sarif');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -30,7 +49,13 @@ function progressBar(score, max = 100, width = 20) {
   return colorize('█'.repeat(filled), color) + colorize('░'.repeat(empty), 'dim');
 }
 
+function formatLocation(file, line) {
+  if (!file) return null;
+  return line ? `${file}:${line}` : file;
+}
+
 const IMPACT_ORDER = { critical: 3, high: 2, medium: 1, low: 0 };
+const WEIGHTS = { critical: 15, high: 10, medium: 5, low: 2 };
 const CATEGORY_MODULES = {
   memory: 'CLAUDE.md',
   quality: 'verification',
@@ -46,6 +71,10 @@ const CATEGORY_MODULES = {
   prompting: 'prompt-structure',
   features: 'modern-claude-features',
   'quality-deep': 'quality-deep',
+  skills: 'skills',
+  agents: 'subagents',
+  review: 'review-workflow',
+  local: 'local-environment',
 };
 const ACTION_RATIONALES = {
   noBypassPermissions: 'bypassPermissions skips the main safety layer. Explicit allow and deny rules create safer autonomy.',
@@ -66,7 +95,258 @@ const ACTION_RATIONALES = {
   hooks: 'Hooks enforce the rules programmatically, which is much more reliable than relying on instructions alone.',
   pathRules: 'Path-specific rules help Claude behave differently in different parts of the repo without global noise.',
   context7Mcp: 'Live documentation reduces version drift and cuts down on confident but outdated answers.',
+  codexAgentsMd: 'AGENTS.md is the main Codex instruction surface. Without it, Codex starts without repo-specific guidance.',
+  codexAgentsMdSubstantive: 'A thin AGENTS.md is almost as bad as no AGENTS.md because Codex still lacks the repo context it needs.',
+  codexAgentsVerificationCommands: 'If AGENTS.md does not document how to verify work, Codex cannot reliably prove its own changes are safe.',
+  codexAgentsArchitecture: 'A small architecture map reduces navigation drift and helps Codex change the right part of the repo first.',
+  codexConfigExists: 'Without .codex/config.toml, trust and model behavior are implicit instead of explicit.',
+  codexReasoningEffortExplicit: 'Reasoning depth should be intentional for cost and latency, not left to implicit defaults.',
+  codexApprovalPolicyExplicit: 'Explicit approvals make Codex behavior predictable and reviewable across sessions.',
+  codexNoDangerFullAccess: 'danger-full-access removes the main safety boundary and should be treated as a critical risk.',
+  codexHistorySendToServerExplicit: 'History sync is a privacy and governance surface. Teams should decide it explicitly, not inherit it accidentally.',
+  codexNoSecretsInAgents: 'Secrets in AGENTS.md can leak directly into agent context, outputs, and logs.',
+  codexHooksWindowsCaveat: 'Windows does not support Codex hooks today, so relying on them there creates a false sense of runtime enforcement.',
+  codexSkillsDirPresentWhenUsed: 'Versioned repo-local skills are the safest way to keep Codex expertise reviewable and consistent across contributors.',
+  codexSkillsHaveMetadata: 'Without a usable SKILL.md, Codex cannot reliably decide when a skill should run or what it is for.',
+  codexSkillNamesKebabCase: 'Consistent skill naming improves discoverability and avoids invocation drift.',
+  codexSkillDescriptionsBounded: 'A bounded skill description helps Codex invoke the right skill without inflating prompt context.',
+  codexSkillsNoAutoRunRisk: 'Skills should guide Codex, not silently authorize risky automation or destructive actions.',
+  codexCustomAgentsRequiredFields: 'Custom agents need clear metadata and developer instructions so delegation stays predictable.',
+  codexMaxThreadsExplicit: 'Explicit fanout limits make Codex delegation safer and easier to reason about.',
+  codexMaxDepthExplicit: 'Nested delegation should be deliberate, not accidental.',
+  codexPerAgentSandboxOverridesSafe: 'Per-agent overrides can quietly bypass the main trust model if they are not constrained.',
+  codexExecUsageSafe: 'Unsafe Codex automation quickly turns small workflow mistakes into real repo damage.',
+  codexGitHubActionSafeStrategy: 'CI safety posture should be visible and intentional, especially when Codex is acting in automation.',
+  codexCiAuthUsesManagedKey: 'Managed secrets are the minimum trust boundary for Codex in CI.',
+  codexAutomationManuallyTested: 'Manual dry-runs catch automation footguns before they become scheduled failures.',
+  codexReviewWorkflowDocumented: 'A documented review path makes Codex safer to use on risky diffs and refactors.',
+  codexReviewModelOverrideExplicit: 'Explicit review model selection keeps review quality and cost predictable when automation is involved.',
+  codexWorkingTreeReviewExpectations: 'Codex reviews are much safer when the repo states how to treat staged, unstaged, and unrelated changes.',
+  codexCostAwarenessDocumented: 'Heavy workflows should be intentional, not the invisible default.',
+  codexArtifactsSharedIntentionally: 'If `.codex` is hidden from version control, the team loses a shared and reviewable Codex contract.',
+  codexLifecycleScriptsPlatformSafe: 'Local setup/teardown scripts are part of the trust model and should not surprise contributors on other platforms.',
+  codexActionsNotRedundant: 'Redundant automation expands the surface area without adding real value.',
+  codexWorktreeLifecycleDocumented: 'Parallel worktree flows need explicit setup and cleanup expectations.',
+  codexAgentsMentionModernFeatures: 'When the repo uses modern Codex surfaces, AGENTS.md should tell Codex they exist.',
+  codexNoDeprecatedPatterns: 'Deprecated Codex patterns create silent drift and confusing behavior over time.',
+  codexProfilesUsedWhenNeeded: 'Profiles become more important as Codex automation and delegation get more complex.',
+  codexPluginConfigValid: 'Broken plugin metadata creates discoverability and tooling drift.',
+  codexUndoExplicit: 'Undo is a user-facing safety feature and should be an explicit repo choice.',
 };
+const CODEX_HARD_FAIL_KEYS = new Set([
+  'codexAgentsMd',
+  'codexConfigValidToml',
+  'codexNoDangerFullAccess',
+  'codexApprovalPolicyExplicit',
+  'codexNoSecretsInAgents',
+  'codexHooksWindowsCaveat',
+]);
+const CODEX_EVIDENCE_CLASSES = {
+  'CX-A01': 'runtime',
+  'CX-A02': 'derived',
+  'CX-A03': 'derived',
+  'CX-A04': 'derived',
+  'CX-A05': 'mixed',
+  'CX-A06': 'source',
+  'CX-A07': 'derived',
+  'CX-A08': 'derived',
+  'CX-B01': 'runtime',
+  'CX-B02': 'mixed',
+  'CX-B03': 'mixed',
+  'CX-B04': 'source',
+  'CX-B05': 'source',
+  'CX-B06': 'source',
+  'CX-B07': 'source',
+  'CX-B08': 'source',
+  'CX-B09': 'source',
+  'CX-C01': 'mixed',
+  'CX-C02': 'mixed',
+  'CX-C03': 'mixed',
+  'CX-C04': 'derived',
+  'CX-C05': 'source',
+  'CX-C06': 'source',
+  'CX-C07': 'mixed',
+  'CX-C08': 'source',
+  'CX-C09': 'mixed',
+  'CX-D01': 'runtime',
+  'CX-D02': 'mixed',
+  'CX-D03': 'source',
+  'CX-D04': 'mixed',
+  'CX-D05': 'mixed',
+  'CX-E01': 'mixed',
+  'CX-E02': 'runtime',
+  'CX-E03': 'mixed',
+  'CX-E04': 'mixed',
+  'CX-E05': 'source',
+  'CX-F01': 'mixed',
+  'CX-F02': 'mixed',
+  'CX-F03': 'source',
+  'CX-F04': 'mixed',
+  'CX-F05': 'source',
+  'CX-F06': 'source',
+  'CX-G01': 'mixed',
+  'CX-G02': 'source',
+  'CX-G03': 'source',
+  'CX-G04': 'derived',
+  'CX-G05': 'derived',
+  'CX-H01': 'source',
+  'CX-H02': 'runtime',
+  'CX-H03': 'runtime',
+  'CX-H04': 'source',
+  'CX-I01': 'mixed',
+  'CX-I02': 'mixed',
+  'CX-I03': 'source',
+  'CX-I04': 'source',
+  'CX-J01': 'source',
+  'CX-J02': 'source',
+  'CX-J03': 'source',
+  'CX-J04': 'source',
+  'CX-K01': 'source',
+  'CX-K02': 'source',
+  'CX-K03': 'source',
+  'CX-K04': 'source',
+  'CX-L01': 'derived',
+  'CX-L02': 'source',
+  'CX-L03': 'derived',
+  'CX-L04': 'source',
+  'CX-L05': 'source',
+};
+const CODEX_QUICKWIN_CONFIG_KEYS = new Set([
+  'codexConfigExists',
+  'codexModelExplicit',
+  'codexReasoningEffortExplicit',
+  'codexWeakModelExplicit',
+  'codexProfilesUsedAppropriately',
+  'codexFullAutoErrorModeExplicit',
+  'codexHistorySendToServerExplicit',
+  'codexNetworkAccessExplicit',
+  'codexHooksDeliberate',
+  'codexMcpStartupTimeoutReasonable',
+  'codexMaxThreadsExplicit',
+  'codexMaxDepthExplicit',
+]);
+const CODEX_QUICKWIN_FILE_KEYS = new Set([
+  'codexAgentsMd',
+  'codexHooksJsonExistsWhenClaimed',
+  'codexSkillsDirPresentWhenUsed',
+]);
+const CODEX_QUICKWIN_DOC_KEYS = new Set([
+  'codexAgentsArchitecture',
+  'codexOverrideDocumented',
+  'codexNoGenericFiller',
+  'codexNoInstructionContradictions',
+  'codexRulesExamplesPresent',
+  'codexRuleWrapperRiskDocumented',
+  'codexSkillsHaveMetadata',
+  'codexSkillNamesKebabCase',
+  'codexSkillDescriptionsBounded',
+  'codexAutomationManuallyTested',
+  'codexReviewWorkflowDocumented',
+  'codexWorkingTreeReviewExpectations',
+  'codexCostAwarenessDocumented',
+]);
+const CODEX_QUICKWIN_POLICY_KEYS = new Set([
+  'codexRulesSpecificPatterns',
+  'codexNoBroadAllowAllRules',
+  'codexMcpWhitelistsExplicit',
+  'codexNoDeprecatedMcpTransport',
+  'codexGitHubActionSafeStrategy',
+  'codexProfilesUsedWhenNeeded',
+  'codexUndoExplicit',
+]);
+const CODEX_QUICKWIN_AVOID_KEYS = new Set([
+  'codexNoDangerFullAccess',
+  'codexApprovalPolicyExplicit',
+  'codexGitHubActionUnsafeJustified',
+  'codexProjectScopedMcpTrusted',
+  'codexMcpAuthDocumented',
+  'codexHooksWindowsCaveat',
+  'codexNoSecretsInAgents',
+  'codexPerAgentSandboxOverridesSafe',
+  'codexExecUsageSafe',
+  'codexCiAuthUsesManagedKey',
+  'codexLifecycleScriptsPlatformSafe',
+]);
+
+function getAuditSpec(platform = 'claude') {
+  if (platform === 'codex') {
+    return {
+      platform: 'codex',
+      platformLabel: 'Codex',
+      techniques: CODEX_TECHNIQUES,
+      ContextClass: CodexProjectContext,
+      platformVersion: detectCodexVersion(),
+    };
+  }
+
+  if (platform === 'gemini') {
+    return {
+      platform: 'gemini',
+      platformLabel: 'Gemini CLI',
+      techniques: GEMINI_TECHNIQUES,
+      ContextClass: GeminiProjectContext,
+      platformVersion: detectGeminiVersion(),
+    };
+  }
+
+  if (platform === 'copilot') {
+    return {
+      platform: 'copilot',
+      platformLabel: 'GitHub Copilot',
+      techniques: COPILOT_TECHNIQUES,
+      ContextClass: CopilotProjectContext,
+      platformVersion: null,
+    };
+  }
+
+  if (platform === 'cursor') {
+    return {
+      platform: 'cursor',
+      platformLabel: 'Cursor',
+      techniques: CURSOR_TECHNIQUES,
+      ContextClass: CursorProjectContext,
+      platformVersion: null,
+    };
+  }
+
+  if (platform === 'windsurf') {
+    return {
+      platform: 'windsurf',
+      platformLabel: 'Windsurf',
+      techniques: WINDSURF_TECHNIQUES,
+      ContextClass: WindsurfProjectContext,
+      platformVersion: null,
+    };
+  }
+
+  if (platform === 'aider') {
+    return {
+      platform: 'aider',
+      platformLabel: 'Aider',
+      techniques: AIDER_TECHNIQUES,
+      ContextClass: AiderProjectContext,
+      platformVersion: null,
+    };
+  }
+
+  if (platform === 'opencode') {
+    return {
+      platform: 'opencode',
+      platformLabel: 'OpenCode',
+      techniques: OPENCODE_TECHNIQUES,
+      ContextClass: OpenCodeProjectContext,
+      platformVersion: null,
+    };
+  }
+
+  return {
+    platform: 'claude',
+    platformLabel: 'Claude',
+    techniques: CLAUDE_TECHNIQUES,
+    ContextClass: ProjectContext,
+    platformVersion: null,
+  };
+}
 
 function riskFromImpact(impact) {
   if (impact === 'critical') return 'high';
@@ -83,8 +363,69 @@ function getPrioritizedFailed(failed) {
   return prioritized.length > 0 ? prioritized : failed;
 }
 
-function getQuickWins(failed) {
+function codexEvidenceClass(item) {
+  return CODEX_EVIDENCE_CLASSES[item.id] || 'derived';
+}
+
+function codexCategoryBonus(category) {
+  if (category === 'trust' || category === 'config') return 12;
+  if (category === 'rules' || category === 'hooks' || category === 'mcp') return 8;
+  if (category === 'instructions') return 4;
+  return 0;
+}
+
+function codexEvidenceBonus(item) {
+  const evidenceClass = codexEvidenceClass(item);
+  if (evidenceClass === 'runtime') return 8;
+  if (evidenceClass === 'mixed') return 6;
+  if (evidenceClass === 'source') return 3;
+  return 0;
+}
+
+function codexPriorityScore(item, outcomeSummaryByKey = {}) {
+  const impactBase = item.impact === 'critical'
+    ? 60
+    : item.impact === 'high'
+      ? 40
+      : item.impact === 'medium'
+        ? 20
+        : 8;
+  const feedbackAdjustment = getRecommendationAdjustment(outcomeSummaryByKey, item.key) * 10;
+  const hardFailBonus = CODEX_HARD_FAIL_KEYS.has(item.key) ? 12 : 0;
+  return Math.max(0, Math.min(100, impactBase + codexCategoryBonus(item.category) + codexEvidenceBonus(item) + hardFailBonus + feedbackAdjustment));
+}
+
+function codexQuickWinScore(item) {
+  if (CODEX_QUICKWIN_AVOID_KEYS.has(item.key)) {
+    return -100;
+  }
+
+  let score = 0;
+  if (CODEX_QUICKWIN_CONFIG_KEYS.has(item.key)) {
+    score += 40;
+  } else if (CODEX_QUICKWIN_FILE_KEYS.has(item.key)) {
+    score += 34;
+  } else if (CODEX_QUICKWIN_DOC_KEYS.has(item.key)) {
+    score += 26;
+  } else if (CODEX_QUICKWIN_POLICY_KEYS.has(item.key)) {
+    score += 20;
+  }
+
+  score += item.impact === 'low' ? 8 : item.impact === 'medium' ? 6 : item.impact === 'high' ? 4 : 0;
+  score -= Math.min((item.fix || '').length, 240) / 24;
+  return score;
+}
+
+function getQuickWins(failed, options = {}) {
   const pool = getPrioritizedFailed(failed);
+
+  if (options.platform === 'codex') {
+    const codexPool = pool.filter((item) => !CODEX_QUICKWIN_AVOID_KEYS.has(item.key));
+    const rankedPool = (codexPool.length > 0 ? codexPool : pool)
+      .slice()
+      .sort((a, b) => codexQuickWinScore(b) - codexQuickWinScore(a));
+    return rankedPool.slice(0, 3);
+  }
 
   // QuickWins prioritize short fixes (easy to implement) first, then impact
   return [...pool]
@@ -106,15 +447,21 @@ function getRecommendationPriorityScore(item, outcomeSummaryByKey = {}) {
   return impactScore + (feedbackAdjustment * 10) - brevityPenalty;
 }
 
-function buildTopNextActions(failed, limit = 5, outcomeSummaryByKey = {}) {
+function buildTopNextActions(failed, limit = 5, outcomeSummaryByKey = {}, options = {}) {
   const pool = getPrioritizedFailed(failed);
 
   return [...pool]
     .sort((a, b) => {
-      return getRecommendationPriorityScore(b, outcomeSummaryByKey) - getRecommendationPriorityScore(a, outcomeSummaryByKey);
+      const scoreB = options.platform === 'codex'
+        ? codexPriorityScore(b, outcomeSummaryByKey)
+        : getRecommendationPriorityScore(b, outcomeSummaryByKey);
+      const scoreA = options.platform === 'codex'
+        ? codexPriorityScore(a, outcomeSummaryByKey)
+        : getRecommendationPriorityScore(a, outcomeSummaryByKey);
+      return scoreB - scoreA;
     })
     .slice(0, limit)
-    .map(({ key, name, impact, fix, category }) => {
+    .map(({ key, id, name, impact, fix, category }) => {
       const feedback = outcomeSummaryByKey[key] || null;
       const rankingAdjustment = getRecommendationAdjustment(outcomeSummaryByKey, key);
       const signals = [
@@ -127,18 +474,31 @@ function buildTopNextActions(failed, limit = 5, outcomeSummaryByKey = {}) {
         signals.push(`ranking-adjustment:${rankingAdjustment >= 0 ? '+' : ''}${rankingAdjustment}`);
       }
 
+      const fullItem = pool.find((item) => item.key === key) || { key, id, name, impact, fix, category };
+      const evidenceClass = options.platform === 'codex' ? codexEvidenceClass(fullItem) : (feedback ? 'measured' : 'estimated');
+      const priorityScore = options.platform === 'codex'
+        ? codexPriorityScore(fullItem, outcomeSummaryByKey)
+        : Math.max(0, Math.min(100, Math.round(getRecommendationPriorityScore(fullItem, outcomeSummaryByKey) / 3)));
+
+      signals.push(`evidence:${evidenceClass}`);
+      if (options.platform === 'codex' && CODEX_HARD_FAIL_KEYS.has(key)) {
+        signals.push('hard-fail:true');
+      }
+
       return ({
       key,
+      id,
       name,
       impact,
       category,
       module: CATEGORY_MODULES[category] || category,
       fix,
+      priorityScore,
       why: ACTION_RATIONALES[key] || fix,
       risk: riskFromImpact(impact),
       confidence: confidenceFromImpact(impact),
       signals,
-      evidenceClass: feedback ? 'measured' : 'estimated',
+      evidenceClass,
       rankingAdjustment,
       feedback: feedback ? {
         total: feedback.total,
@@ -153,11 +513,60 @@ function buildTopNextActions(failed, limit = 5, outcomeSummaryByKey = {}) {
     });
 }
 
+function computeCategoryScores(applicable, passed) {
+  const grouped = {};
+
+  for (const item of applicable) {
+    const category = item.category || 'unknown';
+    if (!grouped[category]) {
+      grouped[category] = { passed: 0, total: 0, earnedPoints: 0, maxPoints: 0 };
+    }
+    grouped[category].total += 1;
+    grouped[category].maxPoints += WEIGHTS[item.impact] || 5;
+  }
+
+  for (const item of passed) {
+    const category = item.category || 'unknown';
+    if (!grouped[category]) continue;
+    grouped[category].passed += 1;
+    grouped[category].earnedPoints += WEIGHTS[item.impact] || 5;
+  }
+
+  const result = {};
+  for (const [category, summary] of Object.entries(grouped)) {
+    result[category] = {
+      ...summary,
+      score: summary.maxPoints > 0 ? Math.round((summary.earnedPoints / summary.maxPoints) * 100) : 0,
+    };
+  }
+
+  return result;
+}
+
 function inferSuggestedNextCommand(result) {
+  if (result.platform === 'codex') {
+    if (result.failed === 0) {
+      return 'npx nerviq --platform codex augment';
+    }
+
+    const actionKeys = new Set((result.topNextActions || []).map(item => item.key));
+    if (
+      result.score < 50 ||
+      actionKeys.has('codexAgentsMd') ||
+      actionKeys.has('codexConfigExists') ||
+      actionKeys.has('codexNoDangerFullAccess') ||
+      actionKeys.has('codexApprovalPolicyExplicit')
+    ) {
+      return 'npx nerviq --platform codex suggest-only';
+    }
+
+    return 'npx nerviq --platform codex augment';
+  }
+
   const actionKeys = new Set((result.topNextActions || []).map(item => item.key));
 
   if (result.failed === 0) {
-    return 'npx claudex-setup augment';
+    return 'npx nerviq augment';
   }
 
   if (
@@ -167,28 +576,120 @@ function inferSuggestedNextCommand(result) {
     actionKeys.has('settingsPermissions') ||
     actionKeys.has('permissionDeny')
   ) {
-    return 'npx claudex-setup setup';
+    return 'npx nerviq setup';
   }
 
   if (result.score < 80) {
-    return 'npx claudex-setup suggest-only';
+    return 'npx nerviq suggest-only';
   }
 
-  return 'npx claudex-setup augment';
+  return 'npx nerviq augment';
+}
+
+function getPlatformScopeNote(spec, ctx) {
+  if (spec.platform !== 'codex') {
+    return null;
+  }
+
+  const hasClaudeSurface = Boolean(
+    (typeof ctx.fileContent === 'function' && ctx.fileContent('CLAUDE.md')) ||
+    (typeof ctx.hasDir === 'function' && ctx.hasDir('.claude'))
+  );
+
+  if (!hasClaudeSurface) {
+    return null;
+  }
+
+  return {
+    kind: 'codex-only-pass',
+    message: 'This is a Codex-only pass. Claude Code surfaces were also detected and should be audited separately with `npx nerviq`.',
+  };
+}
+
+function getPlatformCaveats(spec, ctx) {
+  if (spec.platform !== 'codex') {
+    return [];
+  }
+
+  const caveats = [];
+  const hooksJson = typeof ctx.hooksJsonContent === 'function' ? (ctx.hooksJsonContent() || '') : '';
+  const agentsContent = typeof ctx.agentsMdContent === 'function' ? (ctx.agentsMdContent() || '') : '';
+  const hooksClaimed = Boolean(
+    hooksJson ||
+    (typeof ctx.hasDir === 'function' && ctx.hasDir('.codex/hooks')) ||
+    /\bhooks?\b|\bSessionStart\b|\bPreToolUse\b|\bPostToolUse\b|\bUserPromptSubmit\b|\bStop\b/i.test(agentsContent)
+  );
+
+  if (process.platform === 'win32') {
+    caveats.push({
+      key: 'codex-windows-hooks',
+      severity: hooksClaimed ? 'critical' : 'info',
+      title: 'Codex hooks are not available on Windows',
+      message: hooksClaimed
+        ? 'This repo claims Codex hooks, but native Windows sessions do not execute them. Keep enforcement in rules, CI, or another documented fallback.'
+        : 'Native Windows sessions do not execute Codex hooks. If you add hooks later, treat them as non-enforcing on Windows and keep critical enforcement in rules or CI.',
+      file: hooksJson ? '.codex/hooks.json' : null,
+      line: hooksJson ? 1 : null,
+    });
+  }
+
+  const maxThreads = typeof ctx.configValue === 'function' ? ctx.configValue('agents.max_threads') : undefined;
+  caveats.push({
+    key: 'codex-max-threads-default',
+    severity: typeof maxThreads === 'number' && maxThreads > 6 ? 'warning' : 'info',
+    title: 'Codex agent thread concurrency defaults to 6 when unset',
+    message: typeof maxThreads === 'number'
+      ? `This repo sets agents.max_threads = ${maxThreads}. Codex defaults to 6 when unset, so any higher concurrency assumption should be validated in the runtime you actually use.`
+      : 'Codex defaults agents.max_threads to 6 when unset. If your workflow depends on heavy parallel subagent usage, set it intentionally and validate the behavior in your real runtime.',
+    file: typeof ctx.fileContent === 'function' && ctx.fileContent('.codex/config.toml') ? '.codex/config.toml' : null,
+    line: typeof ctx.lineNumber === 'function' ? (ctx.lineNumber('.codex/config.toml', /\bagents\.max_threads\b|\bmax_threads\b/i) || null) : null,
+  });
+
+  return caveats;
+}
+
+function getCodexDomainPackSignals(ctx) {
+  return {
+    instructionPath: typeof ctx.agentsMdPath === 'function' ? ctx.agentsMdPath() : null,
+    trust: {
+      approvalPolicy: typeof ctx.configValue === 'function' ? (ctx.configValue('approval_policy') || null) : null,
+      sandboxMode: typeof ctx.configValue === 'function' ? (ctx.configValue('sandbox_mode') || null) : null,
+      isTrustedProject: typeof ctx.isProjectTrusted === 'function' ? ctx.isProjectTrusted() : false,
+    },
+    counts: {
+      rules: typeof ctx.ruleFiles === 'function' ? ctx.ruleFiles().length : 0,
+      workflows: typeof ctx.workflowFiles === 'function' ? ctx.workflowFiles().length : 0,
+      mcpServers: typeof ctx.mcpServers === 'function' ? Object.keys(ctx.mcpServers() || {}).length : 0,
+    },
+  };
 }
 
 function printLiteAudit(result, dir) {
   console.log('');
-  console.log(colorize('  claudex-setup quick scan', 'bold'));
+  const productLabel = result.platform === 'codex' ? 'nerviq codex quick scan' : 'nerviq quick scan';
+  console.log(colorize(`  ${productLabel}`, 'bold'));
   console.log(colorize('  ═══════════════════════════════════════', 'dim'));
   console.log(colorize(`  Scanning: ${dir}`, 'dim'));
   console.log('');
   console.log(`  Score: ${colorize(`${result.score}/100`, 'bold')}`);
+  if (result.platformScopeNote) {
+    console.log(colorize(`  Scope: ${result.platformScopeNote.message}`, 'dim'));
+  }
+  if (result.platformCaveats && result.platformCaveats.length > 0) {
+    console.log(colorize('  Platform caveats:', 'yellow'));
+    result.platformCaveats.slice(0, 2).forEach((item) => {
+      console.log(colorize(`     - ${item.title}: ${item.message}`, 'dim'));
+    });
+  }
   console.log('');
 
   if (result.failed === 0) {
-    console.log(colorize('  Your Claude setup looks solid.', 'green'));
+    const platformLabel = result.platform === 'codex' ? 'Codex' : 'Claude';
+    console.log(colorize(`  Your ${platformLabel} setup looks solid.`, 'green'));
     console.log(`  Next: ${colorize(result.suggestedNextCommand, 'bold')}`);
+    if (result.platform === 'codex') {
+      console.log(colorize('  Note: Codex now supports no-write advisory flows via augment and suggest-only before setup/apply.', 'dim'));
+    }
     console.log('');
     return;
   }
@@ -202,6 +703,9 @@ function printLiteAudit(result, dir) {
   });
   console.log('');
   console.log(`  Ready? Run: ${colorize(result.suggestedNextCommand, 'bold')}`);
+  if (result.platform === 'codex') {
+    console.log(colorize('  Note: Codex now supports no-write advisory flows via augment and suggest-only before setup/apply.', 'dim'));
+  }
   console.log('');
 }
 
@@ -216,18 +720,23 @@ function printLiteAudit(result, dir) {
  * @returns {Promise<Object>} Audit result with score, passed/failed counts, quickWins, and topNextActions.
  */
 async function audit(options) {
+  const spec = getAuditSpec(options.platform || 'claude');
   const silent = options.silent || false;
-  const ctx = new ProjectContext(options.dir);
+  const ctx = new spec.ContextClass(options.dir);
   const stacks = ctx.detectStacks(STACKS);
   const results = [];
   const outcomeSummary = getRecommendationOutcomeSummary(options.dir);
 
   // Run all technique checks
-  for (const [key, technique] of Object.entries(TECHNIQUES)) {
+  for (const [key, technique] of Object.entries(spec.techniques)) {
     const passed = technique.check(ctx);
+    const file = typeof technique.file === 'function' ? (technique.file(ctx) ?? null) : (technique.file ?? null);
+    const line = typeof technique.line === 'function' ? (technique.line(ctx) ?? null) : (technique.line ?? null);
     results.push({
       key,
       ...technique,
+      file,
+      line: Number.isFinite(line) ? line : null,
       passed,
     });
   }
@@ -242,30 +751,57 @@ async function audit(options) {
   const medium = failed.filter(r => r.impact === 'medium');
 
   // Calculate score only from applicable checks
-  const weights = { critical: 15, high: 10, medium: 5, low: 2 };
-  const maxScore = applicable.reduce((sum, r) => sum + (weights[r.impact] || 5), 0);
-  const earnedScore = passed.reduce((sum, r) => sum + (weights[r.impact] || 5), 0);
+  const maxScore = applicable.reduce((sum, r) => sum + (WEIGHTS[r.impact] || 5), 0);
+  const earnedScore = passed.reduce((sum, r) => sum + (WEIGHTS[r.impact] || 5), 0);
   const score = maxScore > 0 ? Math.round((earnedScore / maxScore) * 100) : 0;
 
   // Detect scaffolded vs organic: if CLAUDE.md contains our version stamp, some checks
   // are passing because WE generated them, not the user
-  const claudeMd = ctx.claudeMdContent() || '';
-  const isScaffolded = claudeMd.includes('Generated by claudex-setup') ||
-    claudeMd.includes('claudex-setup');
-  // Scaffolded checks: things our setup creates (CLAUDE.md, hooks, commands, agents, rules, skills)
-  const scaffoldedKeys = new Set(['claudeMd', 'mermaidArchitecture', 'verificationLoop',
-    'hooks', 'customCommands', 'multipleCommands', 'agents', 'pathRules', 'multipleRules',
-    'skills', 'hooksConfigured', 'preToolUseHook', 'postToolUseHook', 'fewShotExamples',
-    'constraintBlocks', 'xmlTags']);
+  const instructionSource = spec.platform === 'codex'
+    ? (ctx.agentsMdContent ? (ctx.agentsMdContent() || '') : '')
+    : (ctx.claudeMdContent() || '');
+  const isScaffolded = instructionSource.includes('Generated by nerviq') ||
+    instructionSource.includes('nerviq');
+  // Scaffolded checks: things our setup creates (CLAUDE.md / AGENTS.md, hooks, commands, agents, rules, skills)
+  const scaffoldedKeys = spec.platform === 'codex'
+    ? new Set([
+      'codexAgentsMd',
+      'codexAgentsMdSubstantive',
+      'codexAgentsVerificationCommands',
+      'codexAgentsArchitecture',
+      'codexConfigExists',
+      'codexModelExplicit',
+      'codexReasoningEffortExplicit',
+      'codexWeakModelExplicit',
+      'codexSandboxModeExplicit',
+      'codexApprovalPolicyExplicit',
+      'codexFullAutoErrorModeExplicit',
+      'codexHistorySendToServerExplicit',
+    ])
+    : new Set(['claudeMd', 'mermaidArchitecture', 'verificationLoop',
+      'hooks', 'customCommands', 'multipleCommands', 'agents', 'pathRules', 'multipleRules',
+      'skills', 'hooksConfigured', 'preToolUseHook', 'postToolUseHook', 'fewShotExamples',
+      'constraintBlocks', 'xmlTags']);
   const organicPassed = passed.filter(r => !scaffoldedKeys.has(r.key));
   const scaffoldedPassed = passed.filter(r => scaffoldedKeys.has(r.key));
-  const organicEarned = organicPassed.reduce((sum, r) => sum + (weights[r.impact] || 5), 0);
+  const organicEarned = organicPassed.reduce((sum, r) => sum + (WEIGHTS[r.impact] || 5), 0);
   const organicScore = maxScore > 0 ? Math.round((organicEarned / maxScore) * 100) : 0;
-  const quickWins = getQuickWins(failed);
-  const topNextActions = buildTopNextActions(failed, 5, outcomeSummary.byKey);
+  const quickWins = getQuickWins(failed, { platform: spec.platform });
+  const topNextActions = buildTopNextActions(failed, 5, outcomeSummary.byKey, { platform: spec.platform });
+  const categoryScores = computeCategoryScores(applicable, passed);
+  const platformScopeNote = getPlatformScopeNote(spec, ctx);
+  const platformCaveats = getPlatformCaveats(spec, ctx);
+  const recommendedDomainPacks = spec.platform === 'codex'
+    ? detectCodexDomainPacks(ctx, stacks, getCodexDomainPackSignals(ctx))
+    : [];
   const result = {
+    platform: spec.platform,
+    platformLabel: spec.platformLabel,
+    platformVersion: spec.platformVersion,
     score,
     organicScore,
+    earnedPoints: earnedScore,
+    maxPoints: maxScore,
     isScaffolded,
     passed: passed.length,
     failed: failed.length,
@@ -273,17 +809,22 @@ async function audit(options) {
     checkCount: applicable.length,
     stacks,
     results,
+    categoryScores,
     quickWins: quickWins.map(({ key, name, impact, fix, category }) => ({ key, name, impact, category, fix })),
     topNextActions,
     recommendationOutcomes: {
       totalEntries: outcomeSummary.totalEntries,
       keysTracked: outcomeSummary.keys,
     },
+    platformScopeNote,
+    platformCaveats,
+    recommendedDomainPacks,
   };
   result.suggestedNextCommand = inferSuggestedNextCommand(result);
   result.liteSummary = {
     topNextActions: topNextActions.slice(0, 3),
     nextCommand: result.suggestedNextCommand,
+    platformCaveats: platformCaveats.slice(0, 2),
   };
 
   // Silent mode: skip all output, just return result
@@ -301,6 +842,11 @@ async function audit(options) {
     return result;
   }
 
+  if (options.format === 'sarif') {
+    console.log(JSON.stringify(formatSarif(result, { dir: options.dir }), null, 2));
+    return result;
+  }
+
   if (options.lite) {
     printLiteAudit(result, options.dir);
     sendInsights(result);
@@ -309,9 +855,30 @@ async function audit(options) {
 
   // Display results
   console.log('');
-  console.log(colorize('  claudex-setup audit', 'bold'));
+  const auditTitle = spec.platform === 'codex' ? 'nerviq codex audit' : 'nerviq audit';
+  console.log(colorize(`  ${auditTitle}`, 'bold'));
   console.log(colorize('  ═══════════════════════════════════════', 'dim'));
   console.log(colorize(`  Scanning: ${options.dir}`, 'dim'));
+  if (spec.platformVersion) {
+    console.log(colorize(`  Platform: ${spec.platformLabel} (${spec.platformVersion})`, 'blue'));
+  }
+  if (spec.platform === 'codex' && recommendedDomainPacks.length > 0) {
+    console.log(colorize(`  Domain packs: ${recommendedDomainPacks.map((pack) => pack.label).join(', ')}`, 'dim'));
+  }
+  if (platformScopeNote) {
+    console.log(colorize(`  Scope: ${platformScopeNote.message}`, 'dim'));
+  }
+  if (platformCaveats.length > 0) {
+    console.log(colorize('  Platform caveats', 'yellow'));
+    for (const caveat of platformCaveats) {
+      console.log(colorize(`     ${caveat.title}`, 'bold'));
+      console.log(colorize(`     → ${caveat.message}`, 'dim'));
+      if (caveat.file) {
+        console.log(colorize(`     at ${formatLocation(caveat.file, caveat.line)}`, 'dim'));
+      }
+    }
+    console.log('');
+  }
 
   if (stacks.length > 0) {
     console.log(colorize(`  Detected: ${stacks.map(s => s.label).join(', ')}`, 'blue'));
@@ -322,7 +889,7 @@ async function audit(options) {
   // Score
   console.log(`  ${progressBar(score)} ${colorize(`${score}/100`, 'bold')}`);
   if (isScaffolded && scaffoldedPassed.length > 0) {
-    console.log(colorize(`  Organic: ${organicScore}/100 (without claudex-setup generated files)`, 'dim'));
+    console.log(colorize(`  Organic: ${organicScore}/100 (without nerviq generated files)`, 'dim'));
   }
   console.log('');
 
@@ -340,6 +907,9 @@ async function audit(options) {
     console.log(colorize('  🔴 Critical (fix immediately)', 'red'));
     for (const r of critical) {
       console.log(`     ${colorize(r.name, 'bold')}`);
+      if (r.file) {
+        console.log(colorize(`     at ${formatLocation(r.file, r.line)}`, 'dim'));
+      }
       console.log(colorize(`     → ${r.fix}`, 'dim'));
     }
     console.log('');
@@ -349,6 +919,9 @@ async function audit(options) {
     console.log(colorize('  🟡 High Impact', 'yellow'));
     for (const r of high) {
       console.log(`     ${colorize(r.name, 'bold')}`);
+      if (r.file) {
+        console.log(colorize(`     at ${formatLocation(r.file, r.line)}`, 'dim'));
+      }
       console.log(colorize(`     → ${r.fix}`, 'dim'));
     }
     console.log('');
@@ -358,6 +931,9 @@ async function audit(options) {
     console.log(colorize('  🔵 Recommended', 'blue'));
     for (const r of medium) {
       console.log(`     ${colorize(r.name, 'bold')}`);
+      if (r.file) {
+        console.log(colorize(`     at ${formatLocation(r.file, r.line)}`, 'dim'));
+      }
       console.log(colorize(`     → ${r.fix}`, 'dim'));
     }
     console.log('');
@@ -375,6 +951,10 @@ async function audit(options) {
       console.log(colorize(`        Why: ${item.why}`, 'dim'));
       console.log(colorize(`        Trace: ${item.signals.join(' | ')}`, 'dim'));
       console.log(colorize(`        Risk: ${item.risk} | Confidence: ${item.confidence}`, 'dim'));
+      const sourceResult = result.results.find(r => r.key === item.key);
+      if (sourceResult && sourceResult.file) {
+        console.log(colorize(`        Evidence: ${formatLocation(sourceResult.file, sourceResult.line)}`, 'dim'));
+      }
       if (item.feedback) {
         const avgDelta = Number.isFinite(item.feedback.avgScoreDelta) ? ` | Avg score delta: ${item.feedback.avgScoreDelta >= 0 ? '+' : ''}${item.feedback.avgScoreDelta}` : '';
         console.log(colorize(`        Feedback: accepted ${item.feedback.accepted}, rejected ${item.feedback.rejected}, positive ${item.feedback.positive}, negative ${item.feedback.negative}${avgDelta}`, 'dim'));
@@ -390,6 +970,9 @@ async function audit(options) {
 
   if (failed.length > 0) {
     console.log(`  Next command: ${colorize(result.suggestedNextCommand, 'bold')}`);
+    if (result.platform === 'codex') {
+      console.log(colorize('  Codex now supports advisory no-write flows through augment and suggest-only before setup/apply.', 'dim'));
+    }
   }
 
   console.log('');
@@ -407,8 +990,8 @@ async function audit(options) {
     console.log('');
   }
 
-  console.log(colorize('  Backed by CLAUDEX research and evidence', 'dim'));
-  console.log(colorize('  https://github.com/DnaFin/claudex-setup', 'dim'));
+  console.log(colorize(`  Backed by CLAUDEX research and evidence for ${spec.platformLabel}`, 'dim'));
+  console.log(colorize('  https://github.com/nerviq/nerviq', 'dim'));
   console.log('');
 
   // Send anonymous insights (opt-in, privacy-first, fire-and-forget)

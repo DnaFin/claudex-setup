@@ -86,6 +86,61 @@ function buildWorkflowEvidence(before, after, analysisReport, governanceSummary)
   };
 }
 
+function buildCodexWorkflowEvidence(before, after, applyResult, analysisReport, governanceSummary) {
+  const tasks = [
+    {
+      key: 'discover-without-writes',
+      label: 'Discover next actions without writing files',
+      passed: before.checkCount > 0 && Array.isArray(before.quickWins),
+      evidence: `Baseline audit returned ${before.checkCount} applicable checks and ${before.quickWins.length} quick wins.`,
+    },
+    {
+      key: 'starter-safe-improvement',
+      label: 'Apply starter-safe Codex baseline in isolation',
+      passed: after.score >= before.score && after.failed <= before.failed,
+      evidence: `Score moved ${before.score} -> ${after.score}; failed checks moved ${before.failed} -> ${after.failed}.`,
+    },
+    {
+      key: 'preserve-existing-files',
+      label: 'Preserve existing files instead of overwriting them',
+      passed: Array.isArray(applyResult.preservedFiles),
+      evidence: `${applyResult.preservedFiles ? applyResult.preservedFiles.length : 0} files were preserved instead of overwritten.`,
+    },
+    {
+      key: 'governed-rollout-surface',
+      label: 'Expose governed rollout controls',
+      passed: governanceSummary.permissionProfiles.length >= 3 && governanceSummary.hookRegistry.length >= 1,
+      evidence: `${governanceSummary.permissionProfiles.length} profiles and ${governanceSummary.hookRegistry.length} governance surfaces available.`,
+    },
+    {
+      key: 'domain-pack-guidance',
+      label: 'Recommend Codex domain packs for the repo',
+      passed: Array.isArray(analysisReport.recommendedDomainPacks) && analysisReport.recommendedDomainPacks.length > 0,
+      evidence: (analysisReport.recommendedDomainPacks || []).map((pack) => pack.label).join(', ') || 'No Codex domain pack recommendation generated.',
+    },
+    {
+      key: 'rollback-surface',
+      label: 'Emit rollback evidence for writes',
+      passed: Boolean(applyResult.rollbackArtifact),
+      evidence: applyResult.rollbackArtifact
+        ? `Rollback artifact emitted at ${applyResult.rollbackArtifact}.`
+        : 'No rollback artifact emitted.',
+    },
+  ];
+
+  const passed = tasks.filter((task) => task.passed).length;
+  const total = tasks.length;
+  return {
+    taskPack: 'codex-baseline',
+    tasks,
+    summary: {
+      passed,
+      total,
+      coverageScore: total > 0 ? Math.round((passed / total) * 100) : 0,
+    },
+  };
+}
+
 function buildExecutiveSummary(before, after, workflowEvidence) {
   const scoreDelta = after.score - before.score;
   const organicDelta = after.organicScore - before.organicScore;
@@ -197,7 +252,8 @@ function renderBenchmarkMarkdown(report) {
  * @returns {Promise<Object>} Benchmark report with before/after scores, delta, and workflow evidence.
  */
 async function runBenchmark(options) {
-  const before = await audit({ dir: options.dir, silent: true });
+  const platform = options.platform || 'claude';
+  const before = await audit({ dir: options.dir, silent: true, platform });
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'claudex-benchmark-'));
   const sandboxDir = path.join(tempRoot, 'repo');
 
@@ -209,21 +265,25 @@ async function runBenchmark(options) {
       silent: true,
       profile: options.profile,
       mcpPacks: options.mcpPacks || [],
+      platform,
     });
-    const after = await audit({ dir: sandboxDir, silent: true });
-    const analysisReport = await analyzeProject({ dir: sandboxDir, mode: 'suggest-only' });
-    const governanceSummary = getGovernanceSummary();
-    const workflowEvidence = buildWorkflowEvidence(before, after, analysisReport, governanceSummary);
+    const after = await audit({ dir: sandboxDir, silent: true, platform });
+    const analysisReport = await analyzeProject({ dir: sandboxDir, mode: 'suggest-only', platform });
+    const governanceSummary = getGovernanceSummary(platform);
+    const workflowEvidence = platform === 'codex'
+      ? buildCodexWorkflowEvidence(before, after, applyResult, analysisReport, governanceSummary)
+      : buildWorkflowEvidence(before, after, analysisReport, governanceSummary);
 
     return {
       schemaVersion: 1,
-      generatedBy: `claudex-setup@${version}`,
+      generatedBy: `nerviq@${version}`,
       createdAt: new Date().toISOString(),
       directory: options.dir,
+      platform,
       methodology: [
         'Run a baseline audit on the source repo.',
         'Copy the repo into a temporary isolated workspace.',
-        'Apply starter-safe Claude artifacts only on the isolated copy.',
+        `Apply starter-safe ${platform === 'codex' ? 'Codex' : 'Claude'} artifacts only on the isolated copy.`,
         'Re-run the audit and compare the results.',
       ],
       before: summarizeAudit(before),
@@ -250,7 +310,7 @@ function printBenchmark(report, options = {}) {
   }
 
   console.log('');
-  console.log('  claudex-setup benchmark');
+  console.log('  nerviq benchmark');
   console.log('  ═══════════════════════════════════════');
   console.log('  Runs in an isolated temp copy. Your current repo is not modified.');
   console.log('');

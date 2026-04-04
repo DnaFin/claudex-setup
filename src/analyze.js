@@ -6,8 +6,10 @@
 const path = require('path');
 const { audit } = require('./audit');
 const { ProjectContext } = require('./context');
+const { CodexProjectContext } = require('./codex/context');
 const { STACKS } = require('./techniques');
 const { detectDomainPacks } = require('./domain-packs');
+const { detectCodexDomainPacks } = require('./codex/domain-packs');
 const { recommendMcpPacks } = require('./mcp-packs');
 
 const COLORS = {
@@ -111,6 +113,11 @@ function collectClaudeAssets(ctx) {
   };
 
   return {
+    label: 'Claude',
+    instructionLabel: 'CLAUDE.md',
+    configLabel: 'Settings',
+    instructionPath: assetFiles.claudeMd,
+    configPath: assetFiles.settings,
     files: assetFiles,
     counts: {
       commands: assetFiles.commands.length,
@@ -125,10 +132,70 @@ function collectClaudeAssets(ctx) {
       hasDenyRules: Array.isArray(settings.permissions.deny) && settings.permissions.deny.length > 0,
     } : null,
     settingsSource: assetFiles.settings,
+    summaryLine: `Commands: ${assetFiles.commands.length} | Rules: ${assetFiles.rules.length} | Hooks: ${assetFiles.hooks.length} | Agents: ${assetFiles.agents.length} | Skills: ${assetFiles.skills.length} | MCP servers: ${settings && settings.mcpServers ? Object.keys(settings.mcpServers).length : 0}`,
   };
 }
 
-function detectMaturity(assets) {
+function collectCodexAssets(ctx) {
+  const agentsMd = ctx.agentsMdPath ? ctx.agentsMdPath() : null;
+  const configPath = ctx.fileContent('.codex/config.toml') ? '.codex/config.toml' : null;
+  const hooksJson = ctx.hooksJsonContent ? ctx.hooksJsonContent() : null;
+  const rules = ctx.ruleFiles ? ctx.ruleFiles() : [];
+  const skills = ctx.skillDirs ? ctx.skillDirs().map((name) => `.agents/skills/${name}`) : [];
+  const agents = ctx.customAgentFiles ? ctx.customAgentFiles().map((file) => `.codex/agents/${file}`) : [];
+  const workflows = ctx.workflowFiles ? ctx.workflowFiles() : [];
+  const mcpServers = ctx.mcpServers ? Object.keys(ctx.mcpServers() || {}).length : 0;
+
+  return {
+    label: 'Codex',
+    instructionLabel: 'AGENTS.md',
+    configLabel: 'Config',
+    instructionPath: agentsMd,
+    configPath,
+    files: {
+      agentsMd,
+      config: configPath,
+      rules,
+      hooks: hooksJson ? ['.codex/hooks.json'] : [],
+      skills,
+      agents,
+      workflows,
+    },
+    counts: {
+      rules: rules.length,
+      hooks: hooksJson ? 1 : 0,
+      skills: skills.length,
+      agents: agents.length,
+      workflows: workflows.length,
+      mcpServers,
+    },
+    trust: {
+      approvalPolicy: ctx.configValue ? (ctx.configValue('approval_policy') || null) : null,
+      sandboxMode: ctx.configValue ? (ctx.configValue('sandbox_mode') || null) : null,
+      isTrustedProject: ctx.isProjectTrusted ? ctx.isProjectTrusted() : false,
+    },
+    summaryLine: `Rules: ${rules.length} | Hooks: ${hooksJson ? 1 : 0} | Skills: ${skills.length} | Subagents: ${agents.length} | Workflows: ${workflows.length} | MCP servers: ${mcpServers}`,
+  };
+}
+
+function detectMaturity(platform, assets) {
+  if (platform === 'codex') {
+    let score = 0;
+    if (assets.instructionPath) score += 2;
+    if (assets.configPath) score += 2;
+    if (assets.counts.rules > 0) score += 1;
+    if (assets.counts.hooks > 0) score += 1;
+    if (assets.counts.skills > 0) score += 1;
+    if (assets.counts.agents > 0) score += 1;
+    if (assets.counts.workflows > 0) score += 1;
+    if (assets.counts.mcpServers > 0) score += 1;
+
+    if (score === 0) return 'none';
+    if (score <= 2) return 'starter';
+    if (score <= 5) return 'developing';
+    return 'mature';
+  }
+
   let score = 0;
   if (assets.files.claudeMd) score += 2;
   if (assets.files.settings) score += 1;
@@ -153,6 +220,17 @@ function riskFromImpact(impact) {
 function moduleFromCategory(category) {
   const map = {
     memory: 'CLAUDE.md',
+    instructions: 'AGENTS.md / instructions',
+    config: 'config.toml',
+    trust: 'trust-and-safety',
+    rules: 'rules',
+    hooks: 'hooks',
+    mcp: 'mcp',
+    skills: 'skills',
+    agents: 'subagents',
+    review: 'review',
+    automation: 'automation',
+    local: 'local-environments',
     quality: 'verification',
     git: 'safety',
     workflow: 'commands-agents-skills',
@@ -192,6 +270,28 @@ const STRENGTH_REASONS = {
   agents: 'Specialized agents delegate complex tasks effectively.',
   noSecretsInClaude: 'No secrets in config — good security hygiene.',
   gitIgnoreEnv: 'Environment files are properly excluded from git.',
+  codexAgentsMd: 'Codex has a repo-native instruction surface instead of starting cold.',
+  codexAgentsMdSubstantive: 'A substantive AGENTS.md reduces drift and gives Codex a stable repo contract.',
+  codexAgentsVerificationCommands: 'Codex can verify its changes because the repo states how to test and build.',
+  codexAgentsArchitecture: 'Codex has a repo map to orient itself before editing.',
+  codexConfigExists: 'Codex runtime posture is reviewable because the project config is versioned.',
+  codexModelExplicit: 'The primary Codex model is explicit instead of silently inheriting defaults.',
+  codexReasoningEffortExplicit: 'Reasoning depth is explicit and reviewable.',
+  codexWeakTaskModelExplicit: 'Delegation for weaker tasks is explicit and cost-aware.',
+  codexApprovalPolicyExplicit: 'Approval behavior is explicit, predictable, and reviewable.',
+  codexSandboxExplicit: 'Sandbox posture is explicit instead of accidental.',
+  codexHistorySendToServerExplicit: 'History sync posture is reviewable in version control.',
+  codexRulesForRiskyCommands: 'Risky command classes are governed by Codex-native rules.',
+  codexHooksFeatureExplicit: 'Hook posture is explicit instead of implied.',
+  codexMcpExternalToolsConfigured: 'Codex has live MCP context instead of relying only on static repo files.',
+  codexSkillsDirPresentWhenUsed: 'Repo-local skills keep specialization versioned and reviewable.',
+  codexSkillsHaveMetadata: 'Skill metadata is explicit enough for reliable invocation.',
+  codexCustomAgentsRequiredFields: 'Custom subagents are structured and reviewable.',
+  codexExecUsageSafe: 'Codex automation posture is documented and safer to operate.',
+  codexGitHubActionSafeStrategy: 'CI posture is explicit and safer for Codex in automation.',
+  codexReviewWorkflowDocumented: 'A documented review path makes risky Codex changes easier to control.',
+  codexArtifactsSharedIntentionally: 'Codex repo artifacts are shared intentionally instead of being hidden from the team.',
+  codexAgentsMentionModernFeatures: 'AGENTS.md acknowledges the modern Codex surfaces the repo actually uses.',
 };
 
 function toStrengths(results) {
@@ -267,7 +367,27 @@ function toRecommendations(auditResult) {
   }));
 }
 
-function buildOptionalModules(stacks, assets) {
+function buildOptionalModules(platform, stacks, assets, recommendedDomainPacks = []) {
+  if (platform === 'codex') {
+    const modules = [];
+
+    if (!assets.instructionPath) modules.push('AGENTS.md baseline');
+    if (!assets.configPath) modules.push('Codex config baseline');
+    if (assets.counts.rules === 0) modules.push('Codex rules baseline');
+    if (assets.counts.hooks === 0) modules.push('Hooks scaffold');
+    if (assets.counts.skills === 0) modules.push('Repo-local skills starter');
+    if (assets.counts.agents === 0) modules.push('Subagents starter');
+    if (assets.counts.mcpServers === 0) modules.push('MCP baseline');
+    if (assets.counts.workflows === 0) modules.push('CI / review workflow starter');
+    for (const pack of recommendedDomainPacks) {
+      for (const moduleName of pack.recommendedModules || []) {
+        modules.push(moduleName);
+      }
+    }
+
+    return [...new Set(modules)].slice(0, 8);
+  }
+
   const stackKeys = stacks.map(s => s.key);
   const modules = [];
 
@@ -284,7 +404,31 @@ function buildOptionalModules(stacks, assets) {
   return [...new Set(modules)].slice(0, 8);
 }
 
-function buildRiskNotes(auditResult, assets, maturity) {
+function buildRiskNotes(platform, auditResult, assets, maturity) {
+  if (platform === 'codex') {
+    const notes = [];
+    if (!assets.instructionPath) notes.push('No AGENTS.md exists yet, so Codex starts without repo-specific instructions.');
+    if (!assets.configPath) notes.push('No .codex/config.toml exists yet, so approval, sandbox, and history posture are implicit.');
+    if (assets.trust && assets.trust.approvalPolicy === 'never') {
+      notes.push('approval_policy is set to `never`; make sure that autonomy level is truly intended for this repo.');
+    }
+    if (assets.trust && assets.trust.sandboxMode === 'danger-full-access') {
+      notes.push('sandbox_mode is `danger-full-access`, which removes Codex runtime guardrails and should stay exceptional.');
+    }
+    if (assets.counts.mcpServers > 0 && assets.trust && !assets.trust.isTrustedProject) {
+      notes.push('This repo appears to rely on project-scoped MCP, but the project trust path is not clearly established.');
+    }
+    if (maturity === 'mature') {
+      notes.push('This repo already has meaningful Codex assets, so advisory mode should preserve and extend them instead of flattening them.');
+    }
+    for (const caveat of auditResult.platformCaveats || []) {
+      if (caveat && caveat.message) {
+        notes.push(caveat.message);
+      }
+    }
+    return [...new Set(notes)].slice(0, 5);
+  }
+
   const notes = [];
   if (!assets.files.claudeMd) notes.push('No CLAUDE.md exists yet, so Claude has no persistent project-specific guidance.');
   if (assets.permissions && assets.permissions.defaultMode === 'bypassPermissions') {
@@ -303,6 +447,21 @@ function buildRiskNotes(auditResult, assets, maturity) {
 }
 
 function buildRolloutOrder(report) {
+  if (report.platform === 'codex') {
+    const steps = [];
+    if (!report.existingPlatformAssets.instructionPath) steps.push('Create a project-specific AGENTS.md baseline');
+    if (!report.existingPlatformAssets.configPath) steps.push('Create a safe `.codex/config.toml` baseline with explicit trust settings');
+    if (report.recommendedDomainPacks.length > 0) {
+      steps.push(`Start from the ${report.recommendedDomainPacks.map((pack) => pack.label).join(' + ')} pack guidance before adding optional Codex surfaces`);
+    }
+    if (report.gapsIdentified.some(g => g.category === 'trust' || g.category === 'config')) steps.push('Make approval, sandbox, history, and network posture explicit');
+    if (report.gapsIdentified.some(g => g.category === 'rules')) steps.push('Add Codex rules for risky command classes before expanding automation');
+    if (report.gapsIdentified.some(g => g.category === 'mcp')) steps.push('Add MCP only where the repo really needs live external context and the trust boundary is clear');
+    if (report.gapsIdentified.some(g => g.category === 'skills' || g.category === 'agents')) steps.push('Add skills and subagents only after the baseline contract is stable');
+    if (report.gapsIdentified.some(g => g.category === 'review' || g.category === 'automation')) steps.push('Add review and CI automation after local verification is explicit');
+    return steps.length > 0 ? steps : ['Preserve the current Codex baseline and tighten remaining quality-deep items'];
+  }
+
   const steps = [];
   if (!report.existingClaudeAssets.claudeMd) steps.push('Create a project-specific CLAUDE.md baseline');
   if (report.gapsIdentified.some(g => g.category === 'security')) steps.push('Add safe settings and deny rules');
@@ -322,17 +481,24 @@ function buildRolloutOrder(report) {
  */
 async function analyzeProject(options) {
   const mode = options.mode || 'augment';
-  const ctx = new ProjectContext(options.dir);
+  const platform = options.platform === 'codex' ? 'codex' : 'claude';
+  const platformLabel = platform === 'codex' ? 'Codex' : 'Claude';
+  const ContextClass = platform === 'codex' ? CodexProjectContext : ProjectContext;
+  const ctx = new ContextClass(options.dir);
   const stacks = ctx.detectStacks(STACKS);
-  const auditResult = await audit({ ...options, silent: true });
-  const assets = collectClaudeAssets(ctx);
+  const auditResult = await audit({ ...options, silent: true, platform });
+  const assets = platform === 'codex' ? collectCodexAssets(ctx) : collectClaudeAssets(ctx);
   const metadata = detectProjectMetadata(ctx);
-  const maturity = detectMaturity(assets);
+  const maturity = detectMaturity(platform, assets);
   const mainDirs = detectMainDirs(ctx);
-  const recommendedDomainPacks = detectDomainPacks(ctx, stacks, assets);
-  const recommendedMcpPacks = recommendMcpPacks(stacks, recommendedDomainPacks, { ctx, assets });
+  const recommendedDomainPacks = platform === 'codex'
+    ? detectCodexDomainPacks(ctx, stacks, assets)
+    : detectDomainPacks(ctx, stacks, assets);
+  const recommendedMcpPacks = platform === 'claude' ? recommendMcpPacks(stacks, recommendedDomainPacks, { ctx, assets }) : [];
 
   const report = {
+    platform,
+    platformLabel,
     mode,
     writeBehavior: 'No files are written in this mode.',
     projectSummary: {
@@ -346,12 +512,26 @@ async function analyzeProject(options) {
       organicScore: auditResult.organicScore,
       checkCount: auditResult.checkCount,
     },
+    platformScopeNote: auditResult.platformScopeNote || null,
+    platformCaveats: auditResult.platformCaveats || [],
     detectedArchitecture: {
       repoType: stacks.length > 0 ? 'stack-detected repo' : 'generic repo',
       mainDirectories: mainDirs,
       stackSignals: stacks.map(s => s.key),
     },
-    existingClaudeAssets: {
+    existingPlatformAssets: assets,
+    strengthsPreserved: toStrengths(auditResult.results),
+    gapsIdentified: toGaps(auditResult.results),
+    topNextActions: auditResult.topNextActions || auditResult.quickWins,
+    recommendedImprovements: toRecommendations(auditResult),
+    recommendedDomainPacks,
+    recommendedMcpPacks,
+    riskNotes: buildRiskNotes(platform, auditResult, assets, maturity),
+    optionalModules: buildOptionalModules(platform, stacks, assets, recommendedDomainPacks),
+  };
+
+  if (platform === 'claude') {
+    report.existingClaudeAssets = {
       claudeMd: assets.files.claudeMd,
       settings: assets.settingsSource,
       commands: assets.files.commands,
@@ -360,16 +540,19 @@ async function analyzeProject(options) {
       agents: assets.files.agents,
       skills: assets.files.skills,
       mcpServers: assets.counts.mcpServers,
-    },
-    strengthsPreserved: toStrengths(auditResult.results),
-    gapsIdentified: toGaps(auditResult.results),
-    topNextActions: auditResult.topNextActions || auditResult.quickWins,
-    recommendedImprovements: toRecommendations(auditResult),
-    recommendedDomainPacks,
-    recommendedMcpPacks,
-    riskNotes: buildRiskNotes(auditResult, assets, maturity),
-    optionalModules: buildOptionalModules(stacks, assets),
-  };
+    };
+  } else {
+    report.existingCodexAssets = {
+      agentsMd: assets.instructionPath,
+      config: assets.configPath,
+      rules: assets.files.rules,
+      hooks: assets.files.hooks,
+      skills: assets.files.skills,
+      agents: assets.files.agents,
+      workflows: assets.files.workflows,
+      mcpServers: assets.counts.mcpServers,
+    };
+  }
 
   report.suggestedRolloutOrder = buildRolloutOrder(report);
   return report;
@@ -383,15 +566,22 @@ function printAnalysis(report, options = {}) {
 
   const modeLabel = report.mode === 'suggest-only' ? 'suggest-only' : report.mode;
   console.log('');
-  console.log(c(`  claudex-setup ${modeLabel}`, 'bold'));
+  console.log(c(`  nerviq ${report.platform === 'codex' ? 'codex ' : ''}${modeLabel}`, 'bold'));
   console.log(c('  ═══════════════════════════════════════', 'dim'));
   console.log(c(`  ${report.writeBehavior}`, 'dim'));
+  if (report.platformScopeNote) {
+    console.log(c(`  ${report.platformScopeNote.message}`, 'dim'));
+  }
   console.log('');
 
   console.log(c('  Project Summary', 'blue'));
   console.log(`  ${report.projectSummary.name}${report.projectSummary.description ? ` — ${report.projectSummary.description}` : ''}`);
   console.log(c(`  Stack: ${report.projectSummary.stacks.join(', ') || 'Unknown'}`, 'dim'));
-  console.log(c(`  Domain packs: ${report.projectSummary.domains.join(', ') || 'Baseline General'}`, 'dim'));
+  if (report.platform === 'claude') {
+    console.log(c(`  Domain packs: ${report.projectSummary.domains.join(', ') || 'Baseline General'}`, 'dim'));
+  } else {
+    console.log(c(`  Platform: ${report.platformLabel}`, 'dim'));
+  }
   console.log(c(`  Maturity: ${report.projectSummary.maturity} | Score: ${report.projectSummary.score}/100 | Organic: ${report.projectSummary.organicScore}/100`, 'dim'));
   console.log('');
 
@@ -399,10 +589,18 @@ function printAnalysis(report, options = {}) {
   console.log(c(`  Main directories: ${report.detectedArchitecture.mainDirectories.join(', ') || 'No strong structure detected yet'}`, 'dim'));
   console.log('');
 
-  console.log(c('  Existing Claude Assets', 'blue'));
-  console.log(c(`  CLAUDE.md: ${report.existingClaudeAssets.claudeMd || 'missing'}`, 'dim'));
-  console.log(c(`  Settings: ${report.existingClaudeAssets.settings || 'missing'}`, 'dim'));
-  console.log(c(`  Commands: ${report.existingClaudeAssets.commands.length} | Rules: ${report.existingClaudeAssets.rules.length} | Hooks: ${report.existingClaudeAssets.hooks.length} | Agents: ${report.existingClaudeAssets.agents.length} | Skills: ${report.existingClaudeAssets.skills.length}`, 'dim'));
+  console.log(c(`  Existing ${report.existingPlatformAssets.label} Assets`, 'blue'));
+  console.log(c(`  ${report.existingPlatformAssets.instructionLabel}: ${report.existingPlatformAssets.instructionPath || 'missing'}`, 'dim'));
+  console.log(c(`  ${report.existingPlatformAssets.configLabel}: ${report.existingPlatformAssets.configPath || 'missing'}`, 'dim'));
+  console.log(c(`  ${report.existingPlatformAssets.summaryLine}`, 'dim'));
+  if (report.platform === 'codex' && report.existingPlatformAssets.trust) {
+    const trustBits = [
+      `Approval: ${report.existingPlatformAssets.trust.approvalPolicy || 'implicit'}`,
+      `Sandbox: ${report.existingPlatformAssets.trust.sandboxMode || 'implicit'}`,
+      `Trusted path: ${report.existingPlatformAssets.trust.isTrustedProject ? 'yes' : 'no'}`,
+    ];
+    console.log(c(`  ${trustBits.join(' | ')}`, 'dim'));
+  }
   console.log('');
 
   if (report.strengthsPreserved.length > 0) {
@@ -461,6 +659,15 @@ function printAnalysis(report, options = {}) {
     console.log('');
   }
 
+  if (report.platformCaveats && report.platformCaveats.length > 0) {
+    console.log(c('  Platform Caveats', 'yellow'));
+    for (const item of report.platformCaveats) {
+      console.log(`  - ${item.title}`);
+      console.log(c(`    ${item.message}`, 'dim'));
+    }
+    console.log('');
+  }
+
   if (report.riskNotes.length > 0) {
     console.log(c('  Risk Notes', 'red'));
     for (const note of report.riskNotes) {
@@ -492,14 +699,34 @@ function printAnalysis(report, options = {}) {
 function exportMarkdown(report) {
   const lines = [];
   lines.push(`# Claudex Setup Analysis Report`);
-  lines.push(`## ${report.mode === 'suggest-only' ? 'Suggest-Only' : 'Augment'} Mode`);
+  lines.push(`## ${report.platformLabel} ${report.mode === 'suggest-only' ? 'Suggest-Only' : 'Augment'} Mode`);
   lines.push('');
   lines.push(`**Project:** ${report.projectSummary.name}${report.projectSummary.description ? ` — ${report.projectSummary.description}` : ''}`);
   lines.push(`**Date:** ${new Date().toISOString().split('T')[0]}`);
+  lines.push(`**Platform:** ${report.platformLabel}`);
   lines.push(`**Score:** ${report.projectSummary.score}/100 | **Organic:** ${report.projectSummary.organicScore}/100`);
   lines.push(`**Stacks:** ${report.projectSummary.stacks.join(', ') || 'None detected'}`);
-  lines.push(`**Domain Packs:** ${report.projectSummary.domains.join(', ') || 'Baseline General'}`);
+  if (report.platform === 'claude') {
+    lines.push(`**Domain Packs:** ${report.projectSummary.domains.join(', ') || 'Baseline General'}`);
+  }
   lines.push(`**Maturity:** ${report.projectSummary.maturity}`);
+  lines.push('');
+
+  if (report.platformScopeNote) {
+    lines.push(`> ${report.platformScopeNote.message}`);
+    lines.push('');
+  }
+
+  lines.push(`## Existing ${report.existingPlatformAssets.label} Assets`);
+  lines.push('');
+  lines.push(`- **${report.existingPlatformAssets.instructionLabel}:** ${report.existingPlatformAssets.instructionPath || 'missing'}`);
+  lines.push(`- **${report.existingPlatformAssets.configLabel}:** ${report.existingPlatformAssets.configPath || 'missing'}`);
+  lines.push(`- **Summary:** ${report.existingPlatformAssets.summaryLine}`);
+  if (report.platform === 'codex' && report.existingPlatformAssets.trust) {
+    lines.push(`- **Approval policy:** ${report.existingPlatformAssets.trust.approvalPolicy || 'implicit'}`);
+    lines.push(`- **Sandbox mode:** ${report.existingPlatformAssets.trust.sandboxMode || 'implicit'}`);
+    lines.push(`- **Trusted project path:** ${report.existingPlatformAssets.trust.isTrustedProject ? 'yes' : 'no'}`);
+  }
   lines.push('');
 
   if (report.strengthsPreserved.length > 0) {
@@ -559,6 +786,15 @@ function exportMarkdown(report) {
     lines.push('');
   }
 
+  if (report.platformCaveats && report.platformCaveats.length > 0) {
+    lines.push('## Platform Caveats');
+    lines.push('');
+    for (const item of report.platformCaveats) {
+      lines.push(`- **${item.title}**: ${item.message}`);
+    }
+    lines.push('');
+  }
+
   if (report.riskNotes.length > 0) {
     lines.push('## Risk Notes');
     lines.push('');
@@ -578,7 +814,7 @@ function exportMarkdown(report) {
   }
 
   lines.push('---');
-  lines.push(`*Generated by claudex-setup v${require('../package.json').version}*`);
+  lines.push(`*Generated by nerviq v${require('../package.json').version}*`);
   return lines.join('\n');
 }
 

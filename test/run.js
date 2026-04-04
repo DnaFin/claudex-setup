@@ -57,7 +57,7 @@ async function testAsync(name, fn) {
 }
 
 async function main() {
-  console.log('\n  claudex-setup test suite\n');
+  console.log('\n  nerviq test suite\n');
 
   // ============================================================
   // Unit tests: techniques
@@ -367,7 +367,7 @@ async function main() {
       fs.mkdirSync(path.join(dir, 'src'), { recursive: true });
       await setup({ dir, auto: true });
       const md = fs.readFileSync(path.join(dir, 'CLAUDE.md'), 'utf8');
-      assert.ok(md.includes('claudex-setup'), 'Should reference claudex-setup');
+      assert.ok(md.includes('nerviq'), 'Should reference nerviq');
       assert.ok(md.includes('hand-crafted') || md.includes('Customize'), 'Should have honesty disclaimer');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
@@ -714,6 +714,69 @@ async function main() {
       assert.ok(payload.liteSummary, 'JSON output should include liteSummary');
       assert.ok(Array.isArray(payload.liteSummary.topNextActions), 'liteSummary should include top actions');
       assert.equal(typeof payload.liteSummary.nextCommand, 'string', 'liteSummary should include nextCommand');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI codex lite output shows platform caveats and codex scope', () => {
+    const dir = mkFixture('cli-codex-lite');
+    try {
+      writeJson(dir, 'package.json', { name: 'codex-app' });
+      const result = runCli(['--platform', 'codex', '--lite'], dir);
+      assert.equal(result.status, 0, 'codex --lite should succeed');
+      assert.ok(result.stdout.includes('nerviq codex quick scan'), 'codex lite output should identify the platform');
+      assert.ok(result.stdout.includes('Platform caveats'), 'codex lite output should show platform caveats');
+      assert.ok(result.stdout.includes('max_threads'), 'codex lite output should include the max_threads caveat');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI codex JSON output includes platform caveats', () => {
+    const dir = mkFixture('cli-codex-json');
+    try {
+      writeJson(dir, 'package.json', { name: 'codex-app' });
+      const result = runCli(['--platform', 'codex', '--lite', '--json'], dir);
+      assert.equal(result.status, 0, 'codex --lite --json should succeed');
+      const payload = JSON.parse(result.stdout);
+      assert.ok(Array.isArray(payload.platformCaveats), 'codex JSON should include platformCaveats');
+      assert.ok(payload.platformCaveats.some(item => item.key === 'codex-max-threads-default'), 'codex JSON should include the max_threads caveat');
+      assert.ok(Array.isArray(payload.liteSummary.platformCaveats), 'codex liteSummary should include platform caveats');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI codex setup creates baseline files without overwriting', () => {
+    const dir = mkFixture('cli-codex-setup');
+    try {
+      writeJson(dir, 'package.json', { name: 'codex-app', scripts: { test: 'vitest', lint: 'eslint .', build: 'vite build' } });
+      const result = runCli(['--platform', 'codex', 'setup'], dir);
+      assert.equal(result.status, 0, 'codex setup should succeed');
+      assert.ok(fs.existsSync(path.join(dir, 'AGENTS.md')), 'AGENTS.md should exist after codex setup');
+      assert.ok(fs.existsSync(path.join(dir, '.codex', 'config.toml')), '.codex/config.toml should exist after codex setup');
+      const config = fs.readFileSync(path.join(dir, '.codex', 'config.toml'), 'utf8');
+      assert.ok(config.includes('undo = false'), 'codex setup should emit explicit undo posture');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI codex plan exports a plan file', () => {
+    const dir = mkFixture('cli-codex-plan');
+    try {
+      writeJson(dir, 'package.json', { name: 'codex-app' });
+      const outFile = path.join(dir, 'codex-plan.json');
+      const result = runCli(['--platform', 'codex', 'plan', '--out', outFile], dir);
+      assert.equal(result.status, 0, 'codex plan should succeed');
+      assert.ok(fs.existsSync(outFile), 'codex plan should write the output file');
+      const bundle = JSON.parse(fs.readFileSync(outFile, 'utf8'));
+      assert.equal(bundle.platform, 'codex', 'plan bundle should declare codex platform');
+      assert.ok(Array.isArray(bundle.proposals) && bundle.proposals.length >= 1, 'plan bundle should include proposals');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI codex governance renders Codex-specific governance data', () => {
+    const dir = mkFixture('cli-codex-governance');
+    try {
+      const result = runCli(['--platform', 'codex', 'governance', '--json'], dir);
+      assert.equal(result.status, 0, 'codex governance should succeed');
+      const payload = JSON.parse(result.stdout);
+      assert.equal(payload.platform, 'codex', 'governance payload should declare codex platform');
+      assert.ok(Array.isArray(payload.platformCaveats) && payload.platformCaveats.length > 0, 'governance payload should include platform caveats');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 

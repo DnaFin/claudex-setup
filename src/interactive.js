@@ -26,7 +26,7 @@ async function interactive(options) {
 
   console.log('');
   console.log(c('  ╔═══════════════════════════════════════╗', 'magenta'));
-  console.log(c('  ║   claudex-setup interactive wizard    ║', 'magenta'));
+  console.log(c('  ║   nerviq interactive wizard    ║', 'magenta'));
   console.log(c('  ╚═══════════════════════════════════════╝', 'magenta'));
   console.log('');
 
@@ -112,7 +112,7 @@ async function interactive(options) {
   await setup({ ...options, auto: true, only: toFix });
 
   console.log('');
-  console.log(c('  Done! Run `npx claudex-setup` to see your new score.', 'green'));
+  console.log(c('  Done! Run `npx nerviq` to see your new score.', 'green'));
 }
 
 module.exports = { interactive };

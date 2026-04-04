@@ -98,6 +98,37 @@ class ProjectContext {
     }
   }
 
+  fileSizeBytes(filePath) {
+    const fullPath = path.join(this.dir, filePath);
+    try {
+      return fs.statSync(fullPath).size;
+    } catch {
+      return null;
+    }
+  }
+
+  lineNumber(filePath, matcher) {
+    const content = this.fileContent(filePath);
+    if (!content) return null;
+
+    const lines = content.split(/\r?\n/);
+    for (let index = 0; index < lines.length; index++) {
+      const line = lines[index];
+      if (typeof matcher === 'string' && line.includes(matcher)) {
+        return index + 1;
+      }
+      if (matcher instanceof RegExp && matcher.test(line)) {
+        matcher.lastIndex = 0;
+        return index + 1;
+      }
+      if (typeof matcher === 'function' && matcher(line, index + 1)) {
+        return index + 1;
+      }
+    }
+
+    return null;
+  }
+
   jsonFile(filePath) {
     const content = this.fileContent(filePath);
     if (!content) return null;

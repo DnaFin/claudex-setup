@@ -7,7 +7,7 @@ function getBadgeUrl(score) {
 
 function getBadgeMarkdown(score) {
   const url = getBadgeUrl(score);
-  return `[![Claude Code Ready](${url})](https://github.com/DnaFin/claudex-setup)`;
+  return `[![Claude Code Ready](${url})](https://github.com/nerviq/nerviq)`;
 }
 
 module.exports = { getBadgeUrl, getBadgeMarkdown };

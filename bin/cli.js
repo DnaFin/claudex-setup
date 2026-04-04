@@ -69,13 +69,15 @@ function parseArgs(rawArgs) {
   let feedbackNotes = null;
   let feedbackSource = null;
   let feedbackScoreDelta = null;
+  let platform = 'claude';
+  let format = null;
   let commandSet = false;
   let extraArgs = [];
 
   for (let i = 0; i < rawArgs.length; i++) {
     const arg = rawArgs[i];
 
-    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack' || arg === '--require' || arg === '--key' || arg === '--status' || arg === '--effect' || arg === '--notes' || arg === '--source' || arg === '--score-delta') {
+    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack' || arg === '--require' || arg === '--key' || arg === '--status' || arg === '--effect' || arg === '--notes' || arg === '--source' || arg === '--score-delta' || arg === '--platform' || arg === '--format') {
       const value = rawArgs[i + 1];
       if (!value || value.startsWith('--')) {
         throw new Error(`${arg} requires a value`);
@@ -93,6 +95,8 @@ function parseArgs(rawArgs) {
       if (arg === '--notes') feedbackNotes = value;
       if (arg === '--source') feedbackSource = value.trim();
       if (arg === '--score-delta') feedbackScoreDelta = value.trim();
+      if (arg === '--platform') platform = value.trim().toLowerCase();
+      if (arg === '--format') format = value.trim().toLowerCase();
       i++;
       continue;
     }
@@ -162,6 +166,16 @@ function parseArgs(rawArgs) {
       continue;
     }
 
+    if (arg.startsWith('--platform=')) {
+      platform = arg.split('=').slice(1).join('=').trim().toLowerCase();
+      continue;
+    }
+
+    if (arg.startsWith('--format=')) {
+      format = arg.split('=').slice(1).join('=').trim().toLowerCase();
+      continue;
+    }
+
     if (arg.startsWith('--')) {
       flags.push(arg);
       continue;
@@ -177,41 +191,44 @@ function parseArgs(rawArgs) {
 
   const normalizedCommand = COMMAND_ALIASES[command] || command;
 
-  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks, feedbackKey, feedbackStatus, feedbackEffect, feedbackNotes, feedbackSource, feedbackScoreDelta, extraArgs };
+  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks, feedbackKey, feedbackStatus, feedbackEffect, feedbackNotes, feedbackSource, feedbackScoreDelta, platform, format, extraArgs };
 }
 
 const HELP = `
-  claudex-setup v${version}
+  nerviq v${version}
   Score your repo's Claude Code setup. Fix gaps safely. Benchmark the impact.
 
   Start here (read-only, nothing changes):
-    npx claudex-setup                  Audit your project (10 seconds)
-    npx claudex-setup --lite           Quick scan: top 3 gaps + next command
-    npx claudex-setup augment          Repo-aware analysis, no writes
-    npx claudex-setup suggest-only     Structured report, no writes
+    npx nerviq                  Audit your project (10 seconds)
+    npx nerviq --lite           Quick scan: top 3 gaps + next command
+    npx nerviq --platform codex Audit your Codex repo setup
+    npx nerviq --platform codex augment      Codex-aware advisory pass, no writes
+    npx nerviq --platform codex suggest-only Structured Codex report, no writes
+    npx nerviq augment          Repo-aware analysis, no writes
+    npx nerviq suggest-only     Structured report, no writes
 
   Plan and apply (when you're ready to change things):
-    npx claudex-setup plan             Export proposal bundles with previews
-    npx claudex-setup apply            Apply proposals selectively with rollback
-    npx claudex-setup setup            Generate starter-safe baseline
-    npx claudex-setup setup --auto     Apply all generated files without prompts
+    npx nerviq plan             Export proposal bundles with previews
+    npx nerviq apply            Apply proposals selectively with rollback
+    npx nerviq setup            Generate starter-safe baseline
+    npx nerviq setup --auto     Apply all generated files without prompts
 
   Track progress over time:
-    npx claudex-setup history          Show score history from saved snapshots
-    npx claudex-setup compare          Compare latest vs previous snapshot
-    npx claudex-setup trend --out r.md Export trend report as markdown
+    npx nerviq history          Show score history from saved snapshots
+    npx nerviq compare          Compare latest vs previous snapshot
+    npx nerviq trend --out r.md Export trend report as markdown
 
   Multi-repo:
-    npx claudex-setup scan dir1 dir2   Compare multiple repos side-by-side
+    npx nerviq scan dir1 dir2   Compare multiple repos side-by-side
 
   Advanced:
-    npx claudex-setup governance       Permission profiles, hooks, policy packs
-    npx claudex-setup benchmark        Before/after in isolated temp copy
-    npx claudex-setup deep-review      AI-powered config review (opt-in, uses API)
-    npx claudex-setup interactive      Step-by-step guided wizard
-    npx claudex-setup watch            Live monitoring on config changes with cross-platform watch fallback
-    npx claudex-setup badge            Generate shields.io badge markdown
-    npx claudex-setup feedback         Record recommendation outcomes or show local outcome summary
+    npx nerviq governance       Permission profiles, hooks, policy packs
+    npx nerviq benchmark        Before/after in isolated temp copy
+    npx nerviq deep-review      AI-powered config review (opt-in, uses API)
+    npx nerviq interactive      Step-by-step guided wizard
+    npx nerviq watch            Live monitoring on config changes with cross-platform watch fallback
+    npx nerviq badge            Generate shields.io badge markdown
+    npx nerviq feedback         Record recommendation outcomes or show local outcome summary
 
   Options:
     --threshold N   Exit with code 1 if score is below N (useful for CI)
@@ -227,7 +244,9 @@ const HELP = `
     --notes TEXT    Short notes to store with a feedback event
     --source NAME   Source label for feedback event (default: manual-cli)
     --score-delta N Optional observed score delta tied to the outcome
-    --snapshot      Save a normalized snapshot artifact under .claude/claudex-setup/snapshots/
+    --platform NAME Choose platform surface (claude default, codex advisory/build preview)
+    --format NAME   Output format for audit results (json, sarif)
+    --snapshot      Save a normalized snapshot artifact under .claude/nerviq/snapshots/
     --lite          Show a short top-3 quick scan with one clear next command
     --dry-run       Preview apply without writing files
     --verbose       Show all recommendations (not just critical/high)
@@ -238,26 +257,32 @@ const HELP = `
     --version       Show version
 
   Examples:
-    npx claudex-setup
-    npx claudex-setup --lite
-    npx claudex-setup --snapshot
-    npx claudex-setup augment
-    npx claudex-setup augment --snapshot
-    npx claudex-setup suggest-only --json
-    npx claudex-setup governance --snapshot
-    npx claudex-setup plan --out claudex-plan.json
-    npx claudex-setup plan --profile safe-write
-    npx claudex-setup setup --mcp-pack context7-docs
-    npx claudex-setup apply --plan claudex-plan.json --only hooks,commands
-    npx claudex-setup apply --mcp-pack context7-docs,next-devtools --only hooks
-    npx claudex-setup apply --profile power-user --only claude-md,hooks
-    npx claudex-setup governance --json
-    npx claudex-setup benchmark --out benchmark.md
-    npx claudex-setup feedback
-    npx claudex-setup feedback --key permissionDeny --status accepted --effect positive --score-delta 12
-    npx claudex-setup --json --threshold 60
-    npx claudex-setup setup --auto
-    npx claudex-setup interactive
+    npx nerviq
+    npx nerviq --lite
+    npx nerviq --platform codex
+    npx nerviq --platform codex augment
+    npx nerviq --platform codex suggest-only --json
+    npx nerviq --platform codex setup
+    npx nerviq --platform codex plan --out codex-plan.json
+    npx nerviq --platform codex --format sarif
+    npx nerviq --snapshot
+    npx nerviq augment
+    npx nerviq augment --snapshot
+    npx nerviq suggest-only --json
+    npx nerviq governance --snapshot
+    npx nerviq plan --out claudex-plan.json
+    npx nerviq plan --profile safe-write
+    npx nerviq setup --mcp-pack context7-docs
+    npx nerviq apply --plan claudex-plan.json --only hooks,commands
+    npx nerviq apply --mcp-pack context7-docs,next-devtools --only hooks
+    npx nerviq apply --profile power-user --only claude-md,hooks
+    npx nerviq governance --json
+    npx nerviq benchmark --out benchmark.md
+    npx nerviq feedback
+    npx nerviq feedback --key permissionDeny --status accepted --effect positive --score-delta 12
+    npx nerviq --json --threshold 60
+    npx nerviq setup --auto
+    npx nerviq interactive
 
   Exit codes:
     0  Success
@@ -299,8 +324,20 @@ async function main() {
     profile: parsed.profile,
     mcpPacks: parsed.mcpPacks,
     require: parsed.requireChecks,
+    platform: parsed.platform || 'claude',
+    format: parsed.format || null,
     dir: process.cwd()
   };
+
+  if (!['claude', 'codex'].includes(options.platform)) {
+    console.error(`\n  Error: Unsupported platform '${options.platform}'. Use 'claude' or 'codex'.\n`);
+    process.exit(1);
+  }
+
+  if (options.format !== null && !['json', 'sarif'].includes(options.format)) {
+    console.error(`\n  Error: Unsupported format '${options.format}'. Use 'json' or 'sarif'.\n`);
+    process.exit(1);
+  }
 
   if (options.threshold !== null && (!Number.isFinite(options.threshold) || options.threshold < 0 || options.threshold > 100)) {
     console.error('\n  Error: --threshold must be a number between 0 and 100.\n');
@@ -317,13 +354,13 @@ async function main() {
     if (suggestion) {
       console.error(`  Did you mean '${suggestion}'?`);
     }
-    console.error('  Run claudex-setup --help for usage.\n');
+    console.error('  Run nerviq --help for usage.\n');
     process.exit(1);
   }
 
   if (!require('fs').existsSync(options.dir)) {
     console.error(`\n  Error: Directory not found: ${options.dir}`);
-    console.error('  Run claudex-setup from inside your project directory.\n');
+    console.error('  Run nerviq from inside your project directory.\n');
     process.exit(1);
   }
 
@@ -337,11 +374,62 @@ async function main() {
   }
 
   try {
+    const FULL_COMMAND_SET = new Set([
+      'audit', 'scan', 'badge', 'augment', 'suggest-only', 'setup', 'plan', 'apply',
+      'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'insights',
+      'history', 'compare', 'trend', 'feedback', 'help', 'version',
+      // Harmony + Synergy (cross-platform)
+      'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise',
+      'harmony-watch', 'harmony-governance', 'synergy-report',
+    ]);
+
+    if (options.platform === 'codex') {
+      if (!FULL_COMMAND_SET.has(normalizedCommand)) {
+        console.error(`\n  Error: '${normalizedCommand}' is not supported for --platform codex.`);
+        console.error('  Available: ' + [...FULL_COMMAND_SET].filter(c => c !== 'help' && c !== 'version').join(', ') + '.');
+        process.exit(1);
+      }
+    }
+
+    if (options.platform === 'gemini') {
+      if (!FULL_COMMAND_SET.has(normalizedCommand)) {
+        console.error(`\n  Error: '${normalizedCommand}' is not supported for --platform gemini.`);
+        console.error('  Available: ' + [...FULL_COMMAND_SET].filter(c => c !== 'help' && c !== 'version').join(', ') + '.');
+        process.exit(1);
+      }
+    }
+
+    if (options.platform === 'copilot') {
+      if (!FULL_COMMAND_SET.has(normalizedCommand)) {
+        console.error(`\n  Error: '${normalizedCommand}' is not supported for --platform copilot.`);
+        console.error('  Available: ' + [...FULL_COMMAND_SET].filter(c => c !== 'help' && c !== 'version').join(', ') + '.');
+        process.exit(1);
+      }
+    }
+
+    if (options.platform === 'cursor') {
+      if (!FULL_COMMAND_SET.has(normalizedCommand)) {
+        console.error(`\n  Error: '${normalizedCommand}' is not supported for --platform cursor.`);
+        console.error('  Available: ' + [...FULL_COMMAND_SET].filter(c => c !== 'help' && c !== 'version').join(', ') + '.');
+        process.exit(1);
+      }
+    }
+
+    for (const plat of ['windsurf', 'aider', 'opencode']) {
+      if (options.platform === plat) {
+        if (!FULL_COMMAND_SET.has(normalizedCommand)) {
+          console.error(`\n  Error: '${normalizedCommand}' is not supported for --platform ${plat}.`);
+          console.error('  Available: ' + [...FULL_COMMAND_SET].filter(c => c !== 'help' && c !== 'version').join(', ') + '.');
+          process.exit(1);
+        }
+      }
+    }
+
     if (normalizedCommand === 'scan') {
       const scanDirs = parsed.extraArgs;
       if (scanDirs.length === 0) {
         console.error('\n  Error: scan requires at least one directory argument.');
-        console.error('  Usage: npx claudex-setup scan dir1 dir2 dir3\n');
+        console.error('  Usage: npx nerviq scan dir1 dir2 dir3\n');
         process.exit(1);
       }
       const fs = require('fs');
@@ -354,7 +442,7 @@ async function main() {
           continue;
         }
         try {
-          const result = await audit({ dir, silent: true });
+          const result = await audit({ dir, silent: true, platform: options.platform });
           rows.push({
             name: pathMod.basename(dir),
             dir: rawDir,
@@ -380,7 +468,7 @@ async function main() {
           : null;
 
         console.log('');
-        console.log('\x1b[1m  claudex-setup multi-repo scan\x1b[0m');
+        console.log('\x1b[1m  nerviq multi-repo scan\x1b[0m');
         console.log('\x1b[2m  ═══════════════════════════════════════\x1b[0m');
         console.log('');
 
@@ -414,7 +502,7 @@ async function main() {
       const { compareLatest } = require('../src/activity');
       const result = compareLatest(options.dir);
       if (!result) {
-        console.log('\n  Need at least 2 snapshots to compare. Run `npx claudex-setup --snapshot` twice.\n');
+        console.log('\n  Need at least 2 snapshots to compare. Run `npx nerviq --snapshot` twice.\n');
         process.exit(0);
       }
       if (options.json) {
@@ -435,7 +523,7 @@ async function main() {
       const { exportTrendReport } = require('../src/activity');
       const report = exportTrendReport(options.dir);
       if (!report) {
-        console.log('\n  No snapshots found. Run `npx claudex-setup --snapshot` to start tracking.\n');
+        console.log('\n  No snapshots found. Run `npx nerviq --snapshot` to start tracking.\n');
         process.exit(0);
       }
       if (options.out) {
@@ -480,15 +568,15 @@ async function main() {
             }
             console.log('');
           } catch (e) {
-            console.log('  No community data available yet. Be the first to run: npx claudex-setup');
+            console.log('  No community data available yet. Be the first to run: npx nerviq');
           }
         });
       }).on('error', () => {
-        console.log('  Could not reach insights server. Run locally: npx claudex-setup');
+        console.log('  Could not reach insights server. Run locally: npx nerviq');
       });
       req.setTimeout(10000, () => {
         req.destroy();
-        console.log('  Insights request timed out. Run locally: npx claudex-setup');
+        console.log('  Insights request timed out. Run locally: npx nerviq');
       });
       return; // keep process alive for http
     } else if (normalizedCommand === 'feedback') {
@@ -563,7 +651,7 @@ async function main() {
     } else if (normalizedCommand === 'governance') {
       const fs = require('fs');
       const path = require('path');
-      const summary = getGovernanceSummary();
+      const summary = getGovernanceSummary(options.platform);
       if (options.out) {
         fs.mkdirSync(path.dirname(options.out), { recursive: true });
         const content = path.extname(options.out).toLowerCase() === '.md'
@@ -614,7 +702,7 @@ async function main() {
     } else if (normalizedCommand === 'setup') {
       await setup(options);
       if (options.snapshot) {
-        const postSetupResult = await audit({ dir: options.dir, silent: true });
+        const postSetupResult = await audit({ dir: options.dir, silent: true, platform: options.platform });
         const snapshot = writeSnapshotArtifact(options.dir, 'audit', postSetupResult, {
           sourceCommand: 'setup',
         });

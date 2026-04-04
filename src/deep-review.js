@@ -3,7 +3,7 @@
  * Uses Claude API to read and critique your actual config, not just pattern match.
  *
  * Requires: ANTHROPIC_API_KEY environment variable
- * Usage: npx claudex-setup deep-review
+ * Usage: npx nerviq deep-review
  */
 
 const https = require('https');
@@ -254,7 +254,7 @@ async function deepReview(options) {
   }
 
   console.log('');
-  console.log(c('  claudex-setup deep review', 'bold'));
+  console.log(c('  nerviq deep review', 'bold'));
   console.log(c('  ═══════════════════════════════════════', 'dim'));
 
   const ctx = new ProjectContext(options.dir);

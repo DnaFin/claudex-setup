@@ -9,6 +9,7 @@ const { TEMPLATES } = require('./setup');
 const { buildSettingsForProfile } = require('./governance');
 const { getMcpPackPreflight } = require('./mcp-packs');
 const { writeActivityArtifact, writeRollbackArtifact } = require('./activity');
+const { buildCodexProposalBundle } = require('./codex/plans');
 
 const TEMPLATE_DIR_MAP = {
   hooks: '.claude/hooks',
@@ -78,8 +79,8 @@ function ensureTrailingNewline(content) {
 }
 
 function upsertManagedBlock(content, id, block) {
-  const start = `<!-- claudex-setup:${id}:start -->`;
-  const end = `<!-- claudex-setup:${id}:end -->`;
+  const start = `<!-- nerviq:${id}:start -->`;
+  const end = `<!-- nerviq:${id}:end -->`;
   const wrapped = `${start}\n${block.trim()}\n${end}`;
   const pattern = new RegExp(`${start}[\\s\\S]*?${end}`);
 
@@ -372,6 +373,10 @@ function toProposal(templateKey, triggers, templateFiles, ctx) {
 }
 
 async function buildProposalBundle(options) {
+  if (options.platform === 'codex') {
+    return buildCodexProposalBundle(options);
+  }
+
   const ctx = new ProjectContext(options.dir);
   const stacks = ctx.detectStacks(STACKS);
   const report = await analyzeProject({ ...options, mode: 'augment' });
@@ -402,7 +407,7 @@ async function buildProposalBundle(options) {
 
   return {
     schemaVersion: 1,
-    generatedBy: `claudex-setup@${version}`,
+    generatedBy: `nerviq@${version}`,
     createdAt: new Date().toISOString(),
     directory: options.dir,
     projectSummary: report.projectSummary,
@@ -421,7 +426,7 @@ function printProposalBundle(bundle, options = {}) {
   }
 
   console.log('');
-  console.log('  claudex-setup plan');
+  console.log('  nerviq plan');
   console.log('  ═══════════════════════════════════════');
   console.log(`  ${bundle.projectSummary.name} | maturity=${bundle.projectSummary.maturity} | score=${bundle.projectSummary.score}/100`);
   console.log('');
@@ -470,6 +475,10 @@ function tryParseJson(content) {
 }
 
 function applyRuntimeSettingsOverlays(bundle, options) {
+  if (options.platform === 'codex') {
+    return bundle;
+  }
+
   if (!bundle || !Array.isArray(bundle.proposals)) {
     return bundle;
   }
@@ -614,7 +623,7 @@ function printApplyResult(result, options = {}) {
   }
 
   console.log('');
-  console.log('  claudex-setup apply');
+  console.log('  nerviq apply');
   console.log('  ═══════════════════════════════════════');
   if (result.dryRun) {
     console.log('  Dry-run only. No files were written.');

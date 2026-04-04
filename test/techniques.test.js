@@ -23,8 +23,8 @@ describe('Techniques', () => {
     expect(names.length).toBe(unique.size);
   });
 
-  test('technique count is 85', () => {
-    expect(Object.keys(TECHNIQUES).length).toBe(85);
+  test('technique count is 90 (85 original + 5 new coverage checks)', () => {
+    expect(Object.keys(TECHNIQUES).length).toBe(90);
   });
 
   test('embedded secret detector catches Anthropic-style keys with dashes', () => {

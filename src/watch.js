@@ -133,7 +133,7 @@ async function watch(options) {
   const recursiveSupported = supportsNativeRecursiveWatch();
 
   console.log('');
-  console.log(c('  claudex-setup watch mode', 'bold'));
+  console.log(c('  nerviq watch mode', 'bold'));
   console.log(c('  ═══════════════════════════════════════', 'dim'));
   console.log(c(`  Watching: ${options.dir}`, 'dim'));
   console.log(c(`  Mode: ${recursiveSupported ? 'native recursive directories' : 'expanded directory fallback (cross-platform safe)'}`, 'dim'));

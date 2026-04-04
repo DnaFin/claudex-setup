@@ -14,7 +14,7 @@
  * - API keys, tokens, or credentials
  * - Any data if user opts out
  *
- * Users can opt out with: npx claudex-setup --no-insights
+ * Users can opt out with: npx nerviq --no-insights
  * Or set env: CLAUDEX_NO_INSIGHTS=1
  */
 

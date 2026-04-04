@@ -1,10 +1,10 @@
 {
-  "name": "claudex-setup",
-  "version": "1.16.2",
-  "description": "Score your repo's Claude Code setup against 85 checks. See gaps, apply fixes selectively with rollback, govern hooks and permissions, and benchmark impact — without breaking existing config.",
+  "name": "@nerviq/cli",
+  "version": "0.9.0-beta.2",
+  "description": "The intelligent nervous system for AI coding agents — audit, align, and amplify every platform on every project.",
   "main": "src/index.js",
   "bin": {
-    "claudex-setup": "bin/cli.js"
+    "nerviq": "bin/cli.js"
   },
   "files": [
     "bin",
@@ -19,30 +19,35 @@
     "test": "node test/run.js",
     "test:jest": "jest",
     "test:coverage": "jest --coverage",
-    "test:all": "node test/run.js && node test/check-matrix.js && node test/golden-matrix.js && node test/security-tests.js && jest"
+    "test:all": "node test/run.js && node test/check-matrix.js && node test/codex-check-matrix.js && node test/golden-matrix.js && node test/codex-golden-matrix.js && node test/security-tests.js && jest"
   },
   "keywords": [
-    "claude",
-    "claude-code",
-    "anthropic",
-    "ai",
-    "developer-tools",
-    "productivity",
+    "nerviq",
+    "ai-agents",
+    "agent-governance",
+    "agent-config",
+    "harmony",
+    "synergy",
     "audit",
-    "setup",
+    "claude",
+    "codex",
+    "gemini",
+    "copilot",
+    "cursor",
+    "windsurf",
+    "aider",
+    "developer-tools",
     "cli",
-    "agentic-dx",
-    "governance",
     "mcp",
-    "hooks",
-    "workflow"
+    "multi-agent"
   ],
-  "author": "CLAUDEX Project",
-  "license": "MIT",
+  "author": "Nerviq <hello@nerviq.net>",
+  "license": "AGPL-3.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/DnaFin/claudex-setup.git"
+    "url": "git+https://github.com/nerviq/nerviq.git"
   },
+  "homepage": "https://nerviq.net",
   "engines": {
     "node": ">=18.0.0"
   },

@@ -55,15 +55,16 @@ const TECHNIQUES = {
 
   importSyntax: {
     id: 763,
-    name: 'CLAUDE.md uses @import for modularity',
+    name: 'CLAUDE.md uses @path imports for modularity',
     check: (ctx) => {
       const md = ctx.claudeMdContent() || '';
-      return md.includes('@import');
+      // Current syntax is @path/to/file (no "import" keyword)
+      return /@\S+\.(md|txt|json|yml|yaml|toml)/i.test(md) || /@\w+\//.test(md);
     },
     impact: 'medium',
     rating: 4,
     category: 'memory',
-    fix: 'Use @import in CLAUDE.md to split instructions into focused modules (e.g. @import ./docs/coding-style.md).',
+    fix: 'Use @path syntax in CLAUDE.md to split instructions into focused modules (e.g. @docs/coding-style.md). You can also use .claude/rules/ for path-specific rules.',
     template: null
   },
 
@@ -271,22 +272,35 @@ const TECHNIQUES = {
   skills: {
     id: 21,
     name: 'Custom skills',
-    check: (ctx) => ctx.hasDir('.claude/skills') && ctx.dirFiles('.claude/skills').length > 0,
+    check: (ctx) => {
+      // Skills use directory-per-skill structure: .claude/skills/<name>/SKILL.md
+      if (!ctx.hasDir('.claude/skills')) return false;
+      const dirs = ctx.dirFiles('.claude/skills');
+      // Check for SKILL.md inside skill directories
+      for (const d of dirs) {
+        if (ctx.fileContent(`.claude/skills/${d}/SKILL.md`)) return true;
+      }
+      // Fallback: any files in skills dir (legacy .claude/commands/ also works)
+      return dirs.length > 0;
+    },
     impact: 'medium',
     rating: 4,
     category: 'workflow',
-    fix: 'Add skills for domain-specific workflows.',
+    fix: 'Create skills at .claude/skills/<name>/SKILL.md with YAML frontmatter (name, description). Each skill is a directory with a SKILL.md file.',
     template: 'skills'
   },
 
   multipleSkills: {
     id: 2101,
     name: '2+ skills for specialization',
-    check: (ctx) => ctx.hasDir('.claude/skills') && ctx.dirFiles('.claude/skills').length >= 2,
+    check: (ctx) => {
+      if (!ctx.hasDir('.claude/skills')) return false;
+      return ctx.dirFiles('.claude/skills').length >= 2;
+    },
     impact: 'medium',
     rating: 4,
     category: 'workflow',
-    fix: 'Add at least 2 skills to cover different domain areas.',
+    fix: 'Add at least 2 skills covering different workflows (e.g. code-review, test-writer).',
     template: 'skills'
   },
 
@@ -418,7 +432,7 @@ const TECHNIQUES = {
     id: 19,
     name: 'Hooks for automation',
     check: (ctx) => {
-      if (ctx.hasDir('.claude/hooks') && ctx.dirFiles('.claude/hooks').length > 0) return true;
+      // Hooks are configured in settings.json (not .claude/hooks/ directory)
       const shared = ctx.jsonFile('.claude/settings.json') || {};
       const local = ctx.jsonFile('.claude/settings.local.json') || {};
       return !!(shared.hooks && Object.keys(shared.hooks).length > 0) || !!(local.hooks && Object.keys(local.hooks).length > 0);
@@ -426,7 +440,7 @@ const TECHNIQUES = {
     impact: 'high',
     rating: 4,
     category: 'automation',
-    fix: 'Add hooks for auto-lint, auto-test, or file change tracking.',
+    fix: 'Add hooks in .claude/settings.json under the "hooks" key. Supported events: PreToolUse, PostToolUse, Notification, Stop, StopFailure, SubagentStop, and more.',
     template: 'hooks'
   },
 
@@ -696,13 +710,17 @@ const TECHNIQUES = {
     id: 18,
     name: 'MCP servers configured',
     check: (ctx) => {
+      // MCP now lives in .mcp.json (project) and ~/.claude.json (user), NOT settings.json
+      const mcpJson = ctx.jsonFile('.mcp.json');
+      if (mcpJson && mcpJson.mcpServers && Object.keys(mcpJson.mcpServers).length > 0) return true;
+      // Fallback: check settings for legacy format
       const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
       return !!(settings && settings.mcpServers && Object.keys(settings.mcpServers).length > 0);
     },
     impact: 'medium',
     rating: 3,
     category: 'tools',
-    fix: 'Configure MCP servers for external tool integration (database, APIs, etc).',
+    fix: 'Configure MCP servers in .mcp.json at project root. Use `claude mcp add` to add servers. Project-level MCP is committed to git for team sharing.',
     template: null
   },
 
@@ -711,10 +729,10 @@ const TECHNIQUES = {
     name: '2+ MCP servers for rich tooling',
     check: (ctx) => {
       let count = 0;
-      const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
-      if (settings && settings.mcpServers) count += Object.keys(settings.mcpServers).length;
       const mcpJson = ctx.jsonFile('.mcp.json');
       if (mcpJson && mcpJson.mcpServers) count += Object.keys(mcpJson.mcpServers).length;
+      const settings = ctx.jsonFile('.claude/settings.local.json') || ctx.jsonFile('.claude/settings.json');
+      if (settings && settings.mcpServers) count += Object.keys(settings.mcpServers).length;
       return count >= 2;
     },
     impact: 'medium',
@@ -853,17 +871,17 @@ const TECHNIQUES = {
 
   // claudeMdNotOverlong removed — duplicate of underlines200 (id 681)
 
-  claudeMdNotOverlong: {
+  claudeLocalMd: {
     id: 2002,
-    name: 'CLAUDE.md is concise (under 200 lines)',
+    name: 'CLAUDE.local.md for personal overrides',
     check: (ctx) => {
-      // Defer to underlines200 — this check always returns null (skipped)
-      return null;
+      // CLAUDE.local.md is for personal, non-committed overrides
+      return ctx.files.includes('CLAUDE.local.md') || ctx.files.includes('.claude/CLAUDE.local.md');
     },
-    impact: 'medium',
-    rating: 4,
-    category: 'quality-deep',
-    fix: 'CLAUDE.md over 200 lines wastes tokens every session. Move detailed docs to .claude/rules/ or skills. Keep CLAUDE.md lean.',
+    impact: 'low',
+    rating: 2,
+    category: 'memory',
+    fix: 'Create CLAUDE.local.md for personal preferences that should not be committed (add to .gitignore).',
     template: null
   },
 
@@ -935,21 +953,22 @@ const TECHNIQUES = {
 
   agentsHaveMaxTurns: {
     id: 2007,
-    name: 'Agents have maxTurns limit',
+    name: 'Subagents have max-turns limit',
     check: (ctx) => {
       if (!ctx.hasDir('.claude/agents')) return null;
       const files = ctx.dirFiles('.claude/agents');
       if (files.length === 0) return null;
       for (const f of files) {
         const content = ctx.fileContent(`.claude/agents/${f}`) || '';
-        if (!content.includes('maxTurns')) return false;
+        // Current frontmatter uses kebab-case: max-turns (also accept legacy maxTurns)
+        if (!content.includes('max-turns') && !content.includes('maxTurns')) return false;
       }
       return true;
     },
     impact: 'medium',
     rating: 3,
     category: 'quality-deep',
-    fix: 'Agents without maxTurns can run indefinitely. Add "maxTurns: 50" to agent frontmatter.',
+    fix: 'Subagents without max-turns can run indefinitely. Add "max-turns: 50" to subagent YAML frontmatter.',
     template: null
   },
 
@@ -986,19 +1005,20 @@ const TECHNIQUES = {
   // --- New checks: agent depth ---
   agentHasAllowedTools: {
     id: 2011,
-    name: 'At least one agent restricts tools',
+    name: 'At least one subagent restricts tools',
     check: (ctx) => {
       if (!ctx.hasDir('.claude/agents')) return null;
       const files = ctx.dirFiles('.claude/agents');
       if (files.length === 0) return null;
       for (const f of files) {
         const content = ctx.fileContent(`.claude/agents/${f}`) || '';
-        if (/tools:\s*\[/.test(content)) return true;
+        // Current frontmatter uses allowed-tools (also accept legacy tools:)
+        if (/allowed-tools:/i.test(content) || /tools:\s*\[/.test(content)) return true;
       }
       return false;
     },
     impact: 'medium', rating: 3, category: 'workflow',
-    fix: 'Add a tools restriction to agent frontmatter (e.g. tools: [Read, Grep]) for safer delegation.',
+    fix: 'Add allowed-tools to subagent frontmatter (e.g. allowed-tools: Read Grep Bash) for safer delegation.',
     template: null
   },
 
@@ -1082,7 +1102,7 @@ const TECHNIQUES = {
       return !!ctx.fileContent('.claude/claudex-setup/snapshots/index.json');
     },
     impact: 'low', rating: 3, category: 'workflow',
-    fix: 'Run `npx claudex-setup --snapshot` to start tracking your setup score over time.',
+    fix: 'Run `npx nerviq --snapshot` to start tracking your setup score over time.',
     template: null
   },
 
@@ -1179,14 +1199,15 @@ const TECHNIQUES = {
 
   stopFailureHook: {
     id: 2025,
-    name: 'StopFailure or error handling hook',
+    name: 'StopFailure hook for error tracking',
     check: (ctx) => {
       const shared = ctx.jsonFile('.claude/settings.json') || {};
       const local = ctx.jsonFile('.claude/settings.local.json') || {};
-      return !!(shared.hooks?.StopFailure || shared.hooks?.Stop || local.hooks?.StopFailure || local.hooks?.Stop);
+      // StopFailure = error stop (API errors), Stop = normal completion — both useful but different
+      return !!(shared.hooks?.StopFailure || local.hooks?.StopFailure);
     },
     impact: 'low', rating: 3, category: 'automation',
-    fix: 'Add a StopFailure hook to log errors for debugging. Helps track why Claude stops unexpectedly.',
+    fix: 'Add a StopFailure hook to log API errors and unexpected stops. Note: StopFailure (errors) is different from Stop (normal completion).',
     template: null
   },
 
@@ -1282,19 +1303,19 @@ const TECHNIQUES = {
     name: 'No deprecated patterns detected',
     check: (ctx) => {
       const md = ctx.claudeMdContent();
-      if (!md) return false; // no CLAUDE.md = not passing
-      // Check for patterns deprecated in Claude 4.x
+      if (!md) return false;
+      // Only flag truly deprecated patterns, not valid aliases
       const deprecatedPatterns = [
-        /\bprefill\b/i, // deprecated API pattern in 4.6
-        /\bclaude-3-opus\b/i, /\bclaude-3-sonnet\b/i, /\bclaude-3-haiku\b/i, // old model names
-        /\bhuman_prompt\b/i, /\bassistant_prompt\b/i, // old API format
+        /\bhuman_prompt\b/i, /\bassistant_prompt\b/i, // old completions API format (not Messages API)
+        /\buse model claude-3-opus\b/i, // explicit recommendation to use old name as --model
+        /\buse model claude-3-sonnet\b/i,
       ];
       return !deprecatedPatterns.some(p => p.test(md));
     },
     impact: 'medium',
     rating: 3,
     category: 'quality-deep',
-    fix: 'CLAUDE.md references deprecated patterns (old model names or API formats). Update to current Claude 4.x conventions.',
+    fix: 'CLAUDE.md references deprecated API patterns (human_prompt/assistant_prompt). Update to current Messages API conventions.',
     template: null
   },
 
@@ -1315,6 +1336,77 @@ const TECHNIQUES = {
     fix: 'CLAUDE.md exists but lacks substance. Add at least 2 sections (## headings) and include your test/build/lint commands.',
     template: null
   },
+
+  // ============================================================
+  // === NEW CHECKS: Uncovered features (2026-04-05) ============
+  // ============================================================
+
+  mcpJsonProject: {
+    id: 2032,
+    name: 'Project-level .mcp.json exists',
+    check: (ctx) => ctx.files.includes('.mcp.json'),
+    impact: 'medium',
+    rating: 3,
+    category: 'tools',
+    fix: 'Create .mcp.json at project root for team-shared MCP servers. Use `claude mcp add --project` to add servers.',
+    template: null
+  },
+
+  hooksNotificationEvent: {
+    id: 2033,
+    name: 'Notification hook for alerts',
+    check: (ctx) => {
+      const shared = ctx.jsonFile('.claude/settings.json') || {};
+      const local = ctx.jsonFile('.claude/settings.local.json') || {};
+      return !!(shared.hooks?.Notification || local.hooks?.Notification);
+    },
+    impact: 'low',
+    rating: 2,
+    category: 'automation',
+    fix: 'Add a Notification hook to capture alerts and status updates from Claude during long tasks.',
+    template: null
+  },
+
+  subagentStopHook: {
+    id: 2034,
+    name: 'SubagentStop hook for delegation tracking',
+    check: (ctx) => {
+      const shared = ctx.jsonFile('.claude/settings.json') || {};
+      const local = ctx.jsonFile('.claude/settings.local.json') || {};
+      return !!(shared.hooks?.SubagentStop || local.hooks?.SubagentStop);
+    },
+    impact: 'low',
+    rating: 2,
+    category: 'automation',
+    fix: 'Add a SubagentStop hook to track when delegated subagent tasks complete.',
+    template: null
+  },
+
+  rulesDirectory: {
+    id: 2035,
+    name: 'Path-specific rules in .claude/rules/',
+    check: (ctx) => ctx.hasDir('.claude/rules') && ctx.dirFiles('.claude/rules').length > 0,
+    impact: 'medium',
+    rating: 3,
+    category: 'workflow',
+    fix: 'Create .claude/rules/ with path-specific rules for different parts of your codebase (e.g. frontend.md, backend.md).',
+    template: null
+  },
+
+  gitignoreClaudeLocal: {
+    id: 2036,
+    name: 'CLAUDE.local.md in .gitignore',
+    check: (ctx) => {
+      const gitignore = ctx.fileContent('.gitignore') || '';
+      return /CLAUDE\.local\.md/i.test(gitignore);
+    },
+    impact: 'medium',
+    rating: 3,
+    category: 'git',
+    fix: 'Add CLAUDE.local.md to .gitignore — it contains personal overrides that should not be committed.',
+    template: null
+  },
+
 };
 
 // Stack detection
