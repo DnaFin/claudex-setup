@@ -228,7 +228,11 @@ function getHistory(dir, limit = 20) {
   const entries = readSnapshotIndex(dir);
   return entries
     .filter(e => e.snapshotKind === 'audit')
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .sort((a, b) => {
+      const dateDiff = new Date(b.createdAt) - new Date(a.createdAt);
+      if (dateDiff !== 0) return dateDiff;
+      return (b.id || '').localeCompare(a.id || '');
+    })
     .slice(0, limit);
 }
 
