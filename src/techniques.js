@@ -129,6 +129,26 @@ function isJavaProject(ctx) {
   return ctx.__nerviqIsJava;
 }
 
+function isFlutterProject(ctx) {
+  if (ctx.__nerviqIsFlutter !== undefined) return ctx.__nerviqIsFlutter;
+  ctx.__nerviqIsFlutter = hasProjectFile(ctx, /(^|\/)pubspec\.yaml$/i);
+  return ctx.__nerviqIsFlutter;
+}
+
+function isSwiftProject(ctx) {
+  if (ctx.__nerviqIsSwift !== undefined) return ctx.__nerviqIsSwift;
+  ctx.__nerviqIsSwift = hasProjectFile(ctx, /(^|\/)Package\.swift$/i) ||
+    hasProjectFile(ctx, /\.xcodeproj/i);
+  return ctx.__nerviqIsSwift;
+}
+
+function isKotlinProject(ctx) {
+  if (ctx.__nerviqIsKotlin !== undefined) return ctx.__nerviqIsKotlin;
+  const gradle = (ctx.fileContent('build.gradle.kts') || '') + (ctx.fileContent('build.gradle') || '');
+  ctx.__nerviqIsKotlin = /kotlin/i.test(gradle);
+  return ctx.__nerviqIsKotlin;
+}
+
 function getPythonFiles(ctx) {
   if (ctx.__nerviqPythonFiles) return ctx.__nerviqPythonFiles;
   ctx.__nerviqPythonFiles = findProjectFiles(ctx, /\.py$/i);
@@ -3598,6 +3618,499 @@ const TECHNIQUES = {
     impact: 'low', rating: 3, category: 'features',
     fix: 'Document a progressive learning path that turns repeated instincts into reusable skills or phased practices.',
     template: null,
+    confidence: 0.7,
+  },
+
+
+  // === FLUTTER STACK CHECKS (category: 'flutter') ===============
+  // ============================================================
+
+  pubspecExists: {
+    id: 120401,
+    name: 'pubspec.yaml exists',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      return true;
+    },
+    impact: 'high',
+    category: 'flutter',
+    fix: 'Add a `pubspec.yaml` manifest so Flutter/Dart dependencies and project metadata are tracked.',
+    confidence: 0.7,
+  },
+
+  flutterAnalysis: {
+    id: 120402,
+    name: 'Flutter analysis options configured',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      return ctx.files.some(f => /analysis_options\.yaml$/i.test(f));
+    },
+    impact: 'medium',
+    category: 'flutter',
+    fix: 'Add analysis_options.yaml for Dart/Flutter linting rules.',
+    confidence: 0.8,
+  },
+
+  flutterTestDir: {
+    id: 120403,
+    name: 'Flutter tests exist',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      return hasProjectFile(ctx, /(^|\/)test\/.*_test\.dart$/i);
+    },
+    impact: 'high',
+    category: 'flutter',
+    fix: 'Add Flutter widget or unit tests in a `test/` directory with `_test.dart` suffix.',
+    confidence: 0.8,
+  },
+
+  flutterLintRules: {
+    id: 120404,
+    name: 'Flutter lint package configured',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      const pubspec = readProjectFiles(ctx, /(^|\/)pubspec\.yaml$/i);
+      return /flutter_lints|very_good_analysis/i.test(pubspec);
+    },
+    impact: 'medium',
+    category: 'flutter',
+    fix: 'Add `flutter_lints` or `very_good_analysis` to pubspec.yaml dev_dependencies for consistent linting.',
+    confidence: 0.8,
+  },
+
+  flutterPlatformDirs: {
+    id: 120405,
+    name: 'Flutter platform directories present',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      return hasProjectFile(ctx, /^android\//i) && hasProjectFile(ctx, /^ios\//i);
+    },
+    impact: 'medium',
+    category: 'flutter',
+    fix: 'Run `flutter create .` to generate `android/` and `ios/` platform directories.',
+    confidence: 0.7,
+  },
+
+  flutterWebSupport: {
+    id: 120406,
+    name: 'Flutter web support enabled',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      return hasProjectFile(ctx, /^web\//i);
+    },
+    impact: 'low',
+    category: 'flutter',
+    fix: 'Run `flutter create --platforms=web .` to add web support.',
+    confidence: 0.7,
+  },
+
+  flutterL10n: {
+    id: 120407,
+    name: 'Flutter localization configured',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      const pubspec = readProjectFiles(ctx, /(^|\/)pubspec\.yaml$/i);
+      return hasProjectFile(ctx, /(^|\/)l10n\.yaml$/i) || /\bintl\b/i.test(pubspec);
+    },
+    impact: 'medium',
+    category: 'flutter',
+    fix: 'Add `l10n.yaml` or the `intl` package to support localization and internationalization.',
+    confidence: 0.7,
+  },
+
+  flutterStateManagement: {
+    id: 120408,
+    name: 'Flutter state management configured',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      const pubspec = readProjectFiles(ctx, /(^|\/)pubspec\.yaml$/i);
+      return /riverpod|flutter_bloc|\bbloc\b|\bprovider\b/i.test(pubspec);
+    },
+    impact: 'medium',
+    category: 'flutter',
+    fix: 'Add a state management solution such as `riverpod`, `bloc`, or `provider` to pubspec.yaml.',
+    confidence: 0.7,
+  },
+
+  flutterNavigation: {
+    id: 120409,
+    name: 'Flutter routing configured',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      const pubspec = readProjectFiles(ctx, /(^|\/)pubspec\.yaml$/i);
+      return /go_router|auto_route/i.test(pubspec);
+    },
+    impact: 'medium',
+    category: 'flutter',
+    fix: 'Add `go_router` or `auto_route` for declarative, type-safe Flutter routing.',
+    confidence: 0.7,
+  },
+
+  flutterCIConfigured: {
+    id: 120410,
+    name: 'CI runs flutter test',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      return /flutter test(\s|$)/i.test(getWorkflowContent(ctx));
+    },
+    impact: 'high',
+    category: 'flutter',
+    fix: 'Add `flutter test` to your CI workflow so tests run automatically on every change.',
+    confidence: 0.8,
+  },
+
+  flutterCodeGen: {
+    id: 120411,
+    name: 'Flutter code generation configured',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      const pubspec = readProjectFiles(ctx, /(^|\/)pubspec\.yaml$/i);
+      return /build_runner|freezed/i.test(pubspec);
+    },
+    impact: 'medium',
+    category: 'flutter',
+    fix: 'Add `build_runner` and/or `freezed` to pubspec.yaml for code generation support.',
+    confidence: 0.7,
+  },
+
+  flutterFirebase: {
+    id: 120412,
+    name: 'Flutter Firebase integration',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      const pubspec = readProjectFiles(ctx, /(^|\/)pubspec\.yaml$/i);
+      return /firebase/i.test(pubspec) || hasProjectFile(ctx, /(^|\/)firebase_options\.dart$/i);
+    },
+    impact: 'medium',
+    category: 'flutter',
+    fix: 'Add Firebase packages to pubspec.yaml and run `flutterfire configure` to generate firebase_options.dart.',
+    confidence: 0.7,
+  },
+
+  flutterAssets: {
+    id: 120413,
+    name: 'Flutter assets configured',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      const pubspec = readProjectFiles(ctx, /(^|\/)pubspec\.yaml$/i);
+      return /\bassets\s*:/i.test(pubspec);
+    },
+    impact: 'low',
+    category: 'flutter',
+    fix: 'Add an `assets:` section in pubspec.yaml to declare images, fonts, and other bundled resources.',
+    confidence: 0.7,
+  },
+
+  flutterFlavors: {
+    id: 120414,
+    name: 'Flutter flavors configured',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      const pubspec = readProjectFiles(ctx, /(^|\/)pubspec\.yaml$/i);
+      return /\bflavors?\b/i.test(pubspec) || /--flavor/i.test(getWorkflowContent(ctx));
+    },
+    impact: 'low',
+    category: 'flutter',
+    fix: 'Configure Flutter flavors for environment-specific builds (dev, staging, production).',
+    confidence: 0.7,
+  },
+
+  flutterContainerized: {
+    id: 120415,
+    name: 'Flutter Dockerfile present',
+    check: (ctx) => {
+      if (!isFlutterProject(ctx)) return null;
+      const dockerfiles = readProjectFiles(ctx, /(^|\/)Dockerfile/i);
+      return /flutter|dart/i.test(dockerfiles);
+    },
+    impact: 'low',
+    category: 'flutter',
+    fix: 'Add a Dockerfile that includes the Flutter or Dart SDK for containerized builds.',
+    confidence: 0.7,
+  },
+
+  // === SWIFT STACK CHECKS (category: 'swift') ==================
+  // ============================================================
+
+  swiftPackageExists: {
+    id: 120501,
+    name: 'Swift package or Xcode project exists',
+    check: (ctx) => {
+      if (!isSwiftProject(ctx)) return null;
+      return true;
+    },
+    impact: 'high',
+    category: 'swift',
+    fix: 'Add a `Package.swift` or `.xcodeproj` to define your Swift project structure.',
+    confidence: 0.7,
+  },
+
+  swiftLinter: {
+    id: 120502,
+    name: 'SwiftLint configured',
+    check: (ctx) => {
+      if (!isSwiftProject(ctx)) return null;
+      return hasProjectFile(ctx, /(^|\/)(\.swiftlint\.yml|\.swiftlint\.yaml)$/i);
+    },
+    impact: 'medium',
+    category: 'swift',
+    fix: 'Add `.swiftlint.yml` to enforce Swift coding conventions.',
+    confidence: 0.8,
+  },
+
+  swiftTests: {
+    id: 120503,
+    name: 'Swift tests exist',
+    check: (ctx) => {
+      if (!isSwiftProject(ctx)) return null;
+      return hasProjectFile(ctx, /(^|\/)Tests\//i) ||
+        findProjectFiles(ctx, /\.swift$/i).some(f => /XCTest/i.test(ctx.fileContent(f) || ''));
+    },
+    impact: 'high',
+    category: 'swift',
+    fix: 'Add Swift tests in a `Tests/` directory using XCTest.',
+    confidence: 0.8,
+  },
+
+  swiftFormatter: {
+    id: 120504,
+    name: 'SwiftFormat configured',
+    check: (ctx) => {
+      if (!isSwiftProject(ctx)) return null;
+      return hasProjectFile(ctx, /(^|\/)\.swiftformat$/i);
+    },
+    impact: 'medium',
+    category: 'swift',
+    fix: 'Add `.swiftformat` to enforce consistent Swift formatting.',
+    confidence: 0.7,
+  },
+
+  swiftCIConfigured: {
+    id: 120505,
+    name: 'CI runs swift test or xcodebuild',
+    check: (ctx) => {
+      if (!isSwiftProject(ctx)) return null;
+      return /swift test|xcodebuild(\s|$)/i.test(getWorkflowContent(ctx));
+    },
+    impact: 'high',
+    category: 'swift',
+    fix: 'Add `swift test` or `xcodebuild test` to your CI workflow.',
+    confidence: 0.8,
+  },
+
+  swiftDocComments: {
+    id: 120506,
+    name: 'Swift doc comments present',
+    check: (ctx) => {
+      if (!isSwiftProject(ctx)) return null;
+      const swiftFiles = findProjectFiles(ctx, /\.swift$/i);
+      if (swiftFiles.length === 0) return null;
+      return swiftFiles.some(f => /\/\/\//.test(ctx.fileContent(f) || ''));
+    },
+    impact: 'low',
+    category: 'swift',
+    fix: 'Add `///` documentation comments to public Swift APIs.',
+    confidence: 0.7,
+  },
+
+  swiftSPM: {
+    id: 120507,
+    name: 'Swift Package Manager used',
+    check: (ctx) => {
+      if (!isSwiftProject(ctx)) return null;
+      return hasProjectFile(ctx, /(^|\/)Package\.swift$/i);
+    },
+    impact: 'medium',
+    category: 'swift',
+    fix: 'Add `Package.swift` to use Swift Package Manager for dependency management.',
+    confidence: 0.7,
+  },
+
+  swiftMinVersion: {
+    id: 120508,
+    name: 'Swift tools version specified',
+    check: (ctx) => {
+      if (!isSwiftProject(ctx)) return null;
+      const pkg = readProjectFiles(ctx, /(^|\/)Package\.swift$/i);
+      return /swift-tools-version/i.test(pkg);
+    },
+    impact: 'medium',
+    category: 'swift',
+    fix: 'Add `// swift-tools-version:5.9` (or appropriate version) at the top of Package.swift.',
+    confidence: 0.8,
+  },
+
+  swiftAccessControl: {
+    id: 120509,
+    name: 'Swift access control used',
+    check: (ctx) => {
+      if (!isSwiftProject(ctx)) return null;
+      const swiftFiles = findProjectFiles(ctx, /\.swift$/i);
+      if (swiftFiles.length === 0) return null;
+      return swiftFiles.some(f => /\b(public|internal)\b/.test(ctx.fileContent(f) || ''));
+    },
+    impact: 'low',
+    category: 'swift',
+    fix: 'Use `public`/`internal` access control in Swift files to define clear API boundaries.',
+    confidence: 0.7,
+  },
+
+  swiftConcurrency: {
+    id: 120510,
+    name: 'Swift concurrency used',
+    check: (ctx) => {
+      if (!isSwiftProject(ctx)) return null;
+      const swiftFiles = findProjectFiles(ctx, /\.swift$/i);
+      if (swiftFiles.length === 0) return null;
+      return swiftFiles.some(f => /\basync\b.*\bawait\b|\bawait\b/s.test(ctx.fileContent(f) || ''));
+    },
+    impact: 'low',
+    category: 'swift',
+    fix: 'Adopt Swift structured concurrency with `async`/`await` for modern asynchronous code.',
+    confidence: 0.7,
+  },
+
+  // === KOTLIN STACK CHECKS (category: 'kotlin') ================
+  // ============================================================
+
+  kotlinGradlePlugin: {
+    id: 120601,
+    name: 'Kotlin Gradle plugin configured',
+    check: (ctx) => {
+      if (!isKotlinProject(ctx)) return null;
+      const gradle = readProjectFiles(ctx, /(^|\/)(build\.gradle\.kts|build\.gradle)$/i);
+      return /kotlin\(|org\.jetbrains\.kotlin/i.test(gradle);
+    },
+    impact: 'high',
+    category: 'kotlin',
+    fix: 'Apply the Kotlin Gradle plugin in build.gradle.kts to enable Kotlin compilation.',
+    confidence: 0.8,
+  },
+
+  kotlinVersion: {
+    id: 120602,
+    name: 'Kotlin version specified',
+    check: (ctx) => {
+      if (!isKotlinProject(ctx)) return null;
+      const gradle = readProjectFiles(ctx, /(^|\/)(build\.gradle\.kts|build\.gradle|gradle\.properties)$/i);
+      return /kotlinVersion|kotlin_version|org\.jetbrains\.kotlin.*\d+\.\d+/i.test(gradle);
+    },
+    impact: 'high',
+    category: 'kotlin',
+    fix: 'Pin the Kotlin version in gradle.properties or build.gradle.kts for reproducible builds.',
+    confidence: 0.8,
+  },
+
+  kotlinLinter: {
+    id: 120603,
+    name: 'Kotlin linter configured',
+    check: (ctx) => {
+      if (!isKotlinProject(ctx)) return null;
+      const gradle = readProjectFiles(ctx, /(^|\/)(build\.gradle\.kts|build\.gradle)$/i);
+      return /ktlint|detekt/i.test(gradle) ||
+        hasProjectFile(ctx, /(^|\/)(\.editorconfig|detekt\.yml|detekt\.yaml)$/i);
+    },
+    impact: 'medium',
+    category: 'kotlin',
+    fix: 'Add `ktlint` or `detekt` to enforce Kotlin code style and static analysis.',
+    confidence: 0.8,
+  },
+
+  kotlinTests: {
+    id: 120604,
+    name: 'Kotlin tests exist',
+    check: (ctx) => {
+      if (!isKotlinProject(ctx)) return null;
+      return hasProjectFile(ctx, /(^|\/)src\/test\/.*\.kt$/i) ||
+        hasProjectFile(ctx, /(^|\/)test\/.*\.kt$/i);
+    },
+    impact: 'high',
+    category: 'kotlin',
+    fix: 'Add Kotlin tests in `src/test/` using JUnit or KotlinTest.',
+    confidence: 0.8,
+  },
+
+  kotlinCoroutines: {
+    id: 120605,
+    name: 'Kotlin Coroutines in dependencies',
+    check: (ctx) => {
+      if (!isKotlinProject(ctx)) return null;
+      const gradle = readProjectFiles(ctx, /(^|\/)(build\.gradle\.kts|build\.gradle)$/i);
+      return /kotlinx[.-]coroutines/i.test(gradle);
+    },
+    impact: 'medium',
+    category: 'kotlin',
+    fix: 'Add `kotlinx-coroutines-core` to dependencies for structured concurrency.',
+    confidence: 0.7,
+  },
+
+  kotlinSerialization: {
+    id: 120606,
+    name: 'Kotlin serialization configured',
+    check: (ctx) => {
+      if (!isKotlinProject(ctx)) return null;
+      const gradle = readProjectFiles(ctx, /(^|\/)(build\.gradle\.kts|build\.gradle)$/i);
+      return /kotlinx[.-]serialization/i.test(gradle);
+    },
+    impact: 'medium',
+    category: 'kotlin',
+    fix: 'Add `kotlinx.serialization` for type-safe, multiplatform serialization.',
+    confidence: 0.7,
+  },
+
+  kotlinCompose: {
+    id: 120607,
+    name: 'Jetpack Compose configured',
+    check: (ctx) => {
+      if (!isKotlinProject(ctx)) return null;
+      const gradle = readProjectFiles(ctx, /(^|\/)(build\.gradle\.kts|build\.gradle)$/i);
+      return /compose/i.test(gradle);
+    },
+    impact: 'medium',
+    category: 'kotlin',
+    fix: 'Enable Jetpack Compose in build.gradle.kts for modern declarative Android UI.',
+    confidence: 0.7,
+  },
+
+  kotlinCIConfigured: {
+    id: 120608,
+    name: 'CI runs Kotlin tests',
+    check: (ctx) => {
+      if (!isKotlinProject(ctx)) return null;
+      return /gradle.*test|gradlew.*test/i.test(getWorkflowContent(ctx));
+    },
+    impact: 'high',
+    category: 'kotlin',
+    fix: 'Add `./gradlew test` to your CI workflow so Kotlin tests run automatically.',
+    confidence: 0.8,
+  },
+
+  kotlinMultiplatform: {
+    id: 120609,
+    name: 'Kotlin Multiplatform configured',
+    check: (ctx) => {
+      if (!isKotlinProject(ctx)) return null;
+      const gradle = readProjectFiles(ctx, /(^|\/)(build\.gradle\.kts|build\.gradle)$/i);
+      return /multiplatform/i.test(gradle);
+    },
+    impact: 'medium',
+    category: 'kotlin',
+    fix: 'Apply the `kotlin-multiplatform` Gradle plugin to share code across JVM, iOS, JS, and Native targets.',
+    confidence: 0.7,
+  },
+
+  kotlinDocComments: {
+    id: 120610,
+    name: 'KDoc comments present',
+    check: (ctx) => {
+      if (!isKotlinProject(ctx)) return null;
+      const ktFiles = findProjectFiles(ctx, /\.kt$/i);
+      if (ktFiles.length === 0) return null;
+      return ktFiles.some(f => /\/\*\*/.test(ctx.fileContent(f) || ''));
+    },
+    impact: 'low',
+    category: 'kotlin',
+    fix: 'Add KDoc comments (`/** ... */`) to public Kotlin APIs for documentation generation.',
     confidence: 0.7,
   },
 
