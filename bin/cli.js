@@ -11,6 +11,8 @@ const { collectFeedback } = require('../src/feedback');
 const { startServer } = require('../src/server');
 const { auditWorkspaces } = require('../src/workspace');
 const { scanOrg } = require('../src/org');
+const { detectAntiPatterns, printAntiPatterns, printAntiPatternCatalog } = require('../src/anti-patterns');
+const { VERIFICATION_DATES, getVerificationDate, getVerificationStats } = require('../src/verification-metadata');
 const { version } = require('../package.json');
 
 const args = process.argv.slice(2);
@@ -24,7 +26,7 @@ const COMMAND_ALIASES = {
   gov: 'governance',
   outcome: 'feedback',
 };
-const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise', 'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'rules-export', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise', 'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'anti-patterns', 'rules-export', 'freshness', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -85,11 +87,12 @@ function parseArgs(rawArgs) {
   let migrateFrom = null;
   let migrateTo = null;
   let checkVersion = null;
+  let external = null;
 
   for (let i = 0; i < rawArgs.length; i++) {
     const arg = rawArgs[i];
 
-    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack' || arg === '--require' || arg === '--key' || arg === '--status' || arg === '--effect' || arg === '--notes' || arg === '--source' || arg === '--score-delta' || arg === '--platform' || arg === '--format' || arg === '--from' || arg === '--to' || arg === '--port' || arg === '--workspace' || arg === '--check-version' || arg === '--webhook') {
+    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack' || arg === '--require' || arg === '--key' || arg === '--status' || arg === '--effect' || arg === '--notes' || arg === '--source' || arg === '--score-delta' || arg === '--platform' || arg === '--format' || arg === '--from' || arg === '--to' || arg === '--port' || arg === '--workspace' || arg === '--check-version' || arg === '--webhook' || arg === '--external') {
       const value = rawArgs[i + 1];
       if (!value || value.startsWith('--')) {
         throw new Error(`${arg} requires a value`);
@@ -115,7 +118,13 @@ function parseArgs(rawArgs) {
       if (arg === '--workspace') workspace = value.trim();
       if (arg === '--check-version') checkVersion = value.trim();
       if (arg === '--webhook') webhookUrl = value.trim();
+      if (arg === '--external') external = value.trim();
       i++;
+      continue;
+    }
+
+    if (arg.startsWith('--external=')) {
+      external = arg.split('=').slice(1).join('=').trim();
       continue;
     }
 
@@ -224,7 +233,7 @@ function parseArgs(rawArgs) {
 
   const normalizedCommand = COMMAND_ALIASES[command] || command;
 
-  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks, feedbackKey, feedbackStatus, feedbackEffect, feedbackNotes, feedbackSource, feedbackScoreDelta, platform, format, port, workspace, extraArgs, convertFrom, convertTo, migrateFrom, migrateTo, checkVersion, webhookUrl };
+  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks, feedbackKey, feedbackStatus, feedbackEffect, feedbackNotes, feedbackSource, feedbackScoreDelta, platform, format, port, workspace, extraArgs, convertFrom, convertTo, migrateFrom, migrateTo, checkVersion, webhookUrl, external };
 }
 
 function printWorkspaceSummary(summary, options) {
@@ -289,6 +298,8 @@ const HELP = `
     nerviq org scan dir1 dir2     Aggregate multiple repos into one score table
     nerviq catalog                Full check catalog (all 8 platforms)
     nerviq catalog --json         Export full check catalog as JSON
+    nerviq anti-patterns          Detect anti-patterns in current project
+    nerviq anti-patterns --all    Show full anti-pattern catalog
 
   SETUP
     nerviq setup                  Generate starter-safe baseline config files
@@ -308,6 +319,8 @@ const HELP = `
     nerviq governance             Permission profiles + hooks + policy packs
     nerviq governance --json      Machine-readable governance summary
     nerviq benchmark              Before/after score in isolated temp copy
+    nerviq benchmark --external /path  Benchmark an external repo
+    nerviq freshness              Show verification freshness for all checks
     nerviq certify                Generate certification badge for your project
 
   CROSS-PLATFORM
@@ -348,6 +361,7 @@ const HELP = `
     --check-version V Pin catalog to a specific version (warn on mismatch)
     --format NAME     Output format: json | sarif | otel
     --webhook URL     Send audit results to a webhook (Slack/Discord/generic JSON)
+    --external PATH   Benchmark an external repo instead of cwd
     --port N          Port for \`serve\` (default: 3000)
     --workspace GLOBS Audit workspaces separately (e.g. packages/* or apps/web,apps/api)
     --snapshot        Save snapshot artifact under .claude/nerviq/snapshots/
@@ -429,6 +443,7 @@ async function main() {
     port: parsed.port !== null ? Number(parsed.port) : null,
     workspace: parsed.workspace || null,
     webhookUrl: parsed.webhookUrl || null,
+    external: parsed.external || null,
     dir: process.cwd()
   };
 
@@ -509,7 +524,8 @@ async function main() {
       'history', 'compare', 'trend', 'feedback', 'catalog', 'certify', 'serve', 'help', 'version',
       // Harmony + Synergy (cross-platform)
       'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise',
-      'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'rules-export',
+      'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'anti-patterns', 'rules-export',
+      'freshness',
     ]);
 
     if (options.platform === 'codex') {
@@ -989,6 +1005,17 @@ async function main() {
         process.exit(1);
       }
       process.exit(0);
+    } else if (normalizedCommand === 'anti-patterns') {
+      const showAll = flags.includes('--all');
+      if (showAll) {
+        printAntiPatternCatalog(options);
+      } else {
+        const { ProjectContext } = require('../src/context');
+        const ctx = new ProjectContext(options.dir);
+        const detected = detectAntiPatterns(ctx);
+        printAntiPatterns(detected, options);
+      }
+      process.exit(0);
     } else if (normalizedCommand === 'rules-export') {
       const { generateRecommendationRules } = require('../src/recommendation-rules');
       const rules = generateRecommendationRules();
@@ -1002,6 +1029,44 @@ async function main() {
         }
       } else {
         console.log(output);
+      }
+      process.exit(0);
+    } else if (normalizedCommand === 'freshness') {
+      const { TECHNIQUES } = require('../src/techniques');
+      const stats = getVerificationStats();
+      const allKeys = Object.keys(TECHNIQUES);
+      const verifiedKeys = Object.keys(VERIFICATION_DATES);
+      const neverVerified = allKeys.filter(k => !VERIFICATION_DATES[k]);
+
+      if (options.json) {
+        console.log(JSON.stringify({
+          totalChecks: allKeys.length,
+          verifiedChecks: verifiedKeys.length,
+          neverVerifiedCount: neverVerified.length,
+          newestVerification: stats.newest,
+          oldestVerification: stats.oldest,
+          neverVerified,
+        }, null, 2));
+      } else {
+        console.log('');
+        console.log('  nerviq freshness');
+        console.log('  ═══════════════════════════════════════');
+        console.log(`  Total checks:            ${allKeys.length}`);
+        console.log(`  With verification date:  ${verifiedKeys.length}`);
+        console.log(`  Never verified:          ${neverVerified.length}`);
+        console.log(`  Newest verification:     ${stats.newest}`);
+        console.log(`  Oldest verification:     ${stats.oldest}`);
+        console.log('');
+        if (neverVerified.length > 0 && options.verbose) {
+          console.log('  Never verified:');
+          for (const key of neverVerified) {
+            console.log(`    - ${key}`);
+          }
+          console.log('');
+        } else if (neverVerified.length > 0) {
+          console.log(`  Use --verbose to list all ${neverVerified.length} never-verified checks.`);
+          console.log('');
+        }
       }
       process.exit(0);
     } else if (normalizedCommand === 'synergy-report') {

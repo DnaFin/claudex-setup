@@ -247,18 +247,23 @@ function renderBenchmarkMarkdown(report) {
  * Run a before/after benchmark on an isolated copy of the project.
  * @param {Object} options - Benchmark options.
  * @param {string} options.dir - Project directory to benchmark.
+ * @param {string} [options.external] - External repo path to benchmark instead of cwd.
  * @param {string} [options.profile] - Permission profile to use during setup.
  * @param {string[]} [options.mcpPacks] - MCP pack keys to include in setup.
  * @returns {Promise<Object>} Benchmark report with before/after scores, delta, and workflow evidence.
  */
 async function runBenchmark(options) {
   const platform = options.platform || 'claude';
-  const before = await audit({ dir: options.dir, silent: true, platform });
+  const sourceDir = options.external || options.dir;
+  if (options.external && !fs.existsSync(options.external)) {
+    throw new Error(`External repo path not found: ${options.external}`);
+  }
+  const before = await audit({ dir: sourceDir, silent: true, platform });
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'claudex-benchmark-'));
   const sandboxDir = path.join(tempRoot, 'repo');
 
   try {
-    copyProject(options.dir, sandboxDir);
+    copyProject(sourceDir, sandboxDir);
     const applyResult = await setup({
       dir: sandboxDir,
       auto: true,
@@ -278,7 +283,7 @@ async function runBenchmark(options) {
       schemaVersion: 1,
       generatedBy: `nerviq@${version}`,
       createdAt: new Date().toISOString(),
-      directory: options.dir,
+      directory: sourceDir,
       platform,
       methodology: [
         'Run a baseline audit on the source repo.',
