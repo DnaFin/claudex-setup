@@ -90,6 +90,41 @@ describe('Techniques', () => {
       cleanFixture(dir);
     }
   });
+
+  test('python stack checks return null for non-python projects', () => {
+    const dir = mkFixture('non-python');
+    try {
+      writeFile(dir, 'package.json', '{"name":"js-only"}');
+      const ctx = new ProjectContext(dir);
+      expect(TECHNIQUES.pyprojectTomlExists.check(ctx)).toBe(null);
+      expect(TECHNIQUES.pythonTypeHints.check(ctx)).toBe(null);
+    } finally {
+      cleanFixture(dir);
+    }
+  });
+
+  test('python stack checks detect nested source files', () => {
+    const dir = mkFixture('python-nested');
+    try {
+      writeFile(dir, 'src/app.py', 'from typing import Optional\n\ndef run(value: str) -> Optional[str]:\n    return value\n');
+      const ctx = new ProjectContext(dir);
+      expect(TECHNIQUES.pythonTypeHints.check(ctx)).toBe(true);
+    } finally {
+      cleanFixture(dir);
+    }
+  });
+
+  test('go stack checks return null for non-go projects', () => {
+    const dir = mkFixture('non-go');
+    try {
+      writeFile(dir, 'README.md', '# No Go here\n');
+      const ctx = new ProjectContext(dir);
+      expect(TECHNIQUES.goModExists.check(ctx)).toBe(null);
+      expect(TECHNIQUES.goLinter.check(ctx)).toBe(null);
+    } finally {
+      cleanFixture(dir);
+    }
+  });
 });
 
 describe('Stacks', () => {
