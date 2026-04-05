@@ -296,15 +296,16 @@ const STRENGTH_REASONS = {
 
 function toStrengths(results) {
   return results
-    .filter(r => r.passed === true)
+    .filter(r => r.passed === true && (r.impact === 'critical' || r.impact === 'high' || r.impact === 'medium'))
     .sort((a, b) => {
       const order = { critical: 3, high: 2, medium: 1, low: 0 };
       return (order[b.impact] || 0) - (order[a.impact] || 0);
     })
-    .slice(0, 8)
+    .slice(0, 10)
     .map(r => ({
       key: r.key,
       name: r.name,
+      impact: r.impact,
       category: r.category,
       why: STRENGTH_REASONS[r.key] || `Already configured and working: ${r.name}.`,
     }));
@@ -604,12 +605,10 @@ function printAnalysis(report, options = {}) {
   console.log('');
 
   if (report.strengthsPreserved.length > 0) {
-    console.log(c('  Strengths Preserved', 'green'));
+    console.log(c(`  ${'\u2705'} Strengths Preserved (don't change these)`, 'green'));
     for (const item of report.strengthsPreserved) {
-      console.log(`  ${c('✓', 'green')} ${item.name}`);
-      if (item.why) {
-        console.log(c(`    ${item.why}`, 'dim'));
-      }
+      const impactLabel = item.impact ? ` (${item.impact})` : '';
+      console.log(`     ${c('\u2022', 'green')} ${item.name}${c(impactLabel, 'dim')}`);
     }
     console.log('');
   }
@@ -730,10 +729,11 @@ function exportMarkdown(report) {
   lines.push('');
 
   if (report.strengthsPreserved.length > 0) {
-    lines.push('## Strengths Preserved');
+    lines.push('## Strengths Preserved (don\'t change these)');
     lines.push('');
     for (const item of report.strengthsPreserved) {
-      lines.push(`- **${item.name}** — ${item.why || 'Already configured.'}`);
+      const impactLabel = item.impact ? ` (${item.impact})` : '';
+      lines.push(`- **${item.name}**${impactLabel} — ${item.why || 'Already configured.'}`);
     }
     lines.push('');
   }

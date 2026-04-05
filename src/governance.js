@@ -60,6 +60,7 @@ const HOOK_REGISTRY = [
     filesTouched: [],
     sideEffects: ['Stops the action and returns a block decision when a secret path is targeted.'],
     risk: 'low',
+    riskLevel: 'high',
     dryRunExample: 'Attempt to read `.env` and confirm the hook blocks the request.',
     rollbackPath: 'Remove the PreToolUse registration from settings.json.',
   },
@@ -72,6 +73,7 @@ const HOOK_REGISTRY = [
     filesTouched: ['Working tree files targeted by eslint/ruff fixes'],
     sideEffects: ['May auto-fix formatting or lint issues.', 'Can modify the same files that were just edited.'],
     risk: 'medium',
+    riskLevel: 'medium',
     dryRunExample: 'Edit a JS or Python file and inspect whether eslint or ruff would run.',
     rollbackPath: 'Remove the PostToolUse hook entry or delete the script.',
   },
@@ -84,6 +86,7 @@ const HOOK_REGISTRY = [
     filesTouched: ['.claude/logs/file-changes.log'],
     sideEffects: ['Creates the logs directory on first use.', 'Adds a timestamped audit line per file change.'],
     risk: 'low',
+    riskLevel: 'low',
     dryRunExample: 'Edit one file and verify the log entry is appended.',
     rollbackPath: 'Remove the PostToolUse hook entry and delete the log file if desired.',
   },
@@ -96,6 +99,7 @@ const HOOK_REGISTRY = [
     filesTouched: [],
     sideEffects: ['Returns a systemMessage warning if duplicates are found.'],
     risk: 'low',
+    riskLevel: 'low',
     dryRunExample: 'Edit a catalog file and verify duplicate check runs without blocking.',
     rollbackPath: 'Remove the PostToolUse hook entry from settings.',
   },
@@ -108,6 +112,7 @@ const HOOK_REGISTRY = [
     filesTouched: ['tools/failure-log.txt'],
     sideEffects: ['Logs alerts to failure log.', 'Returns a systemMessage warning if patterns detected.'],
     risk: 'low',
+    riskLevel: 'low',
     dryRunExample: 'Run a WebFetch and verify output is scanned for injection patterns.',
     rollbackPath: 'Remove the PostToolUse hook entry from settings.',
   },
@@ -120,6 +125,7 @@ const HOOK_REGISTRY = [
     filesTouched: [],
     sideEffects: ['Returns a systemMessage warning if drift is detected.'],
     risk: 'low',
+    riskLevel: 'low',
     dryRunExample: 'Edit a product-facing file and verify drift check runs.',
     rollbackPath: 'Remove the PostToolUse hook entry from settings.',
   },
@@ -132,10 +138,47 @@ const HOOK_REGISTRY = [
     filesTouched: ['tools/change-log.txt', 'tools/failure-log.txt'],
     sideEffects: ['Archives logs over 500KB.', 'Returns a systemMessage with workspace info.'],
     risk: 'low',
+    riskLevel: 'low',
     dryRunExample: 'Start a new session and verify log rotation runs.',
     rollbackPath: 'Remove the SessionStart hook entry from settings.',
   },
 ];
+
+/**
+ * Classify the risk level of a hook based on its event type and characteristics.
+ * - high: PreToolUse hooks that can block operations (exit 2)
+ * - medium: PostToolUse hooks that modify files or warn (exit 1 or write-only)
+ * - low: Informational hooks (PostToolUse notification/logging, SessionStart)
+ * @param {Object} hook - A hook entry from HOOK_REGISTRY or a custom hook.
+ * @returns {string} Risk level: 'high', 'medium', or 'low'.
+ */
+function classifyHookRiskLevel(hook) {
+  // PreToolUse hooks can block operations (exit code 2 blocks the tool call)
+  if (hook.triggerPoint === 'PreToolUse') {
+    return 'high';
+  }
+
+  // SessionStart hooks are informational — they run once at session init
+  if (hook.triggerPoint === 'SessionStart') {
+    return 'low';
+  }
+
+  // PostToolUse hooks that touch files are medium risk (they can modify working tree)
+  if (hook.triggerPoint === 'PostToolUse') {
+    if (Array.isArray(hook.filesTouched) && hook.filesTouched.length > 0) {
+      // Hooks that only write to log files are low risk
+      const onlyLogs = hook.filesTouched.every(f =>
+        /\blog|\.log\b/i.test(f) || f.includes('logs/')
+      );
+      if (onlyLogs) return 'low';
+      return 'medium';
+    }
+    return 'low';
+  }
+
+  // Default: unknown trigger points get medium risk
+  return 'medium';
+}
 
 const POLICY_PACKS = [
   {
@@ -377,7 +420,9 @@ function printGovernanceSummary(summary, options = {}) {
   console.log('  Hook Registry');
   for (const hook of summary.hookRegistry) {
     const riskColor = hook.risk === 'low' ? '\x1b[32m' : hook.risk === 'medium' ? '\x1b[33m' : '\x1b[31m';
-    console.log(`  - ${hook.file} ${riskColor}[${hook.risk} risk]\x1b[0m`);
+    const rl = hook.riskLevel || classifyHookRiskLevel(hook);
+    const rlColor = rl === 'low' ? '\x1b[32m' : rl === 'medium' ? '\x1b[33m' : '\x1b[31m';
+    console.log(`  - ${hook.file} ${riskColor}[${hook.risk} risk]\x1b[0m ${rlColor}[${rl} riskLevel]\x1b[0m`);
     console.log(`    ${hook.triggerPoint}${hook.matcher ? ` ${hook.matcher}` : ''} -> ${hook.purpose}`);
   }
   console.log('');
@@ -448,7 +493,8 @@ function renderGovernanceMarkdown(summary) {
 
   lines.push('', '## Hook Registry');
   for (const hook of summary.hookRegistry) {
-    lines.push(`- **${hook.key}** \`${hook.triggerPoint}${hook.matcher ? ` ${hook.matcher}` : ''}\` | risk: \`${hook.risk}\``);
+    const rl = hook.riskLevel || classifyHookRiskLevel(hook);
+    lines.push(`- **${hook.key}** \`${hook.triggerPoint}${hook.matcher ? ` ${hook.matcher}` : ''}\` | risk: \`${hook.risk}\` | riskLevel: \`${rl}\``);
     lines.push(`  - File: ${hook.file}`);
     lines.push(`  - Purpose: ${hook.purpose}`);
     lines.push(`  - Dry run: ${hook.dryRunExample}`);
@@ -520,4 +566,5 @@ module.exports = {
   getGovernanceSummary,
   printGovernanceSummary,
   renderGovernanceMarkdown,
+  classifyHookRiskLevel,
 };
