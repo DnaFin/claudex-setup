@@ -1,28 +1,27 @@
 # Nerviq
 
-> The intelligent nervous system for AI coding agents — audit, align, and amplify every platform on every project.
+> Standardize and govern your AI coding agent setup — score, fix, and align across 8 platforms.
 
 [![npm version](https://img.shields.io/npm/v/@nerviq/cli)](https://www.npmjs.com/package/@nerviq/cli)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
-[![Checks: 2039](https://img.shields.io/badge/checks-2039-brightgreen)](https://github.com/nerviq/nerviq)
-[![Nerviq Certified Gold](https://img.shields.io/badge/Nerviq-Nerviq%20Certified%20Gold-gold)](https://nerviq.net)
+[![Checks: 2431](https://img.shields.io/badge/checks-2431-brightgreen)](https://github.com/nerviq/nerviq)
 
 ---
 
 ### 8 Platforms Supported
 
-Nerviq v1.0 ships with full audit, setup, governance, and benchmark support for **8 AI coding platforms**:
+Nerviq audits, sets up, and governs AI coding agent configurations for **8 platforms**:
 
 | Platform | Checks | Status |
 |----------|--------|--------|
-| Claude Code | 309 | Full |
-| Codex (OpenAI) | 225 | Full |
-| Gemini CLI (Google) | 219 | Full |
-| GitHub Copilot | 218 | Full |
-| Cursor | 267 | Full |
-| Windsurf | 265 | Full |
-| Aider | 249 | Full |
-| OpenCode | 251 | Full |
+| Claude Code | 393 | Full |
+| Codex (OpenAI) | 272 | Full |
+| Gemini CLI (Google) | 300 | Full |
+| GitHub Copilot | 299 | Full |
+| Cursor | 301 | Full |
+| Windsurf | 297 | Full |
+| Aider | 283 | Full |
+| OpenCode | 286 | Full |
 
 ### 10 Stack-Specific Languages
 
@@ -78,7 +77,15 @@ npx @nerviq/cli benchmark          # Before/after in isolated copy
 
 No install required. Zero dependencies.
 
-## 2,039 Checks Across 96 Categories
+## Get Started by Role
+
+| You are a... | Start here | Then |
+|--------------|------------|------|
+| **Solo developer** | `nerviq audit` → `nerviq augment` | `nerviq benchmark` |
+| **Team lead / DevEx** | `nerviq governance` → `nerviq audit --json` | CI threshold + `nerviq watch` |
+| **Enterprise / Platform** | `nerviq harmony-audit` → `nerviq harmony-drift` | Policy packs + `nerviq certify` |
+
+## 2,431 Checks Across 96 Categories
 
 | Category Group | Checks | Examples |
 |----------------|--------|---------|
@@ -217,7 +224,7 @@ Levels:
 
 | Command | What it does |
 |---------|-------------|
-| `nerviq audit` | Score 0-100 against 2,039 checks |
+| `nerviq audit` | Score 0-100 against 2,431 checks |
 | `nerviq audit --lite` | Quick top-3 scan |
 | `nerviq setup` | Generate starter-safe CLAUDE.md + hooks + commands |
 | `nerviq augment` | Repo-aware improvement plan (no writes) |
@@ -270,7 +277,7 @@ Nerviq is built on the CLAUDEX knowledge engine — the largest verified catalog
 
 - **448+ research documents** covering all 8 platforms
 - **332+ experiments** with tested, rated results
-- **2,039 checks** across 8 platforms and 10 languages, each with `sourceUrl` and `confidence` level (0.0-1.0)
+- **2,431 checks** across 8 platforms and 10 languages, each with `sourceUrl` and `confidence` level (0.0-1.0)
 - Every check is traceable to primary documentation or verified experiment
 - 90-day freshness cycle: stale findings are re-verified or pruned
 
@@ -286,6 +293,14 @@ Nerviq is built on the CLAUDEX knowledge engine — the largest verified catalog
 - **npm**: [@nerviq/cli](https://www.npmjs.com/package/@nerviq/cli)
 - **GitHub**: [github.com/nerviq/nerviq](https://github.com/nerviq/nerviq)
 - **Website**: [nerviq.net](https://nerviq.net)
+
+## What Nerviq Is — and Isn't
+
+**Strongest at:** Agent configuration, workflow governance, repo policy hygiene, cross-platform alignment, and setup standardization.
+
+**Not a replacement for:** Deep architectural review of business logic, runtime performance profiling, or security penetration testing. Nerviq focuses on how your AI coding agents are configured and governed — not on what your application code does.
+
+**Confidence levels:** Every check includes a `confidence` score (0.0–1.0) and a `sourceUrl` linking to primary documentation. Checks marked `heuristic` are pattern-based and may produce false positives on non-standard project structures.
 
 ## Previously claudex-setup
 

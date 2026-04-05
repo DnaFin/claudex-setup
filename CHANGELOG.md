@@ -7,6 +7,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-04-06
+
+### Added
+- "Get Started by Role" section in README (solo dev / team lead / enterprise paths)
+- "What Nerviq Is — and Isn't" section in README (honest limitations, confidence levels)
+- CHANGELOG entries for v1.2.5 through v1.5.0 (previously undocumented)
+
+### Changed
+- Check counts synced across all surfaces (README, package.json, badge): 2,431 total
+- Removed stale "v1.0" reference from README
+- Tagline sharpened: "Standardize and govern your AI coding agent setup"
+- Platform check counts updated to match actual catalog
+- Removed self-certification badge
+
+## [1.5.0] - 2026-04-05
+
+### Added
+- Stream 8 Self-Dependent Execution — intelligence hardening
+- New CLI commands: `nerviq rules-export`, `nerviq anti-patterns`, `nerviq freshness`
+- A2: Recommendation rules export to JSON
+- A3: Shared contract schemas (technique + pack)
+- A6: 22 anti-pattern definitions with detection
+- A7: Last-verified date tracking for 123 checks
+- B5: External benchmark path (`nerviq benchmark --external /path`)
+- B8: Governance hook risk level classification (high/medium/low)
+
+### Changed
+- B3: Augment now preserves and displays top 10 strengths
+
+## [1.4.1] - 2026-04-05
+
+### Fixed
+- npm README display alignment
+
+## [1.4.0] - 2026-04-05
+
+### Added
+- Stream 13: 84 new coverage checks across 15 directions
+- MC-A (HIGH): Observability, Accessibility, GDPR, Error Tracking, Supply Chain — 31 checks
+- MC-B (MED): i18n, API Versioning, Caching, Rate Limiting, Feature Flags, Docs, Monorepo, Performance — 43 checks
+- MC-C (LOW): WebSocket/Real-time, GraphQL — 10 checks
+- Total reached 2,039 checks across 96 categories
+
+## [1.3.2] - 2026-04-05
+
+### Changed
+- README fully updated: badge, platform table, category table, stack languages table
+- package.json description synced to 1,955 checks
+- Added `harmony-add` command to docs
+
+## [1.3.1] - 2026-04-05
+
+### Added
+- Stream 5D: 35 mobile stack checks (Flutter 15, Swift 10, Kotlin 10)
+- Stream 4 Batch 2: 22 new domain packs (healthcare to energy)
+- Stream 5 complete: 172 stack checks across 10 languages
+
+## [1.3.0] - 2026-04-05
+
+### Added
+- Stream 5: Stack-specific checks for 7 languages (137 new checks)
+- Python (26), Go (21), Rust (21), Java/Spring (21), Ruby (16), PHP (16), .NET (16)
+- QP-D02: API reference documentation (`docs/api-reference.md`)
+
+## [1.2.7] - 2026-04-05
+
+### Changed
+- Version bump for npm publish alignment
+
+## [1.2.6] - 2026-04-05
+
+### Added
+- EC1-EC8: All 6 new ECC-inspired checks + 2 advisor task types
+
+### Fixed
+- Flaky `compareLatest` test (timestamp tiebreaker sort)
+
+## [1.2.5] - 2026-04-05
+
+### Added
+- 3 ECC-inspired checks: `llms.txt`, MCP budget warning, hook exit code docs
+
+### Changed
+- Complete CLAUDEX → NERVIQ rebrand across docs, content, action, landing page
+- CHANGELOG rewritten to Keep a Changelog format with full version history
+
 ## [1.2.4] - 2026-04-05
 
 ### Added
