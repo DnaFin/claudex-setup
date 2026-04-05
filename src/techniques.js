@@ -117,6 +117,12 @@ function isGoProject(ctx) {
   return ctx.__nerviqIsGo;
 }
 
+function isRustProject(ctx) {
+  if (ctx.__nerviqIsRust !== undefined) return ctx.__nerviqIsRust;
+  ctx.__nerviqIsRust = hasProjectFile(ctx, /(^|\/)Cargo\.toml$/i);
+  return ctx.__nerviqIsRust;
+}
+
 function getPythonFiles(ctx) {
   if (ctx.__nerviqPythonFiles) return ctx.__nerviqPythonFiles;
   ctx.__nerviqPythonFiles = findProjectFiles(ctx, /\.py$/i);
@@ -150,6 +156,20 @@ function getGoFiles(ctx) {
   return ctx.__nerviqGoFiles;
 }
 
+function getRustFiles(ctx) {
+  if (ctx.__nerviqRustFiles) return ctx.__nerviqRustFiles;
+  ctx.__nerviqRustFiles = findProjectFiles(ctx, /\.rs$/i);
+  return ctx.__nerviqRustFiles;
+}
+
+function getMainRustFiles(ctx) {
+  if (ctx.__nerviqMainRustFiles) return ctx.__nerviqMainRustFiles;
+  ctx.__nerviqMainRustFiles = getRustFiles(ctx)
+    .filter(file => !/(^|\/)(tests|target)\//i.test(file))
+    .slice(0, 60);
+  return ctx.__nerviqMainRustFiles;
+}
+
 function getMainGoFiles(ctx) {
   if (ctx.__nerviqMainGoFiles) return ctx.__nerviqMainGoFiles;
   ctx.__nerviqMainGoFiles = getGoFiles(ctx).filter(file => !/_test\.go$/i.test(file)).slice(0, 60);
@@ -178,6 +198,18 @@ function getGoProjectText(ctx) {
     getMainGoFiles(ctx).slice(0, 25).map(file => ctx.fileContent(file) || '').filter(Boolean).join('\n'),
   ].filter(Boolean).join('\n');
   return ctx.__nerviqGoProjectText;
+}
+
+function getRustProjectText(ctx) {
+  if (ctx.__nerviqRustProjectText) return ctx.__nerviqRustProjectText;
+  ctx.__nerviqRustProjectText = [
+    readProjectFiles(ctx, /(^|\/)Cargo\.toml$/i),
+    readProjectFiles(ctx, /(^|\/)(clippy\.toml|\.clippy\.toml|rustfmt\.toml|\.rustfmt\.toml|build\.rs)$/i),
+    readProjectFiles(ctx, /(^|\/)\.cargo\/config\.toml$/i),
+    getWorkflowContent(ctx),
+    getMainRustFiles(ctx).slice(0, 30).map(file => ctx.fileContent(file) || '').filter(Boolean).join('\n'),
+  ].filter(Boolean).join('\n');
+  return ctx.__nerviqRustProjectText;
 }
 
 function getGoInterfaceBlocks(ctx) {
@@ -2315,222 +2347,300 @@ const TECHNIQUES = {
   // === RUST STACK CHECKS (category: 'rust') ===================
   // ============================================================
 
-  rustCargoTomlExists: {
-    id: 'CL-RS01',
-    name: 'Cargo.toml exists with edition field',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; return /edition\s*=/.test(cargo); },
+  cargoTomlExists: {
+    id: 120201,
+    name: 'Cargo.toml exists',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return true;
+    },
     impact: 'high',
     category: 'rust',
-    fix: 'Ensure Cargo.toml exists and specifies the edition field (e.g., edition = "2021").',
+    fix: 'Add a `Cargo.toml` manifest so Rust dependencies, metadata, and build settings are tracked explicitly.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  rustCargoLockCommitted: {
-    id: 'CL-RS02',
-    name: 'Cargo.lock committed (for binary crates)',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; return ctx.files.some(f => /Cargo\.lock$/.test(f)); },
+  rustEdition: {
+    id: 120202,
+    name: 'Rust edition specified in Cargo.toml',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return /edition\s*=\s*"20(18|21|24)"/i.test(readProjectFiles(ctx, /(^|\/)Cargo\.toml$/i));
+    },
     impact: 'high',
     category: 'rust',
-    fix: 'Commit Cargo.lock for binary crates to ensure reproducible builds.',
+    fix: 'Specify a Rust edition such as `edition = "2021"` in `Cargo.toml` so tooling and language semantics are pinned.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  rustClippyConfigured: {
-    id: 'CL-RS03',
-    name: 'Clippy configured (CI or .cargo/config.toml)',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const ci = ctx.fileContent('.github/workflows/ci.yml') || ctx.fileContent('.github/workflows/rust.yml') || ''; const cargoConfig = ctx.fileContent('.cargo/config.toml') || ''; return /clippy/i.test(ci + cargoConfig); },
+  rustClippy: {
+    id: 120203,
+    name: 'Clippy configured',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return hasProjectFile(ctx, /(^|\/)(clippy\.toml|\.clippy\.toml)$/i) ||
+        /clippy/i.test(`${readProjectFiles(ctx, /(^|\/)\.cargo\/config\.toml$/i)}\n${getWorkflowContent(ctx)}\n${getPreCommitContent(ctx)}`);
+    },
     impact: 'medium',
     category: 'rust',
-    fix: 'Configure clippy in CI or .cargo/config.toml for lint enforcement.',
+    fix: 'Configure `cargo clippy` in CI, pre-commit, or `.cargo/config.toml` so linting is enforced consistently.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  rustFmtConfigured: {
-    id: 'CL-RS04',
-    name: 'rustfmt configured (rustfmt.toml or .rustfmt.toml)',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; return ctx.files.some(f => /rustfmt\.toml$|\.rustfmt\.toml$/.test(f)); },
+  rustFmt: {
+    id: 120204,
+    name: 'rustfmt configured',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return hasProjectFile(ctx, /(^|\/)(rustfmt\.toml|\.rustfmt\.toml)$/i);
+    },
     impact: 'medium',
     category: 'rust',
-    fix: 'Create rustfmt.toml or .rustfmt.toml to configure code formatting.',
+    fix: 'Add `rustfmt.toml` or `.rustfmt.toml` to capture Rust formatting expectations in version control.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  rustCargoTestDocumented: {
-    id: 'CL-RS05',
-    name: 'cargo test documented in instructions',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /cargo test/i.test(docs); },
+  rustTestsExist: {
+    id: 120205,
+    name: 'Rust tests exist',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      const files = getRustFiles(ctx);
+      if (files.length === 0) return null;
+      return hasProjectFile(ctx, /(^|\/)tests\//i) ||
+        files.some(file => /#\s*\[\s*test\s*\]/.test(ctx.fileContent(file) || ''));
+    },
     impact: 'high',
     category: 'rust',
-    fix: 'Document cargo test command in project instructions.',
+    fix: 'Add Rust unit or integration tests using `#[test]` functions or a `tests/` directory.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  rustCargoBuildDocumented: {
-    id: 'CL-RS06',
-    name: 'cargo build/check documented in instructions',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /cargo (?:build|check)/i.test(docs); },
-    impact: 'high',
-    category: 'rust',
-    fix: 'Document cargo build or cargo check command in project instructions.',
-    // sourceUrl assigned by attachSourceUrls via category mapping
-    confidence: 0.7,
-  },
-
-  rustUnsafePolicyDocumented: {
-    id: 'CL-RS07',
-    name: 'Unsafe code policy documented',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /unsafe|#!?\[forbid\(unsafe|#!?\[deny\(unsafe/i.test(docs); },
-    impact: 'high',
-    category: 'rust',
-    fix: 'Document unsafe code policy (forbidden, minimized, or where allowed).',
-    // sourceUrl assigned by attachSourceUrls via category mapping
-    confidence: 0.7,
-  },
-
-  rustErrorHandlingStrategy: {
-    id: 'CL-RS08',
-    name: 'Error handling strategy (anyhow/thiserror in deps)',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; return /anyhow|thiserror|eyre|color-eyre/i.test(cargo); },
-    impact: 'medium',
-    category: 'rust',
-    fix: 'Use anyhow (applications) or thiserror (libraries) for structured error handling.',
-    // sourceUrl assigned by attachSourceUrls via category mapping
-    confidence: 0.7,
-  },
-
-  rustFeatureFlagsDocumented: {
-    id: 'CL-RS09',
-    name: 'Feature flags documented (Cargo.toml [features])',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; if (!/\[features\]/i.test(cargo)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /feature|--features|--all-features/i.test(docs); },
-    impact: 'medium',
-    category: 'rust',
-    fix: 'Document feature flags and their purpose in project instructions.',
-    // sourceUrl assigned by attachSourceUrls via category mapping
-    confidence: 0.7,
-  },
-
-  rustWorkspaceConfig: {
-    id: 'CL-RS10',
-    name: 'Workspace config if multi-crate (Cargo.toml [workspace])',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; if (ctx.files.filter(f => /Cargo\.toml$/.test(f)).length <= 1) return null; return /\[workspace\]/i.test(cargo); },
-    impact: 'medium',
-    category: 'rust',
-    fix: 'Configure [workspace] in root Cargo.toml for multi-crate projects.',
-    // sourceUrl assigned by attachSourceUrls via category mapping
-    confidence: 0.7,
-  },
-
-  rustMsrvSpecified: {
-    id: 'CL-RS11',
-    name: 'MSRV specified (rust-version field)',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; return /rust-version\s*=/.test(cargo); },
-    impact: 'medium',
-    category: 'rust',
-    fix: 'Specify rust-version (MSRV) in Cargo.toml for compatibility guarantees.',
-    // sourceUrl assigned by attachSourceUrls via category mapping
-    confidence: 0.7,
-  },
-
-  rustDocCommentsEncouraged: {
-    id: 'CL-RS12',
-    name: 'Doc comments (///) encouraged in instructions',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /doc comment|\/{3}|rustdoc|cargo doc/i.test(docs); },
+  rustBenchmarks: {
+    id: 120206,
+    name: 'Rust benchmarks present',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return hasProjectFile(ctx, /(^|\/)benches\//i) ||
+        /#\s*\[\s*bench\s*\]|criterion/i.test(getRustProjectText(ctx));
+    },
     impact: 'low',
     category: 'rust',
-    fix: 'Encourage /// doc comments and cargo doc in project instructions.',
+    fix: 'Add Rust benchmarks through `benches/`, `criterion`, or benchmark annotations when performance-sensitive code matters.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  rustBenchmarksConfigured: {
-    id: 'CL-RS13',
-    name: 'Criterion benchmarks mentioned (benches/ dir)',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; return ctx.files.some(f => /benches[/]/.test(f)) || /criterion/i.test(ctx.fileContent('Cargo.toml') || ''); },
+  rustCIConfigured: {
+    id: 120207,
+    name: 'CI runs cargo test',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return /cargo test(\s|$)/i.test(getWorkflowContent(ctx));
+    },
+    impact: 'high',
+    category: 'rust',
+    fix: 'Run `cargo test` in CI so Rust correctness is verified automatically on every change.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  rustCargoLock: {
+    id: 120208,
+    name: 'Cargo.lock handling is appropriate',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      const cargoText = readProjectFiles(ctx, /(^|\/)Cargo\.toml$/i);
+      const hasLock = hasProjectFile(ctx, /(^|\/)Cargo\.lock$/i);
+      const gitignore = ctx.fileContent('.gitignore') || '';
+      const libraryOnly = /\[lib\]/i.test(cargoText) && !/\[\[bin\]\]|src\/main\.rs/i.test(getRustProjectText(ctx));
+      if (libraryOnly) return hasLock || /(^|\r?\n)\s*Cargo\.lock\s*$/m.test(gitignore);
+      return hasLock;
+    },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Commit `Cargo.lock` for binaries, or explicitly ignore it for library-only crates when that is your chosen policy.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  rustUnsafeBlocks: {
+    id: 120209,
+    name: 'Unsafe blocks are documented',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      const files = getRustFiles(ctx);
+      const unsafeFiles = files.filter(file => /\bunsafe\b/.test(ctx.fileContent(file) || ''));
+      if (unsafeFiles.length === 0) return true;
+      return unsafeFiles.every(file => /SAFETY:|\/\/\s*SAFETY|\/\*\s*SAFETY/i.test(ctx.fileContent(file) || ''));
+    },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Document each `unsafe` block with a nearby `SAFETY:` comment explaining the invariants being upheld.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  rustErrorHandling: {
+    id: 120210,
+    name: 'Rust error handling strategy present',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return /thiserror|anyhow|eyre|impl\s+std::error::Error|enum\s+\w+Error|struct\s+\w+Error/i.test(getRustProjectText(ctx));
+    },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Use `thiserror`, `anyhow`, or explicit error types so Rust errors remain structured and descriptive.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  rustAsync: {
+    id: 120211,
+    name: 'Rust async runtime configured',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return /tokio|async-std|smol/i.test(readProjectFiles(ctx, /(^|\/)Cargo\.toml$/i));
+    },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Declare an async runtime such as Tokio or async-std when the Rust project uses asynchronous workflows.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  rustSerde: {
+    id: 120212,
+    name: 'Serde serialization configured',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return /\bserde(_json|_yaml)?\b/i.test(readProjectFiles(ctx, /(^|\/)Cargo\.toml$/i));
+    },
     impact: 'low',
     category: 'rust',
-    fix: 'Set up criterion benchmarks in benches/ directory.',
+    fix: 'Add `serde` and related crates when Rust data crosses process, storage, or network boundaries.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  rustCrossCompilationDocumented: {
-    id: 'CL-RS14',
-    name: 'Cross-compilation documented',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /cross.?compil|--target|rustup target|cargo build.*--target/i.test(docs); },
+  rustDocComments: {
+    id: 120213,
+    name: 'Public Rust items have doc comments',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      const files = getMainRustFiles(ctx);
+      const exported = files.some(file => /\bpub\s+(fn|struct|enum|trait|mod|const|type)\b/.test(ctx.fileContent(file) || ''));
+      if (!exported) return null;
+      return files.some(file => /\/\/\/[^\n]*\n\s*pub\s+(fn|struct|enum|trait|mod|const|type)\b/.test(ctx.fileContent(file) || ''));
+    },
     impact: 'low',
     category: 'rust',
-    fix: 'Document cross-compilation targets and setup instructions.',
+    fix: 'Add `///` doc comments above public Rust APIs so crates are easier to consume and maintain.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  rustMemorySafetyDocumented: {
-    id: 'CL-RS15',
-    name: 'Memory safety patterns documented',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /ownership|borrow|lifetime|memory.?safe|Arc|Rc|RefCell/i.test(docs); },
+  rustSecurityAudit: {
+    id: 120214,
+    name: 'Rust security audit tooling configured',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return /cargo-audit|cargo deny|cargo-deny/i.test(getRustProjectText(ctx));
+    },
     impact: 'medium',
     category: 'rust',
-    fix: 'Document memory safety patterns (ownership, borrowing, lifetime conventions).',
+    fix: 'Configure `cargo-audit` or `cargo-deny` in CI or project automation to scan Rust dependencies for risk.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  rustAsyncRuntimeDocumented: {
-    id: 'CL-RS16',
-    name: 'Async runtime documented (tokio/async-std in deps)',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; if (!/tokio|async-std|smol/i.test(cargo)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /tokio|async-std|async|await|runtime/i.test(docs); },
+  rustMSRV: {
+    id: 120215,
+    name: 'Minimum supported Rust version specified',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return /rust-version\s*=/.test(readProjectFiles(ctx, /(^|\/)Cargo\.toml$/i));
+    },
     impact: 'medium',
     category: 'rust',
-    fix: 'Document async runtime choice and patterns (tokio, async-std).',
+    fix: 'Set `rust-version` in `Cargo.toml` so the project’s MSRV is explicit for contributors and CI.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  rustSerdeDocumented: {
-    id: 'CL-RS17',
-    name: 'Serde patterns documented',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; if (!/serde/i.test(cargo)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /serde|Serialize|Deserialize|serde_json|serde_yaml/i.test(docs); },
+  rustWorkspace: {
+    id: 120216,
+    name: 'Cargo workspace configured for multi-crate projects',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      const cargoFiles = findProjectFiles(ctx, /(^|\/)Cargo\.toml$/i);
+      if (cargoFiles.length <= 1) return null;
+      return /\[workspace\]/i.test(readProjectFiles(ctx, /(^|\/)Cargo\.toml$/i));
+    },
     impact: 'medium',
     category: 'rust',
-    fix: 'Document serde serialization/deserialization patterns and conventions.',
+    fix: 'Add a root Cargo workspace when the Rust repository contains multiple crates.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  rustCargoAuditConfigured: {
-    id: 'CL-RS18',
-    name: 'cargo-audit configured in CI',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const ci = ctx.fileContent('.github/workflows/ci.yml') || ctx.fileContent('.github/workflows/rust.yml') || ctx.fileContent('.github/workflows/audit.yml') || ''; return /cargo.?audit|advisory/i.test(ci); },
-    impact: 'medium',
-    category: 'rust',
-    fix: 'Configure cargo-audit in CI for vulnerability scanning.',
-    // sourceUrl assigned by attachSourceUrls via category mapping
-    confidence: 0.7,
-  },
-
-  rustWasmTargetDocumented: {
-    id: 'CL-RS19',
-    name: 'WASM target documented if applicable',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; if (!/wasm|wasm-bindgen|wasm-pack/i.test(cargo)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /wasm|WebAssembly|wasm-pack|wasm-bindgen/i.test(docs); },
+  rustBuildScript: {
+    id: 120217,
+    name: 'Rust build script present when needed',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return hasProjectFile(ctx, /(^|\/)build\.rs$/i);
+    },
     impact: 'low',
     category: 'rust',
-    fix: 'Document WASM target configuration and build process.',
+    fix: 'Use `build.rs` when the project needs generated bindings, codegen, or compile-time environment setup.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  rustGitignore: {
-    id: 'CL-RS20',
-    name: 'Rust .gitignore includes target/',
-    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const gi = ctx.fileContent('.gitignore') || ''; return /target[/]|[/]target/i.test(gi); },
-    impact: 'medium',
+  rustFeatureFlags: {
+    id: 120218,
+    name: 'Rust feature flags defined',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return /\[features\]/i.test(readProjectFiles(ctx, /(^|\/)Cargo\.toml$/i));
+    },
+    impact: 'low',
     category: 'rust',
-    fix: 'Add target/ to .gitignore for Rust build artifacts.',
+    fix: 'Define Cargo feature flags when Rust functionality needs optional capabilities or slimmed dependency sets.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  rustCrossCompilation: {
+    id: 120219,
+    name: 'Rust cross-compilation targets configured',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return /--target|rustup target add|target\.[\w.-]+|cross build|cross test|cargo zigbuild/i.test(getRustProjectText(ctx));
+    },
+    impact: 'low',
+    category: 'rust',
+    fix: 'Configure Rust cross-compilation targets in CI or `.cargo/config.toml` when builds must run across architectures or platforms.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  rustContainerized: {
+    id: 120220,
+    name: 'Rust Dockerfile present',
+    check: (ctx) => {
+      if (!isRustProject(ctx)) return null;
+      return /FROM\s+rust|cargo\s+(build|chef|install|test)/i.test(ctx.fileContent('Dockerfile') || '');
+    },
+    impact: 'low',
+    category: 'rust',
+    fix: 'Use a Dockerfile that references Rust or Cargo when the project’s build and release flow is containerized.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },

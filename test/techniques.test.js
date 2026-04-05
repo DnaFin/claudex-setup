@@ -125,6 +125,32 @@ describe('Techniques', () => {
       cleanFixture(dir);
     }
   });
+
+  test('rust stack checks return null for non-rust projects', () => {
+    const dir = mkFixture('non-rust');
+    try {
+      writeFile(dir, 'README.md', '# No Rust here\n');
+      const ctx = new ProjectContext(dir);
+      expect(TECHNIQUES.cargoTomlExists.check(ctx)).toBe(null);
+      expect(TECHNIQUES.rustEdition.check(ctx)).toBe(null);
+    } finally {
+      cleanFixture(dir);
+    }
+  });
+
+  test('rust stack checks detect nested Cargo manifests', () => {
+    const dir = mkFixture('rust-nested');
+    try {
+      writeFile(dir, 'services/api/Cargo.toml', '[package]\nname = "api"\nversion = "0.1.0"\nedition = "2021"\nrust-version = "1.78"\n');
+      writeFile(dir, 'services/api/src/lib.rs', '/// Greets callers.\npub fn greet() -> &\'static str { "hi" }\n');
+      const ctx = new ProjectContext(dir);
+      expect(TECHNIQUES.cargoTomlExists.check(ctx)).toBe(true);
+      expect(TECHNIQUES.rustEdition.check(ctx)).toBe(true);
+      expect(TECHNIQUES.rustMSRV.check(ctx)).toBe(true);
+    } finally {
+      cleanFixture(dir);
+    }
+  });
 });
 
 describe('Stacks', () => {
