@@ -300,6 +300,7 @@ async function runHarmonyWatch(options) {
 
   await startHarmonyWatch({
     dir,
+    autoSync: !!options.autoSync,
     debounceMs: options.debounce || 800,
     onDriftDetected: (platform, details) => {
       console.log(c(`  DRIFT ALERT: ${platform} score dropped by ${Math.abs(details.delta)}`, 'red'));

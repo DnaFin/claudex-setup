@@ -36,6 +36,13 @@ const PLATFORM_WATCH_FILES = [
   '.github/copilot-review-instructions.md',
   // Cursor
   '.cursorrules',
+  // Windsurf
+  '.windsurfrules',
+  // Aider
+  '.aider.conf.yml',
+  '.aiderignore',
+  // OpenCode
+  'opencode.json',
   // Shared
   '.gitignore',
   'package.json',
@@ -53,6 +60,9 @@ const PLATFORM_WATCH_DIRS = [
   '.github',
   '.cursor',
   '.cursor/rules',
+  '.windsurf',
+  '.windsurf/rules',
+  '.opencode',
 ];
 
 // ─── fs.watch helpers (mirror pattern from src/watch.js) ──────────────────────
@@ -174,6 +184,9 @@ function identifyPlatform(filePath) {
   if (normalized.includes('.gemini') || normalized.includes('gemini.md')) return 'gemini';
   if (normalized.includes('copilot') || normalized.includes('.github')) return 'copilot';
   if (normalized.includes('.cursor') || normalized.includes('cursorrules')) return 'cursor';
+  if (normalized.includes('.windsurf') || normalized.includes('windsurfrules')) return 'windsurf';
+  if (normalized.includes('.aider') || normalized.includes('aiderignore')) return 'aider';
+  if (normalized.includes('.opencode') || normalized.includes('opencode.json')) return 'opencode';
   return 'unknown';
 }
 
@@ -187,6 +200,7 @@ function identifyPlatform(filePath) {
  * @param {Function} [options.onDriftDetected] - Callback when drift increases: (platform, details) => void
  * @param {Function} [options.onPlatformChange] - Callback on any platform config change: (platform, file) => void
  * @param {Function} [options.runAudit] - Optional audit function to re-run on changes
+ * @param {boolean} [options.autoSync=false] - Auto-apply harmony sync when drift is detected
  * @param {number} [options.debounceMs=800] - Debounce interval in ms
  */
 async function startHarmonyWatch(options) {
@@ -195,6 +209,7 @@ async function startHarmonyWatch(options) {
     onDriftDetected,
     onPlatformChange,
     runAudit,
+    autoSync = false,
     debounceMs = 800,
   } = options;
 
@@ -204,7 +219,10 @@ async function startHarmonyWatch(options) {
   console.log(c('  nerviq harmony watch', 'bold'));
   console.log(c('  ═══════════════════════════════════════', 'dim'));
   console.log(c(`  Watching: ${dir}`, 'dim'));
-  console.log(c(`  Platforms: Claude, Codex, Gemini, Copilot, Cursor`, 'dim'));
+  console.log(c(`  Platforms: Claude, Codex, Gemini, Copilot, Cursor, Windsurf, Aider, OpenCode`, 'dim'));
+  if (autoSync) {
+    console.log(c(`  Auto-sync: ON — drift will be auto-corrected`, 'green'));
+  }
   console.log(c(`  Mode: ${recursiveSupported ? 'native recursive' : 'expanded directory fallback'}`, 'dim'));
   console.log(c('  Press Ctrl+C to stop', 'dim'));
   console.log('');
@@ -290,6 +308,22 @@ async function startHarmonyWatch(options) {
                   onDriftDetected(p, { oldScore, newScore, delta, changedFile: changedLabel });
                 } catch (_e) {
                   // Ignore callback errors
+                }
+              }
+
+              // Auto-sync on drift
+              if (delta < 0 && autoSync) {
+                try {
+                  const { applyHarmonySync } = require('./sync');
+                  const syncResult = applyHarmonySync(dir);
+                  if (syncResult.applied.length > 0) {
+                    console.log(c(`    Auto-sync: applied ${syncResult.applied.length} fix(es)`, 'green'));
+                    for (const item of syncResult.applied) {
+                      console.log(c(`      ✓ ${item.action} ${item.path}`, 'dim'));
+                    }
+                  }
+                } catch (_e) {
+                  console.log(c(`    Auto-sync failed: ${_e.message}`, 'yellow'));
                 }
               }
 

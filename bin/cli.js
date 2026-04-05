@@ -412,6 +412,7 @@ async function main() {
     snapshot: flags.includes('--snapshot'),
     feedback: flags.includes('--feedback'),
     fix: flags.includes('--fix'),
+    autoSync: flags.includes('--auto-sync'),
     dryRun: flags.includes('--dry-run'),
     threshold: parsed.threshold !== null ? Number(parsed.threshold) : null,
     out: parsed.out,
