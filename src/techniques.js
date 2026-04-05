@@ -4,6 +4,9 @@
  * Each technique includes: what to check, how to fix, impact level.
  */
 
+const fs = require('fs');
+const path = require('path');
+
 function hasFrontendSignals(ctx) {
   const pkg = ctx.fileContent('package.json') || '';
   return /react|vue|angular|next|svelte|tailwind|vite|astro/i.test(pkg) ||
@@ -13,6 +16,189 @@ function hasFrontendSignals(ctx) {
 function getClaudeHookContents(ctx) {
   const hookFiles = ctx.dirFiles('.claude/hooks').filter(f => /\.(js|cjs|mjs|ts|sh|py)$/.test(f));
   return hookFiles.map(f => ctx.fileContent(`.claude/hooks/${f}`) || '');
+}
+
+function matchesPattern(value, pattern) {
+  if (pattern instanceof RegExp) {
+    pattern.lastIndex = 0;
+    return pattern.test(value);
+  }
+  return value === pattern;
+}
+
+function getProjectEntries(ctx) {
+  if (ctx.__nerviqProjectEntries) return ctx.__nerviqProjectEntries;
+
+  const entries = [];
+  const skippedDirs = new Set([
+    '.git',
+    '.hg',
+    '.svn',
+    'node_modules',
+    '__pycache__',
+    '.pytest_cache',
+    '.mypy_cache',
+    '.ruff_cache',
+    '.venv',
+    'venv',
+    'env',
+    '.tox',
+    '.nox',
+    'vendor',
+    'dist',
+    'build',
+    'coverage',
+  ]);
+
+  const walk = (relPath = '') => {
+    const fullPath = relPath
+      ? path.join(ctx.dir, ...relPath.split('/'))
+      : ctx.dir;
+
+    let dirents = [];
+    try {
+      dirents = fs.readdirSync(fullPath, { withFileTypes: true });
+    } catch {
+      return;
+    }
+
+    for (const dirent of dirents) {
+      if (dirent.name === '.DS_Store') continue;
+
+      const entryPath = relPath ? `${relPath}/${dirent.name}` : dirent.name;
+      if (dirent.isDirectory()) {
+        if (skippedDirs.has(dirent.name)) continue;
+        entries.push(`${entryPath}/`);
+        walk(entryPath);
+      } else {
+        entries.push(entryPath);
+      }
+    }
+  };
+
+  walk();
+  ctx.__nerviqProjectEntries = entries;
+  return entries;
+}
+
+function getProjectFiles(ctx) {
+  if (ctx.__nerviqProjectFiles) return ctx.__nerviqProjectFiles;
+  ctx.__nerviqProjectFiles = getProjectEntries(ctx).filter(entry => !entry.endsWith('/'));
+  return ctx.__nerviqProjectFiles;
+}
+
+function findProjectFiles(ctx, pattern) {
+  return getProjectFiles(ctx).filter(file => matchesPattern(file, pattern));
+}
+
+function hasProjectFile(ctx, pattern) {
+  return findProjectFiles(ctx, pattern).length > 0;
+}
+
+function readProjectFiles(ctx, pattern, limit = 60) {
+  return findProjectFiles(ctx, pattern)
+    .slice(0, limit)
+    .map(file => ctx.fileContent(file) || '')
+    .filter(Boolean)
+    .join('\n');
+}
+
+function isPythonProject(ctx) {
+  if (ctx.__nerviqIsPython !== undefined) return ctx.__nerviqIsPython;
+  ctx.__nerviqIsPython =
+    hasProjectFile(ctx, /(^|\/)(pyproject\.toml|requirements[^/]*\.txt|setup\.py)$/i) ||
+    hasProjectFile(ctx, /\.py$/i);
+  return ctx.__nerviqIsPython;
+}
+
+function isGoProject(ctx) {
+  if (ctx.__nerviqIsGo !== undefined) return ctx.__nerviqIsGo;
+  ctx.__nerviqIsGo = hasProjectFile(ctx, /(^|\/)go\.mod$/i);
+  return ctx.__nerviqIsGo;
+}
+
+function getPythonFiles(ctx) {
+  if (ctx.__nerviqPythonFiles) return ctx.__nerviqPythonFiles;
+  ctx.__nerviqPythonFiles = findProjectFiles(ctx, /\.py$/i);
+  return ctx.__nerviqPythonFiles;
+}
+
+function getMainPythonFiles(ctx) {
+  if (ctx.__nerviqMainPythonFiles) return ctx.__nerviqMainPythonFiles;
+  ctx.__nerviqMainPythonFiles = getPythonFiles(ctx)
+    .filter(file => !/(^|\/)(tests?|__pycache__|migrations)\//i.test(file))
+    .filter(file => !/(^|\/)(test_[^/]+|conftest)\.py$/i.test(file))
+    .slice(0, 50);
+  return ctx.__nerviqMainPythonFiles;
+}
+
+function getPythonProjectText(ctx) {
+  if (ctx.__nerviqPythonProjectText) return ctx.__nerviqPythonProjectText;
+  ctx.__nerviqPythonProjectText = [
+    readProjectFiles(ctx, /(^|\/)pyproject\.toml$/i),
+    readProjectFiles(ctx, /(^|\/)requirements[^/]*\.txt$/i),
+    readProjectFiles(ctx, /(^|\/)setup\.py$/i),
+    readProjectFiles(ctx, /(^|\/)setup\.cfg$/i),
+    readProjectFiles(ctx, /(^|\/)Pipfile$/i),
+  ].filter(Boolean).join('\n');
+  return ctx.__nerviqPythonProjectText;
+}
+
+function getGoFiles(ctx) {
+  if (ctx.__nerviqGoFiles) return ctx.__nerviqGoFiles;
+  ctx.__nerviqGoFiles = findProjectFiles(ctx, /\.go$/i);
+  return ctx.__nerviqGoFiles;
+}
+
+function getMainGoFiles(ctx) {
+  if (ctx.__nerviqMainGoFiles) return ctx.__nerviqMainGoFiles;
+  ctx.__nerviqMainGoFiles = getGoFiles(ctx).filter(file => !/_test\.go$/i.test(file)).slice(0, 60);
+  return ctx.__nerviqMainGoFiles;
+}
+
+function getWorkflowContent(ctx) {
+  if (ctx.__nerviqWorkflowContent !== undefined) return ctx.__nerviqWorkflowContent;
+  ctx.__nerviqWorkflowContent = readProjectFiles(ctx, /^\.github\/workflows\/.*\.ya?ml$/i);
+  return ctx.__nerviqWorkflowContent;
+}
+
+function getPreCommitContent(ctx) {
+  if (ctx.__nerviqPreCommitContent !== undefined) return ctx.__nerviqPreCommitContent;
+  ctx.__nerviqPreCommitContent = readProjectFiles(ctx, /(^|\/)\.pre-commit-config\.ya?ml$/i);
+  return ctx.__nerviqPreCommitContent;
+}
+
+function getGoProjectText(ctx) {
+  if (ctx.__nerviqGoProjectText) return ctx.__nerviqGoProjectText;
+  ctx.__nerviqGoProjectText = [
+    readProjectFiles(ctx, /(^|\/)go\.mod$/i),
+    getWorkflowContent(ctx),
+    readProjectFiles(ctx, /(^|\/)Makefile$/),
+    getPreCommitContent(ctx),
+    getMainGoFiles(ctx).slice(0, 25).map(file => ctx.fileContent(file) || '').filter(Boolean).join('\n'),
+  ].filter(Boolean).join('\n');
+  return ctx.__nerviqGoProjectText;
+}
+
+function getGoInterfaceBlocks(ctx) {
+  if (ctx.__nerviqGoInterfaces) return ctx.__nerviqGoInterfaces;
+  const blocks = [];
+  for (const file of getMainGoFiles(ctx)) {
+    const content = ctx.fileContent(file) || '';
+    for (const match of content.matchAll(/type\s+\w+\s+interface\s*\{([\s\S]*?)\}/g)) {
+      blocks.push(match[1]);
+    }
+  }
+  ctx.__nerviqGoInterfaces = blocks;
+  return ctx.__nerviqGoInterfaces;
+}
+
+function countGoInterfaceMethods(block) {
+  return block
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line && !line.startsWith('//') && !line.startsWith('/*'))
+    .length;
 }
 
 const { containsEmbeddedSecret } = require('./secret-patterns');
