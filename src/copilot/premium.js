@@ -10,6 +10,7 @@
 const path = require('path');
 const { COPILOT_DOMAIN_PACKS } = require('./domain-packs');
 const { COPILOT_MCP_PACKS } = require('./mcp-packs');
+const { resolveProjectStateReadPath } = require('../state-paths');
 
 // ---------------------------------------------------------------------------
 // 1. Multi-Pack Composition Engine
@@ -388,7 +389,7 @@ const GATE_THRESHOLDS = {
 
 function getCopilotHistory(dir, limit = 20) {
   const fs = require('fs');
-  const snapshotDir = path.join(dir, '.claude', 'claudex-setup', 'snapshots');
+  const snapshotDir = resolveProjectStateReadPath(dir, 'snapshots');
   try {
     const files = fs.readdirSync(snapshotDir)
       .filter(f => f.endsWith('.json'))

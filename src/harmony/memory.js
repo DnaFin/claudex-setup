@@ -1,7 +1,7 @@
 /**
  * H7. Shared Memory / Knowledge Layer
  *
- * Cross-platform knowledge storage in .claudex/harmony/ directory.
+ * Cross-platform knowledge storage in .nerviq/harmony/ directory.
  * Persists canonical models, drift history, platform scores,
  * recommendation outcomes, and routing history.
  *
@@ -10,8 +10,13 @@
 
 const fs = require('fs');
 const path = require('path');
+const {
+  resolveHarmonyStatePath,
+  resolveHarmonyStateReadPath,
+  ensureHarmonyStateDir,
+} = require('../state-paths');
 
-const HARMONY_DIR = '.claudex/harmony';
+const HARMONY_DIR = '.nerviq/harmony';
 
 const STATE_FILES = {
   canon: 'canon.json',
@@ -24,9 +29,7 @@ const STATE_FILES = {
 // ─── File I/O helpers ─────────────────────────────────────────────────────────
 
 function ensureHarmonyDir(dir) {
-  const harmonyPath = path.join(dir, HARMONY_DIR);
-  fs.mkdirSync(harmonyPath, { recursive: true });
-  return harmonyPath;
+  return ensureHarmonyStateDir(dir);
 }
 
 function readJsonSafe(filePath) {
@@ -78,11 +81,10 @@ function saveHarmonyState(dir, state) {
  * @returns {Object} State object with all available keys populated
  */
 function loadHarmonyState(dir) {
-  const harmonyPath = path.join(dir, HARMONY_DIR);
   const state = {};
 
   for (const [key, filename] of Object.entries(STATE_FILES)) {
-    const filePath = path.join(harmonyPath, filename);
+    const filePath = resolveHarmonyStateReadPath(dir, filename);
     const data = readJsonSafe(filePath);
     if (data !== null) {
       state[key] = data;
@@ -90,7 +92,7 @@ function loadHarmonyState(dir) {
   }
 
   // Load manifest for metadata
-  const manifest = readJsonSafe(path.join(harmonyPath, 'manifest.json'));
+  const manifest = readJsonSafe(resolveHarmonyStateReadPath(dir, 'manifest.json'));
   if (manifest) {
     state._manifest = manifest;
   }

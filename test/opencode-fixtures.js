@@ -250,7 +250,7 @@ function buildRichOpenCodeRepo() {
     '      - run: echo permissions allow',
   ].join('\n'));
   writeFile(dir, '.prettierrc', '{}\n');
-  writeFile(dir, '.claude/claudex-setup/activity/index.json', '[]\n');
+  writeFile(dir, '.nerviq/activity/index.json', '[]\n');
   return { dir, homeDir };
 }
 

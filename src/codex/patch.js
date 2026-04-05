@@ -166,7 +166,7 @@ function applyPatch(dir, filePath, patchFn, options = {}) {
   }
 
   // Backup + write
-  const backupPath = fullPath + '.claudex-backup';
+  const backupPath = fullPath + '.nerviq-backup';
   fs.writeFileSync(backupPath, original, 'utf8');
   fs.writeFileSync(fullPath, patched, 'utf8');
 

@@ -120,7 +120,7 @@ function richCtx() {
   writeFile(dir, '.claude/agents/test-writer.md', '---\nname: tw\ntools: [Read, Write]\nmaxTurns: 15\n---\nWrite tests');
   writeFile(dir, '.claude/skills/fix-issue/SKILL.md', '---\nname: fix-issue\npaths:\n  - "src/**"\n---\nFix');
   writeFile(dir, '.claude/skills/review/SKILL.md', '---\nname: review\n---\nReview');
-  writeFile(dir, '.claude/claudex-setup/snapshots/index.json', JSON.stringify([{ snapshotKind: 'audit', createdAt: new Date().toISOString(), summary: { score: 50 } }]));
+  writeFile(dir, '.nerviq/snapshots/index.json', JSON.stringify([{ snapshotKind: 'audit', createdAt: new Date().toISOString(), summary: { score: 50 } }]));
   fs.mkdirSync(path.join(dir, '.github', 'workflows'), { recursive: true });
   writeFile(dir, '.github/workflows/ci.yml', 'name: CI');
   fs.mkdirSync(path.join(dir, 'src', 'app'), { recursive: true });

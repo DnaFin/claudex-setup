@@ -51,9 +51,9 @@ I decide everything autonomously. Ask human ONLY for:
 ## Architecture
 ```mermaid
 graph TD
-    CLAUDEX[CLAUDEX Research 1118 items] -->|knowledge| CLI[CLI Tool npx claudex-setup]
+    CLAUDEX[CLAUDEX Research 1118 items] -->|knowledge| CLI[CLI Tool npx @nerviq/cli]
     CLI -->|downloads| NPM[npm registry]
-    CLI -->|code| GH[GitHub DnaFin/claudex-setup]
+    CLI -->|code| GH[GitHub nerviq/nerviq]
     GH -->|hosting| LP[Landing Page]
     CLAUDEX -->|content| DT[Dev.to Articles]
     DT -->|traffic| GH
@@ -65,16 +65,16 @@ graph TD
 - Code: English
 - User communication: Hebrew
 
-<!-- claudex-setup:build-test:start -->
+<!-- nerviq:build-test:start -->
 ## Build & Test
 ```bash
 npm start            # node bin/cli.js
 npm run build        # npm pack --dry-run
 npm test             # node test/run.js
 ```
-<!-- claudex-setup:build-test:end -->
+<!-- nerviq:build-test:end -->
 
-<!-- claudex-setup:verification:start -->
+<!-- nerviq:verification:start -->
 <verification>
 Before completing any task, confirm:
 1. All existing tests still pass
@@ -82,27 +82,27 @@ Before completing any task, confirm:
 3. No linting errors (`npx eslint .`)
 4. Changes match the requested scope (no gold-plating)
 </verification>
-<!-- claudex-setup:verification:end -->
+<!-- nerviq:verification:end -->
 
-<!-- claudex-setup:security-workflow:start -->
+<!-- nerviq:security-workflow:start -->
 ## Security Workflow
 - Run `/security-review` when touching authentication, permissions, secrets, or customer data.
 - Treat secret access, shell commands, and risky file operations as review-worthy changes.
-<!-- claudex-setup:security-workflow:end -->
+<!-- nerviq:security-workflow:end -->
 
-<!-- claudex-setup:modularity:start -->
+<!-- nerviq:modularity:start -->
 ## Modularity
 - If this file grows, split it with `@import ./docs/...` so the base instructions stay concise.
-<!-- claudex-setup:modularity:end -->
+<!-- nerviq:modularity:end -->
 
-<!-- claudex-setup:working-style:start -->
+<!-- nerviq:working-style:start -->
 ## Working Notes
 - You are a careful engineer working inside this repository. Preserve its existing architecture and naming patterns unless the task requires a change
 - Prefer extending existing modules over creating parallel abstractions
 - Keep changes scoped to the requested task and verify them before marking work complete
-<!-- claudex-setup:working-style:end -->
+<!-- nerviq:working-style:end -->
 
-<!-- claudex-setup:constraints:start -->
+<!-- nerviq:constraints:start -->
 <constraints>
 - Never commit secrets, API keys, or .env files
 - Always run tests before marking work complete
@@ -110,41 +110,41 @@ Before completing any task, confirm:
 - When uncertain about architecture, ask before implementing
 - Use const by default; never use var
 </constraints>
-<!-- claudex-setup:constraints:end -->
+<!-- nerviq:constraints:end -->
 
-<!-- claudex-setup:mcp-servers:start -->
+<!-- nerviq:mcp-servers:start -->
 ## MCP Servers
 - **context7**: Live documentation lookup via `@upstash/context7-mcp`. Use it to fetch current docs for any library, framework, or API instead of relying on training data. Configured in `.mcp.json`.
-<!-- claudex-setup:mcp-servers:end -->
+<!-- nerviq:mcp-servers:end -->
 
-<!-- claudex-setup:sandbox:start -->
+<!-- nerviq:sandbox:start -->
 ## Sandbox & Security
 - This project supports sandboxed execution. When running untrusted code or user-provided paths, use the sandbox mode.
 - All dependency versions in package.json should be pinned. Run `npm audit` before publishing.
 - Consider token usage and context window limits when processing large codebases.
 - Use caching for repeated catalog lookups and response memoization to reduce cost.
 - For model selection: use smaller/faster models for simple tasks, reserve large models for complex reasoning.
-<!-- claudex-setup:sandbox:end -->
+<!-- nerviq:sandbox:end -->
 
-<!-- claudex-setup:dependency-policy:start -->
+<!-- nerviq:dependency-policy:start -->
 ## Dependency Management
 - Pin all dependency versions with exact semver (no ^ or ~) for reproducibility.
 - Use Dependabot or Renovate for automated dependency updates.
 - Run `npm audit` regularly and address critical vulnerabilities within 24 hours.
-<!-- claudex-setup:dependency-policy:end -->
+<!-- nerviq:dependency-policy:end -->
 
-<!-- claudex-setup:naming:start -->
+<!-- nerviq:naming:start -->
 ## Naming Conventions
 - camelCase for variables, functions, and file names
 - PascalCase for classes and constructors (e.g., ProjectContext, CodexProjectContext)
 - UPPER_SNAKE for constants (e.g., PLATFORM_SIGNATURES, DOMAIN_PACKS)
 - kebab-case for CLI commands and file names in docs/
-<!-- claudex-setup:naming:end -->
+<!-- nerviq:naming:end -->
 
-<!-- claudex-setup:context-management:start -->
+<!-- nerviq:context-management:start -->
 ## Context Management
 - Use /compact when context gets large (above 50% capacity)
 - Prefer focused sessions — one task per conversation
 - If a session gets too long, start fresh with /clear
 - Use subagents for research tasks to keep main context clean
-<!-- claudex-setup:context-management:end -->
+<!-- nerviq:context-management:end -->

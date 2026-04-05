@@ -2,6 +2,11 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { version } = require('../package.json');
+const {
+  resolveProjectStatePath,
+  resolveProjectStateReadPath,
+  ensureProjectStateDir,
+} = require('./state-paths');
 
 /**
  * Generate a machine-level user identity for audit tracking.
@@ -33,15 +38,11 @@ function timestampId() {
 }
 
 function ensureArtifactDirs(dir) {
-  const root = path.join(dir, '.claude', 'claudex-setup');
-  const activityDir = path.join(root, 'activity');
-  const rollbackDir = path.join(root, 'rollbacks');
-  const snapshotDir = path.join(root, 'snapshots');
-  const outcomesDir = path.join(root, 'outcomes');
-  fs.mkdirSync(activityDir, { recursive: true });
-  fs.mkdirSync(rollbackDir, { recursive: true });
-  fs.mkdirSync(snapshotDir, { recursive: true });
-  fs.mkdirSync(outcomesDir, { recursive: true });
+  const root = ensureProjectStateDir(dir);
+  const activityDir = ensureProjectStateDir(dir, 'activity');
+  const rollbackDir = ensureProjectStateDir(dir, 'rollbacks');
+  const snapshotDir = ensureProjectStateDir(dir, 'snapshots');
+  const outcomesDir = ensureProjectStateDir(dir, 'outcomes');
   return { root, activityDir, rollbackDir, snapshotDir, outcomesDir };
 }
 
@@ -161,7 +162,7 @@ function updateSnapshotIndex(snapshotDir, record) {
 }
 
 /**
- * Write a normalized snapshot artifact to .claude/claudex-setup/snapshots/ and update the index.
+ * Write a normalized snapshot artifact to .nerviq/snapshots/ and update the index.
  * @param {string} dir - Project root directory.
  * @param {string} snapshotKind - Snapshot type ('audit', 'benchmark', 'governance', 'augment', 'suggest-only').
  * @param {Object} payload - Full result payload to persist.
@@ -208,7 +209,7 @@ function writeSnapshotArtifact(dir, snapshotKind, payload, meta = {}) {
 }
 
 function readSnapshotIndex(dir) {
-  const indexPath = path.join(dir, '.claude', 'claudex-setup', 'snapshots', 'index.json');
+  const indexPath = resolveProjectStateReadPath(dir, 'snapshots', 'index.json');
   if (!fs.existsSync(indexPath)) return [];
   try {
     const entries = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
@@ -344,7 +345,7 @@ function exportTrendReport(dir) {
 }
 
 function readOutcomeIndex(dir) {
-  const indexPath = path.join(dir, '.claude', 'claudex-setup', 'outcomes', 'index.json');
+  const indexPath = resolveProjectStateReadPath(dir, 'outcomes', 'index.json');
   if (!fs.existsSync(indexPath)) return [];
   try {
     const entries = JSON.parse(fs.readFileSync(indexPath, 'utf8'));

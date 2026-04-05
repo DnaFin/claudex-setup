@@ -18,6 +18,7 @@ const { EMBEDDED_SECRET_PATTERNS, containsEmbeddedSecret } = require('../secret-
 const { attachSourceUrls } = require('../source-urls');
 const { buildSupplementalChecks } = require('../supplemental-checks');
 const { buildStackChecks } = require('../stack-checks');
+const { resolveProjectStateReadPath } = require('../state-paths');
 
 const GEMINI_SUPPLEMENTAL_SOURCE_URLS = {
   'testing-strategy': 'https://geminicli.com/docs/get-started/',
@@ -2064,21 +2065,21 @@ const GEMINI_TECHNIQUES = {
   // CP-08: O. Repeat-Usage Hygiene (3 checks)
   geminiSnapshotRetention: {
     id: 'GM-O01', name: 'At least one prior audit snapshot exists',
-    check: (ctx) => { try { const fs = require('fs'); const p = require('path').join(ctx.dir, '.claude', 'claudex-setup', 'snapshots', 'index.json'); if (!fs.existsSync(p)) return null; const e = JSON.parse(fs.readFileSync(p, 'utf8')); return Array.isArray(e) && e.length > 0; } catch { return null; } },
+    check: (ctx) => { try { const fs = require('fs'); const p = resolveProjectStateReadPath(ctx.dir, 'snapshots', 'index.json'); if (!fs.existsSync(p)) return null; const e = JSON.parse(fs.readFileSync(p, 'utf8')); return Array.isArray(e) && e.length > 0; } catch { return null; } },
     impact: 'medium', rating: 3, category: 'repeat-usage',
     fix: 'Run `npx nerviq --platform gemini --snapshot` to save your first snapshot.',
     template: null, file: () => null, line: () => null,
   },
   geminiFeedbackLoopHealth: {
     id: 'GM-O02', name: 'Feedback loop functional when feedback submitted',
-    check: (ctx) => { try { const fs = require('fs'); const p = require('path').join(ctx.dir, '.claude', 'claudex-setup', 'outcomes', 'index.json'); if (!fs.existsSync(p)) return null; const e = JSON.parse(fs.readFileSync(p, 'utf8')); return Array.isArray(e) && e.length > 0; } catch { return null; } },
+    check: (ctx) => { try { const fs = require('fs'); const p = resolveProjectStateReadPath(ctx.dir, 'outcomes', 'index.json'); if (!fs.existsSync(p)) return null; const e = JSON.parse(fs.readFileSync(p, 'utf8')); return Array.isArray(e) && e.length > 0; } catch { return null; } },
     impact: 'medium', rating: 3, category: 'repeat-usage',
     fix: 'Submit feedback using `npx nerviq --platform gemini feedback`.',
     template: null, file: () => null, line: () => null,
   },
   geminiTrendDataAvailability: {
     id: 'GM-O03', name: 'Trend data computable (2+ snapshots)',
-    check: (ctx) => { try { const fs = require('fs'); const p = require('path').join(ctx.dir, '.claude', 'claudex-setup', 'snapshots', 'index.json'); if (!fs.existsSync(p)) return null; const e = JSON.parse(fs.readFileSync(p, 'utf8')); return (Array.isArray(e) ? e : []).filter(x => x.snapshotKind === 'audit').length >= 2; } catch { return null; } },
+    check: (ctx) => { try { const fs = require('fs'); const p = resolveProjectStateReadPath(ctx.dir, 'snapshots', 'index.json'); if (!fs.existsSync(p)) return null; const e = JSON.parse(fs.readFileSync(p, 'utf8')); return (Array.isArray(e) ? e : []).filter(x => x.snapshotKind === 'audit').length >= 2; } catch { return null; } },
     impact: 'low', rating: 2, category: 'repeat-usage',
     fix: 'Run at least 2 audits with --snapshot for trend tracking.',
     template: null, file: () => null, line: () => null,

@@ -205,8 +205,8 @@ describe('Codex audit + setup', () => {
       expect(config).toContain('[agents]');
       expect(config).toContain('max_threads = 4');
       expect(config).toContain('max_depth = 2');
-      expect(result.rollbackArtifact).toMatch(/\.claude[\\\/]claudex-setup[\\\/]rollbacks[\\\/]/);
-      expect(result.activityArtifact).toMatch(/\.claude[\\\/]claudex-setup[\\\/]activity[\\\/]/);
+      expect(result.rollbackArtifact).toMatch(/\.nerviq[\\\/]rollbacks[\\\/]/);
+      expect(result.activityArtifact).toMatch(/\.nerviq[\\\/]activity[\\\/]/);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }
@@ -340,7 +340,7 @@ describe('Codex audit + setup', () => {
       const result = await applyProposalBundle({ dir, platform: 'codex', silent: true, dryRun: false });
       expect(result.createdFiles).toContain('AGENTS.md');
       expect(result.createdFiles).toContain('.codex/config.toml');
-      expect(result.rollbackArtifact).toMatch(/\.claude[\\\/]claudex-setup[\\\/]rollbacks[\\\/]/);
+      expect(result.rollbackArtifact).toMatch(/\.nerviq[\\\/]rollbacks[\\\/]/);
       expect(fs.existsSync(path.join(dir, 'AGENTS.md'))).toBe(true);
       expect(fs.existsSync(path.join(dir, '.codex', 'config.toml'))).toBe(true);
     } finally {

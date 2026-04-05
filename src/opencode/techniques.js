@@ -26,6 +26,7 @@ const { EMBEDDED_SECRET_PATTERNS, containsEmbeddedSecret } = require('../secret-
 const { attachSourceUrls } = require('../source-urls');
 const { buildStackChecks } = require('../stack-checks');
 const { isApiProject, isDatabaseProject, isAuthProject, isMonitoringRelevant } = require('../supplemental-checks');
+const { resolveProjectStateReadPath } = require('../state-paths');
 
 const DEFAULT_PROJECT_DOC_MAX_BYTES = 32768;
 
@@ -1463,7 +1464,8 @@ const OPENCODE_TECHNIQUES = {
     name: 'OpenCode setup has been audited at least once',
     check: (ctx) => {
       // Check for nerviq activity artifacts
-      const hasArtifacts = ctx.hasDir('.claude/claudex-setup');
+      const fs = require('fs');
+      const hasArtifacts = fs.existsSync(resolveProjectStateReadPath(ctx.dir));
       return hasArtifacts ? true : null;
     },
     impact: 'low',

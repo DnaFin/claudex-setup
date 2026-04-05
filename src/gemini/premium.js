@@ -10,6 +10,7 @@
 const path = require('path');
 const { GEMINI_DOMAIN_PACKS } = require('./domain-packs');
 const { GEMINI_MCP_PACKS } = require('./mcp-packs');
+const { resolveGeminiStateReadPath } = require('../state-paths');
 
 // ---------------------------------------------------------------------------
 // 1. Multi-Pack Composition Engine
@@ -666,14 +667,14 @@ const GATE_THRESHOLDS = {
 };
 
 /**
- * Read Gemini audit snapshot history from the local .gemini/.claudex/ directory.
+ * Read Gemini audit snapshot history from the local .gemini/.nerviq/ directory.
  * @param {string} dir - Project directory
  * @param {number} limit - Max snapshots to read
  * @returns {object[]} Array of snapshot objects
  */
 function getGeminiHistory(dir, limit = 20) {
   const fs = require('fs');
-  const snapshotDir = path.join(dir, '.gemini', '.claudex', 'snapshots');
+  const snapshotDir = resolveGeminiStateReadPath(dir, 'snapshots');
   try {
     const files = fs.readdirSync(snapshotDir)
       .filter(f => f.endsWith('.json'))

@@ -27,7 +27,7 @@ describe('Activity - Snapshots', () => {
   test('getHistory returns sorted entries', () => {
     const dir = mkFixture('sorted');
     try {
-      const snapshotDir = path.join(dir, '.claude', 'claudex-setup', 'snapshots');
+      const snapshotDir = path.join(dir, '.nerviq', 'snapshots');
       fs.mkdirSync(snapshotDir, { recursive: true });
       fs.writeFileSync(path.join(snapshotDir, 'index.json'), JSON.stringify([
         { snapshotKind: 'audit', createdAt: '2026-01-01T00:00:00Z', summary: { score: 50 } },
@@ -35,6 +35,21 @@ describe('Activity - Snapshots', () => {
       ]));
       const history = getHistory(dir);
       expect(history[0].summary.score).toBe(70);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('readSnapshotIndex falls back to legacy snapshot path when .nerviq is absent', () => {
+    const dir = mkFixture('legacy-snapshots');
+    try {
+      const snapshotDir = path.join(dir, '.claude', 'claudex-setup', 'snapshots');
+      fs.mkdirSync(snapshotDir, { recursive: true });
+      fs.writeFileSync(path.join(snapshotDir, 'index.json'), JSON.stringify([
+        { snapshotKind: 'audit', createdAt: '2026-03-01T00:00:00Z', summary: { score: 65 } },
+      ]));
+
+      const entries = readSnapshotIndex(dir);
+      expect(entries).toHaveLength(1);
+      expect(entries[0].summary.score).toBe(65);
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 

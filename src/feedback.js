@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+const { ensureProjectStateDir, resolveProjectStateReadPath } = require('./state-paths');
 
 let lastTimestamp = '';
 let counter = 0;
@@ -17,9 +18,11 @@ function timestampId() {
 }
 
 function ensureFeedbackDir(dir) {
-  const feedbackDir = path.join(dir, '.claude', 'claudex-setup', 'feedback');
-  fs.mkdirSync(feedbackDir, { recursive: true });
-  return feedbackDir;
+  return ensureProjectStateDir(dir, 'feedback');
+}
+
+function resolveFeedbackDir(dir) {
+  return resolveProjectStateReadPath(dir, 'feedback');
 }
 
 function writeJson(filePath, payload) {
@@ -47,8 +50,10 @@ function saveFeedback(dir, payload) {
 }
 
 function getFeedbackSummary(dir) {
-  const feedbackDir = ensureFeedbackDir(dir);
-  const files = fs.readdirSync(feedbackDir).filter((name) => name.endsWith('.json'));
+  const feedbackDir = resolveFeedbackDir(dir);
+  const files = fs.existsSync(feedbackDir)
+    ? fs.readdirSync(feedbackDir).filter((name) => name.endsWith('.json'))
+    : [];
   const entries = [];
 
   for (const file of files) {
@@ -107,7 +112,7 @@ async function collectFeedback(dir, options = {}) {
       helpful: 0,
       unhelpful: 0,
       entries: [],
-      relativeDir: path.relative(dir, ensureFeedbackDir(dir)),
+      relativeDir: path.relative(dir, resolveFeedbackDir(dir)),
     };
   }
 
@@ -119,7 +124,7 @@ async function collectFeedback(dir, options = {}) {
       helpful: 0,
       unhelpful: 0,
       entries: [],
-      relativeDir: path.relative(dir, ensureFeedbackDir(dir)),
+      relativeDir: path.relative(dir, resolveFeedbackDir(dir)),
     };
   }
 
@@ -161,7 +166,7 @@ async function collectFeedback(dir, options = {}) {
     helpful,
     unhelpful,
     entries,
-    relativeDir: path.relative(dir, ensureFeedbackDir(dir)),
+    relativeDir: path.relative(dir, resolveFeedbackDir(dir)),
     summary: getFeedbackSummary(dir),
   };
 }

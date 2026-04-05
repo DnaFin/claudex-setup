@@ -13,6 +13,7 @@ function hasFrontendSignals(ctx) {
 const { containsEmbeddedSecret } = require('./secret-patterns');
 const { attachSourceUrls } = require('./source-urls');
 const { buildSupplementalChecks } = require('./supplemental-checks');
+const { resolveProjectStateReadPath } = require('./state-paths');
 
 const CLAUDE_SUPPLEMENTAL_SOURCE_URLS = {
   'testing-strategy': 'https://code.claude.com/docs/en/common-workflows',
@@ -1112,7 +1113,8 @@ const TECHNIQUES = {
     id: 2017,
     name: 'Audit snapshot history exists',
     check: (ctx) => {
-      return !!ctx.fileContent('.claude/claudex-setup/snapshots/index.json');
+      const fs = require('fs');
+      return fs.existsSync(resolveProjectStateReadPath(ctx.dir, 'snapshots', 'index.json'));
     },
     impact: 'low', rating: 3, category: 'workflow',
     fix: 'Run `npx nerviq --snapshot` to start tracking your setup score over time.',

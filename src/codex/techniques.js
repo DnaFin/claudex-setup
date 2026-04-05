@@ -3,6 +3,7 @@ const path = require('path');
 const { EMBEDDED_SECRET_PATTERNS, containsEmbeddedSecret } = require('../secret-patterns');
 const { attachSourceUrls } = require('../source-urls');
 const { buildSupplementalChecks } = require('../supplemental-checks');
+const { resolveProjectStateReadPath } = require('../state-paths');
 
 const CODEX_SUPPLEMENTAL_SOURCE_URLS = {
   'testing-strategy': 'https://developers.openai.com/codex/cli',
@@ -3101,9 +3102,8 @@ const CODEX_TECHNIQUES = {
     id: 'CX-O01',
     name: 'At least one prior audit snapshot exists for repeat-usage',
     check: (ctx) => {
-      const snapshotDir = path.join(ctx.dir, '.claude', 'claudex-setup', 'snapshots');
       try {
-        const indexPath = path.join(snapshotDir, 'index.json');
+        const indexPath = resolveProjectStateReadPath(ctx.dir, 'snapshots', 'index.json');
         const fs = require('fs');
         if (!fs.existsSync(indexPath)) return null; // No snapshots yet, not a failure
         const entries = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
@@ -3125,9 +3125,8 @@ const CODEX_TECHNIQUES = {
     id: 'CX-O02',
     name: 'Feedback loop is functional when feedback has been submitted',
     check: (ctx) => {
-      const outcomesDir = path.join(ctx.dir, '.claude', 'claudex-setup', 'outcomes');
       try {
-        const indexPath = path.join(outcomesDir, 'index.json');
+        const indexPath = resolveProjectStateReadPath(ctx.dir, 'outcomes', 'index.json');
         const fs = require('fs');
         if (!fs.existsSync(indexPath)) return null; // No feedback yet, not a failure
         const entries = JSON.parse(fs.readFileSync(indexPath, 'utf8'));
@@ -3149,9 +3148,8 @@ const CODEX_TECHNIQUES = {
     id: 'CX-O03',
     name: 'Trend data is computable (2+ snapshots with compatible schemas)',
     check: (ctx) => {
-      const snapshotDir = path.join(ctx.dir, '.claude', 'claudex-setup', 'snapshots');
       try {
-        const indexPath = path.join(snapshotDir, 'index.json');
+        const indexPath = resolveProjectStateReadPath(ctx.dir, 'snapshots', 'index.json');
         const fs = require('fs');
         if (!fs.existsSync(indexPath)) return null;
         const entries = JSON.parse(fs.readFileSync(indexPath, 'utf8'));

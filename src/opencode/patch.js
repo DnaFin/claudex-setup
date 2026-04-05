@@ -142,7 +142,7 @@ function applyPatch(dir, filePath, patchFn, options = {}) {
     return { success: true, reason: 'dry run', preview, unchanged: false };
   }
 
-  const backupPath = fullPath + '.claudex-backup';
+  const backupPath = fullPath + '.nerviq-backup';
   fs.writeFileSync(backupPath, original, 'utf8');
   fs.writeFileSync(fullPath, patched, 'utf8');
 

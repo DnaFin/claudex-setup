@@ -56,4 +56,22 @@ describe('Feedback artifacts', () => {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  test('getFeedbackSummary falls back to legacy feedback path when .nerviq is absent', () => {
+    const dir = mkFixture('legacy-feedback');
+    try {
+      const legacyDir = path.join(dir, '.claude', 'claudex-setup', 'feedback');
+      fs.mkdirSync(legacyDir, { recursive: true });
+      fs.writeFileSync(path.join(legacyDir, 'legacy.json'), JSON.stringify({
+        key: 'claudeMd',
+        helpful: true,
+      }), 'utf8');
+
+      const summary = getFeedbackSummary(dir);
+      expect(summary.totalEntries).toBe(1);
+      expect(summary.helpful).toBe(1);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
