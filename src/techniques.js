@@ -4114,6 +4114,196 @@ const TECHNIQUES = {
     confidence: 0.7,
   },
 
+  // ── MC11: WebSocket / Real-time ──────────────────────────────────────
+
+  websocketLib: {
+    id: 130201,
+    name: 'WebSocket library configured',
+    check: (ctx) => {
+      const deps = ctx.fileContent('package.json') || '';
+      const pyDeps = ctx.fileContent('requirements.txt') || '';
+      const goDeps = ctx.fileContent('go.mod') || '';
+      return /socket\.io|"ws"|sockjs|@nestjs\/websockets|phoenix|channels/i.test(deps) ||
+             /websockets|channels|tornado/i.test(pyDeps) ||
+             /gorilla\/websocket|nhooyr\.io\/websocket/i.test(goDeps) || null;
+    },
+    impact: 'low',
+    category: 'realtime',
+    fix: 'Add a WebSocket library for real-time communication if your app needs live updates.',
+    confidence: 0.7,
+  },
+
+  sseEndpoint: {
+    id: 130202,
+    name: 'Server-Sent Events patterns detected',
+    check: (ctx) => {
+      const codeFiles = findProjectFiles(ctx, /\.(js|ts|jsx|tsx|py|go|rb)$/i);
+      if (codeFiles.length === 0) return null;
+      return codeFiles.some(f => {
+        const content = ctx.fileContent(f) || '';
+        return /EventSource|text\/event-stream|SSE/i.test(content);
+      }) || null;
+    },
+    impact: 'low',
+    category: 'realtime',
+    fix: 'Consider Server-Sent Events (SSE) for server-to-client streaming when full duplex is not needed.',
+    confidence: 0.7,
+  },
+
+  realtimeDatabase: {
+    id: 130203,
+    name: 'Real-time database configured',
+    check: (ctx) => {
+      const deps = ctx.fileContent('package.json') || '';
+      const pyDeps = ctx.fileContent('requirements.txt') || '';
+      return /firebase-admin|supabase|convex|pusher/i.test(deps) ||
+             /firebase-admin|supabase|pusher/i.test(pyDeps) || null;
+    },
+    impact: 'low',
+    category: 'realtime',
+    fix: 'Add a real-time database (Firebase, Supabase, Convex) for live data synchronization.',
+    confidence: 0.7,
+  },
+
+  pubsubPattern: {
+    id: 130204,
+    name: 'Pub/sub messaging configured',
+    check: (ctx) => {
+      const deps = ctx.fileContent('package.json') || '';
+      const pyDeps = ctx.fileContent('requirements.txt') || '';
+      const goDeps = ctx.fileContent('go.mod') || '';
+      return /ioredis|redis|nats|kafkajs|amqplib|bullmq/i.test(deps) ||
+             /redis|nats-py|kafka-python|pika|celery/i.test(pyDeps) ||
+             /go-redis|nats\.go|sarama|amqp091-go/i.test(goDeps) || null;
+    },
+    impact: 'low',
+    category: 'realtime',
+    fix: 'Add a pub/sub messaging system (Redis, NATS, Kafka, RabbitMQ) for decoupled real-time communication.',
+    confidence: 0.7,
+  },
+
+  realtimeAuth: {
+    id: 130205,
+    name: 'WebSocket authentication patterns present',
+    check: (ctx) => {
+      const codeFiles = findProjectFiles(ctx, /\.(js|ts|jsx|tsx|py|go)$/i);
+      if (codeFiles.length === 0) return null;
+      return codeFiles.some(f => {
+        const content = ctx.fileContent(f) || '';
+        return /ws.*auth|socket.*token|connection.*auth|handleConnection.*jwt|on.*connect.*verify/i.test(content);
+      }) || null;
+    },
+    impact: 'low',
+    category: 'realtime',
+    fix: 'Add authentication to WebSocket connections — validate tokens on connect to prevent unauthorized access.',
+    confidence: 0.7,
+  },
+
+  // ── MC12: GraphQL ────────────────────────────────────────────────────
+
+  graphqlSchema: {
+    id: 130206,
+    name: 'GraphQL schema defined',
+    check: (ctx) => {
+      const deps = ctx.fileContent('package.json') || '';
+      const pyDeps = ctx.fileContent('requirements.txt') || '';
+      if (!/graphql|apollo|@nestjs\/graphql|type-graphql/i.test(deps) &&
+          !/graphene|ariadne|strawberry/i.test(pyDeps) &&
+          !hasProjectFile(ctx, /\.graphql$/i)) return null;
+      const schemaFiles = findProjectFiles(ctx, /\.(graphql|gql)$/i);
+      if (schemaFiles.length > 0) return true;
+      const codeFiles = findProjectFiles(ctx, /\.(js|ts|py)$/i);
+      return codeFiles.some(f => {
+        const content = ctx.fileContent(f) || '';
+        return /buildSchema|makeExecutableSchema|typeDefs|@ObjectType|type Query/i.test(content);
+      }) || false;
+    },
+    impact: 'low',
+    category: 'graphql',
+    fix: 'Define a GraphQL schema using .graphql files or schema-first/code-first approach.',
+    confidence: 0.7,
+  },
+
+  graphqlResolvers: {
+    id: 130207,
+    name: 'GraphQL resolvers implemented',
+    check: (ctx) => {
+      const deps = ctx.fileContent('package.json') || '';
+      const pyDeps = ctx.fileContent('requirements.txt') || '';
+      if (!/graphql|apollo|@nestjs\/graphql|type-graphql/i.test(deps) &&
+          !/graphene|ariadne|strawberry/i.test(pyDeps) &&
+          !hasProjectFile(ctx, /\.graphql$/i)) return null;
+      const codeFiles = findProjectFiles(ctx, /\.(js|ts|py)$/i);
+      return codeFiles.some(f => {
+        const content = ctx.fileContent(f) || '';
+        return /@Resolver|@Query|@Mutation|resolvers|resolve_/i.test(content) ||
+               /resolver/i.test(f);
+      }) || false;
+    },
+    impact: 'low',
+    category: 'graphql',
+    fix: 'Implement GraphQL resolvers to handle queries, mutations, and field resolution.',
+    confidence: 0.7,
+  },
+
+  graphqlCodegen: {
+    id: 130208,
+    name: 'GraphQL code generation configured',
+    check: (ctx) => {
+      const deps = ctx.fileContent('package.json') || '';
+      const pyDeps = ctx.fileContent('requirements.txt') || '';
+      if (!/graphql|apollo|@nestjs\/graphql|type-graphql/i.test(deps) &&
+          !/graphene|ariadne|strawberry/i.test(pyDeps) &&
+          !hasProjectFile(ctx, /\.graphql$/i)) return null;
+      return /@graphql-codegen|graphql-let|graphql-code-generator/i.test(deps) || false;
+    },
+    impact: 'low',
+    category: 'graphql',
+    fix: 'Add @graphql-codegen for type-safe GraphQL operations and automatic TypeScript type generation.',
+    confidence: 0.7,
+  },
+
+  graphqlNPlusOne: {
+    id: 130209,
+    name: 'GraphQL N+1 prevention (DataLoader)',
+    check: (ctx) => {
+      const deps = ctx.fileContent('package.json') || '';
+      const pyDeps = ctx.fileContent('requirements.txt') || '';
+      if (!/graphql|apollo|@nestjs\/graphql|type-graphql/i.test(deps) &&
+          !/graphene|ariadne|strawberry/i.test(pyDeps) &&
+          !hasProjectFile(ctx, /\.graphql$/i)) return null;
+      const codeFiles = findProjectFiles(ctx, /\.(js|ts|py)$/i);
+      return /dataloader/i.test(deps) ||
+             /aiodataloader|promise/i.test(pyDeps) ||
+             codeFiles.some(f => /dataloader|batch.*load|DataLoader/i.test(ctx.fileContent(f) || '')) || false;
+    },
+    impact: 'low',
+    category: 'graphql',
+    fix: 'Use DataLoader or batch loading patterns to prevent N+1 query problems in GraphQL resolvers.',
+    confidence: 0.7,
+  },
+
+  graphqlSubscriptions: {
+    id: 130210,
+    name: 'GraphQL subscriptions configured',
+    check: (ctx) => {
+      const deps = ctx.fileContent('package.json') || '';
+      const pyDeps = ctx.fileContent('requirements.txt') || '';
+      if (!/graphql|apollo|@nestjs\/graphql|type-graphql/i.test(deps) &&
+          !/graphene|ariadne|strawberry/i.test(pyDeps) &&
+          !hasProjectFile(ctx, /\.graphql$/i)) return null;
+      return /subscriptions-transport-ws|graphql-ws/i.test(deps) ||
+             findProjectFiles(ctx, /\.(js|ts|py)$/i).some(f => {
+               const content = ctx.fileContent(f) || '';
+               return /@Subscription|PubSub|subscription\s+\w+/i.test(content);
+             }) || false;
+    },
+    impact: 'low',
+    category: 'graphql',
+    fix: 'Configure GraphQL subscriptions with graphql-ws for real-time data pushed to clients.',
+    confidence: 0.7,
+  },
+
 
 };
 
