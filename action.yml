@@ -11,7 +11,7 @@ runs:
     - name: Run CLAUDEX Audit
       shell: bash
       run: |
-        RESULT=$(npx claudex-setup --json 2>/dev/null)
+        RESULT=$(npx @nerviq/cli --json 2>/dev/null)
         SCORE=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).score)")
         PASSED=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).passed)")
         TOTAL=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');const r=JSON.parse(d);console.log(r.passed+r.failed)")

@@ -8,7 +8,7 @@
 | Repo type | [e.g., backend API, frontend SPA, monorepo, data pipeline] |
 | Team size | [e.g., solo, 3 developers, 15-person team] |
 | Prior Claude setup | [none / basic CLAUDE.md / mature .claude/ config] |
-| Claudex Setup version | [e.g., 1.9.0] |
+| Nerviq version | [e.g., 1.9.0] |
 | Date | [YYYY-MM-DD] |
 
 ## Before State
@@ -16,7 +16,7 @@
 **Audit score:** [X/100]
 **Organic score:** [X/100]
 
-What existed before running claudex-setup:
+What existed before running nerviq:
 - [ ] CLAUDE.md
 - [ ] .claude/settings.json
 - [ ] Custom commands
@@ -35,7 +35,7 @@ Key observations:
 **Mode used:** [discover / starter / augment / plan+apply / suggest-only]
 
 **Steps:**
-1. Ran `npx claudex-setup discover` to understand current state
+1. Ran `npx @nerviq/cli discover` to understand current state
 2. [Next step]
 3. [Next step]
 
@@ -88,4 +88,4 @@ Key observations:
 
 ---
 
-*Generated with claudex-setup v[version]. Case study template from CLAUDEX.*
+*Generated with nerviq v[version]. Case study template from CLAUDEX.*

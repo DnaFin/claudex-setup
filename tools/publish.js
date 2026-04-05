@@ -93,8 +93,8 @@ function openBrowser(url) {
 // === Content library ===
 const CONTENT = {
   hn: {
-    title: 'Show HN: claudex-setup – Audit any project for Claude Code optimization (1,107 entries)',
-    url: 'https://github.com/DnaFin/claudex-setup',
+    title: 'Show HN: nerviq – Audit any project for Claude Code optimization (1,107 entries)',
+    url: 'https://github.com/nerviq/nerviq',
   },
   reddit: {
     title: 'I built a CLI that audits your project for Claude Code optimization — scores 0-100 (1,107 catalog entries)',
@@ -102,18 +102,18 @@ const CONTENT = {
 
 Most projects score 10-20 out of 100. After running setup, they jump to 70+.
 
-    npx claudex-setup
+    npx @nerviq/cli
 
 It checks 85 Claude Code setup signals: CLAUDE.md, hooks, commands, skills, agents, Mermaid diagrams, XML tags, path rules, MCP config, permissions, and more.
 
-Then npx claudex-setup setup creates everything that's missing, tailored to your stack (React, Python, TypeScript, Rust, Go, etc).
+Then npx @nerviq/cli setup creates everything that's missing, tailored to your stack (React, Python, TypeScript, Rust, Go, etc).
 
 - Zero dependencies
 - No API keys needed
 - Runs entirely on your machine
 - Free and open source
 
-GitHub: https://github.com/DnaFin/claudex-setup`,
+GitHub: https://github.com/nerviq/nerviq`,
     subreddits: ['ClaudeAI', 'ChatGPTCoding'],
   },
 };

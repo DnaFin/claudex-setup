@@ -71,7 +71,7 @@ Users can report whether a finding was helpful or not helpful via the CLI:
 npx nerviq feedback --key <checkKey> --status rejected --effect negative
 ```
 
-Feedback is stored locally in `.claude/claudex-setup/outcomes/` and aggregated per check key.
+Feedback is stored locally in `.nerviq/outcomes/` and aggregated per check key.
 
 ### Auto-Suppression Above 30%
 When a check accumulates a "not helpful" rate exceeding 30% across recorded feedback, it is automatically deprioritized:

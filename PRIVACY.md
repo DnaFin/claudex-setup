@@ -38,7 +38,7 @@ Nerviq has **zero runtime dependencies** — only Node.js (>=18) is required. De
 
 ## Audit Artifacts
 
-Nerviq stores audit snapshots, activity logs, and rollback artifacts under `.claude/claudex-setup/` in your project directory. These files:
+Nerviq stores audit snapshots, activity logs, and rollback artifacts under `.nerviq/` in your project directory. These files:
 
 - Never leave your machine.
 - Contain only scores, check results, and timestamps.

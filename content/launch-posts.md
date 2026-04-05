@@ -16,7 +16,7 @@ Use these links as the canonical sources behind public claims:
 
 Measured-result boundary to preserve:
 
-- before/after scores were measured with `claudex-setup@1.10.3` on `2026-04-03`
+- before/after scores were measured with `nerviq@1.10.3` on `2026-04-03`
 - current npm latest is `1.16.1`
 - current product surface is `85 checks`
 
@@ -29,14 +29,14 @@ I built a zero-dependency CLI that audits how well a repo is set up for Claude C
 
 It checks `85` things across `CLAUDE.md`, hooks, commands, agents, skills, MCP config, permissions, diagrams, and verification loops.
 
-Measured on `2026-04-03` with `claudex-setup@1.10.3`:
+Measured on `2026-04-03` with `nerviq@1.10.3`:
 - CLAUDEX: `62 -> 90`
 - VTCLE: `46 -> 64`
 - Social: `40 -> 48`
 - Polymiro: `35 -> 48`
 
 ```bash
-npx claudex-setup
+npx @nerviq/cli
 ```
 
 It starts trust-first:
@@ -47,7 +47,7 @@ It starts trust-first:
 
 Zero dependencies. No API keys. Runs local.
 
-GitHub: https://github.com/DnaFin/claudex-setup
+GitHub: https://github.com/nerviq/nerviq
 
 Proof and case studies:
 - https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/README.md
@@ -69,7 +69,7 @@ Would love feedback on what checks or rollout surfaces are still missing.
 The interesting problem with Claude Code is not "can it write code?".
 It's "is the repo actually set up so Claude can work safely and predictably?".
 
-I built `claudex-setup` to audit that surface:
+I built `nerviq` to audit that surface:
 - `85` checks
 - zero dependencies
 - local-only by default
@@ -82,7 +82,7 @@ Measured on 4 real repos:
 - research engine repo: `62 -> 90`
 
 ```bash
-npx claudex-setup
+npx @nerviq/cli
 ```
 
 The most common misses were not exotic:
@@ -103,14 +103,14 @@ https://github.com/DnaFin/claudex/blob/main/research/proof-artifacts/README.md
 **Title:** What 4 Real Repos Taught Me About Claude Code Readiness
 
 **Body (excerpt):**
-I tested `claudex-setup` on 4 real repos and the pattern was clear:
+I tested `nerviq` on 4 real repos and the pattern was clear:
 
 - the best teams still miss permission deny rules
 - mature repos often have hooks in files but not actually registered
 - non-standard settings formats are a real adoption trap
 - shared `settings.json` matters more than personal local overrides
 
-Measured on `2026-04-03` with `claudex-setup@1.10.3`:
+Measured on `2026-04-03` with `nerviq@1.10.3`:
 - CLAUDEX: `62 -> 90`
 - VTCLE: `46 -> 64`
 - Social: `40 -> 48`
@@ -140,7 +140,7 @@ Measured on 4 real repos:
 - `40 -> 48`
 - `35 -> 48`
 
-`npx claudex-setup`
+`npx @nerviq/cli`
 
 Proof: github.com/DnaFin/claudex/blob/main/research/proof-artifacts/README.md
 
@@ -174,7 +174,7 @@ Case studies:
 - github.com/DnaFin/claudex/blob/main/research/case-study-polymiro-2026-04-03.md
 
 **Tweet 5:**
-Measured results were captured on `claudex-setup@1.10.3` on `2026-04-03`.
+Measured results were captured on `nerviq@1.10.3` on `2026-04-03`.
 Current npm latest is `1.16.1`, so exact scores can move slightly, but the proof packet is explicit about that boundary.
 
 **Evidence anchor:** proof artifact index + per-repo traces
@@ -183,7 +183,7 @@ Current npm latest is `1.16.1`, so exact scores can move slightly, but the proof
 
 ## Post 5: Hacker News (Show HN)
 
-**Title:** Show HN: claudex-setup — audit Claude Code readiness with 85 checks
+**Title:** Show HN: nerviq — audit Claude Code readiness with 85 checks
 
 **Body:**
 I built a CLI that audits how well a repo is set up for Claude Code.
@@ -201,13 +201,13 @@ It focuses on Claude workflow quality:
 - verification loops
 
 Core workflow:
-- `npx claudex-setup`
-- `npx claudex-setup suggest-only`
-- `npx claudex-setup plan`
-- `npx claudex-setup apply`
-- `npx claudex-setup benchmark`
+- `npx @nerviq/cli`
+- `npx @nerviq/cli suggest-only`
+- `npx @nerviq/cli plan`
+- `npx @nerviq/cli apply`
+- `npx @nerviq/cli benchmark`
 
-Measured on 4 real repos on `2026-04-03` with `claudex-setup@1.10.3`:
+Measured on 4 real repos on `2026-04-03` with `nerviq@1.10.3`:
 - CLAUDEX: `62 -> 90`
 - VTCLE: `46 -> 64`
 - Social: `40 -> 48`

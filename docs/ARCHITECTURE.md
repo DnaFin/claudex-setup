@@ -52,7 +52,7 @@ graph LR
 Score = (earned / max) * 100
 
 Weights: critical=15, high=10, medium=5, low=2
-Organic score: excludes checks that claudex-setup itself generated
+Organic score: excludes checks that nerviq itself generated
 ```
 
 Checks return `true` (pass), `false` (fail), or `null` (not applicable / skip).

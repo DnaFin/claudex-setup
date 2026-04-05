@@ -28,7 +28,7 @@ vscode-extension/  VS Code integration
 1. Read `apf/state.json` for current metrics
 2. Read `apf/todo.md` for pending tasks
 3. Check metrics:
-   - npm: `curl -s "https://api.npmjs.org/downloads/point/last-week/claudex-setup"`
+   - npm: `curl -s "https://api.npmjs.org/downloads/point/last-week/@nerviq/cli"`
    - GitHub: `curl -s https://api.github.com/repos/DnaFin/claudex`
    - Dev.to: `curl -s -H "api-key: $DEVTO_API_KEY" https://dev.to/api/articles/me?per_page=5`
 4. Update `apf/state.json`

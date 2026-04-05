@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>claudex-setup — Safely improve your Claude Code setup</title>
+    <title>nerviq — Safely improve your Claude Code setup</title>
     <meta name="description" content="Audit your repo. See what's missing. Apply only what you approve with rollback for every change. Existing config is always preserved.">
-    <meta property="og:title" content="claudex-setup — Safely improve your Claude Code setup">
+    <meta property="og:title" content="nerviq — Safely improve your Claude Code setup">
     <meta property="og:description" content="Audit your repo, see what's missing, apply only what you approve. Rollback for every change. Existing config is always preserved.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://dnafin.github.io/claudex-setup/">
+    <meta property="og:url" content="https://nerviq.net/">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -161,14 +161,14 @@
     <div class="bg-mesh"></div>
     <div class="container">
         <nav>
-            <a href="/" class="nav-brand">claudex-setup</a>
+            <a href="/" class="nav-brand">nerviq</a>
             <div class="nav-badges">
-                <img src="https://img.shields.io/npm/v/claudex-setup?color=a78bfa&label=npm" alt="npm version">
-                <img src="https://img.shields.io/npm/dm/claudex-setup?color=34d399&label=downloads" alt="npm downloads">
+                <img src="https://img.shields.io/npm/v/@nerviq/cli?color=a78bfa&label=npm" alt="npm version">
+                <img src="https://img.shields.io/npm/dm/@nerviq/cli?color=34d399&label=downloads" alt="npm downloads">
             </div>
             <div class="nav-links">
-                <a href="https://github.com/DnaFin/claudex-setup">GitHub</a>
-                <a href="https://www.npmjs.com/package/claudex-setup">npm</a>
+                <a href="https://github.com/nerviq/nerviq">GitHub</a>
+                <a href="https://www.npmjs.com/package/@nerviq/cli">npm</a>
             </div>
         </nav>
 
@@ -180,9 +180,9 @@
             <h1>Safely improve your<br><em>Claude Code</em> setup</h1>
             <p class="hero-sub">Audit your repo. See what's missing. Apply only what you approve &mdash; with rollback for every change. Existing config is always preserved.</p>
 
-            <div class="install-box mono" onclick="navigator.clipboard.writeText('npx claudex-setup');this.querySelector('.copy-icon').textContent='Copied!'">
+            <div class="install-box mono" onclick="navigator.clipboard.writeText('npx @nerviq/cli');this.querySelector('.copy-icon').textContent='Copied!'">
                 <span class="prompt">$</span>
-                <span class="cmd">npx claudex-setup</span>
+                <span class="cmd">npx @nerviq/cli</span>
                 <span class="copy-icon">Copy</span>
             </div>
             <div class="install-hint">No install needed. Node.js 18+. Zero dependencies. Core workflows run locally, and benchmark uses an isolated temp copy.</div>
@@ -202,14 +202,14 @@
             <div style="font-size:14px;text-transform:uppercase;letter-spacing:2px;color:var(--accent);font-weight:600;margin-bottom:8px">New here?</div>
             <div style="font-size:20px;font-weight:700;margin-bottom:8px">Start with the quick scan</div>
             <div style="color:var(--text-dim);font-size:14px;margin-bottom:16px">Read-only. Nothing changes. See the top 3 fixes and one clear next command.</div>
-            <code class="mono" style="background:var(--surface);padding:10px 24px;border-radius:8px;font-size:16px;color:var(--green);display:inline-block">npx claudex-setup --lite</code>
+            <code class="mono" style="background:var(--surface);padding:10px 24px;border-radius:8px;font-size:16px;color:var(--green);display:inline-block">npx @nerviq/cli --lite</code>
         </section>
 
         <section style="margin:0 0 48px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px">
             <div style="font-size:14px;text-transform:uppercase;letter-spacing:2px;color:var(--blue);font-weight:600;margin-bottom:8px">Need proof artifacts?</div>
             <div style="font-size:18px;font-weight:700;margin-bottom:8px">Save structured snapshots as you improve the repo</div>
             <div style="color:var(--text-dim);font-size:14px;margin-bottom:16px">Use the same artifact path for audit, augment, benchmark, and governance evidence.</div>
-            <code class="mono" style="background:var(--surface-2);padding:10px 24px;border-radius:8px;font-size:16px;color:var(--green);display:inline-block">npx claudex-setup --snapshot</code>
+            <code class="mono" style="background:var(--surface-2);padding:10px 24px;border-radius:8px;font-size:16px;color:var(--green);display:inline-block">npx @nerviq/cli --snapshot</code>
         </section>
 
         <section class="how-section">
@@ -220,19 +220,19 @@
                     <div class="step-num">1</div>
                     <h3>Discover</h3>
                     <p>Scan the repo, score readiness, and see the highest-value next actions before changing anything.</p>
-                    <code>npx claudex-setup</code>
+                    <code>npx @nerviq/cli</code>
                 </div>
                 <div class="step">
                     <div class="step-num">2</div>
                     <h3>Plan</h3>
                     <p>Export proposal bundles with file previews, rationale, risk labels, and create, patch, or manual-review classification.</p>
-                    <code>npx claudex-setup plan</code>
+                    <code>npx @nerviq/cli plan</code>
                 </div>
                 <div class="step">
                     <div class="step-num">3</div>
                     <h3>Apply</h3>
                     <p>Apply only the proposal bundles you want and get rollback + activity artifacts for every write batch.</p>
-                    <code>npx claudex-setup apply</code>
+                    <code>npx @nerviq/cli apply</code>
                 </div>
             </div>
         </section>
@@ -273,9 +273,9 @@
                     <div></div>
                 </div>
                 <div class="terminal-body mono">
-<span class="t-dim">$</span> <span class="t-green">npx claudex-setup</span>
+<span class="t-dim">$</span> <span class="t-green">npx @nerviq/cli</span>
 <br><br>
-<span class="t-bold">  claudex-setup audit</span>
+<span class="t-bold">  nerviq audit</span>
 <br><span class="t-dim">  ═════════════════════════════════════</span>
 <br><span class="t-blue">  Detected: Node.js</span>
 <br><br>
@@ -300,7 +300,7 @@
 <br><br>
 <span class="t-dim">  ─────────────────────────────────────</span>
 <br>  <span class="t-bold">67/85</span> checks passing <span class="t-dim">(2 not applicable)</span>
-<br>  Next command: <span class="t-green">npx claudex-setup augment</span>
+<br>  Next command: <span class="t-green">npx @nerviq/cli augment</span>
                 </div>
             </div>
         </section>
@@ -312,42 +312,42 @@
                 <div class="feature-card">
                     <h3>🔍 Audit</h3>
                     <p>Score 0-100 against 85 checks. Detects framework, recommends domain packs, and surfaces a traceable Top 5 Next Actions list before any write happens.</p>
-                    <code>npx claudex-setup</code>
+                    <code>npx @nerviq/cli</code>
                 </div>
                 <div class="feature-card">
                     <h3>🧩 Proposal Bundles</h3>
                     <p>Export plan files with rationale, file previews, diff-style output, and create, patch, or manual-review classification.</p>
-                    <code>npx claudex-setup plan</code>
+                    <code>npx @nerviq/cli plan</code>
                 </div>
                 <div class="feature-card">
                     <h3>🤖 Claude-Native Skill</h3>
-                    <p>Ship a first `audit-repo` skill template so teams can run claudex-setup from inside Claude Code, not only from a separate terminal.</p>
+                    <p>Ship a first `audit-repo` skill template so teams can run nerviq from inside Claude Code, not only from a separate terminal.</p>
                     <code>.claude/skills/audit-repo</code>
                 </div>
                 <div class="feature-card">
                     <h3>🛠️ Smart Setup</h3>
                     <p>Generates CLAUDE.md from your scripts and stack, reads pyproject.toml for Python projects, creates Mermaid diagrams, and adds safer defaults.</p>
-                    <code>npx claudex-setup setup</code>
+                    <code>npx @nerviq/cli setup</code>
                 </div>
                 <div class="feature-card">
                     <h3>✅ Selective Apply</h3>
-                    <p>Apply only the ready proposal bundles you want. Every batch emits rollback and activity artifacts under <code>.claude/claudex-setup/</code>.</p>
-                    <code>npx claudex-setup apply</code>
+                    <p>Apply only the ready proposal bundles you want. Every batch emits rollback and activity artifacts under <code>.nerviq/</code>.</p>
+                    <code>npx @nerviq/cli apply</code>
                 </div>
                 <div class="feature-card">
                     <h3>🛡️ Governance</h3>
                     <p>Permission profiles, hook registry, domain packs, MCP packs, policy packs, and a pilot rollout kit for security-conscious teams.</p>
-                    <code>npx claudex-setup governance</code>
+                    <code>npx @nerviq/cli governance</code>
                 </div>
                 <div class="feature-card">
                     <h3>📈 Benchmark</h3>
                     <p>Measure before/after impact in an isolated temp copy and export deltas, workflow evidence, and a markdown or JSON report.</p>
-                    <code>npx claudex-setup benchmark</code>
+                    <code>npx @nerviq/cli benchmark</code>
                 </div>
                 <div class="feature-card">
                     <h3>🔄 CI Action</h3>
                     <p>GitHub Action that audits every PR. Set a minimum score threshold. Fail the build if standards drop.</p>
-                    <code>uses: DnaFin/claudex-setup@v1.16.1</code>
+                    <code>uses: nerviq/nerviq@v1.16.1</code>
                 </div>
             </div>
             <details style="margin-top:16px;text-align:center">
@@ -356,22 +356,22 @@
                     <div class="feature-card">
                         <h3>🧙 Interactive Wizard</h3>
                         <p>Step-by-step guided tour. Pick what to fix, skip what you don't need.</p>
-                        <code>npx claudex-setup interactive</code>
+                        <code>npx @nerviq/cli interactive</code>
                     </div>
                     <div class="feature-card">
                         <h3>👁️ Watch Mode</h3>
                         <p>Live monitoring. Re-audits on every config change in real time.</p>
-                        <code>npx claudex-setup watch</code>
+                        <code>npx @nerviq/cli watch</code>
                     </div>
                     <div class="feature-card">
                         <h3>🏅 Badge</h3>
                         <p>Generate a shields.io badge for your README.</p>
-                        <code>npx claudex-setup badge</code>
+                        <code>npx @nerviq/cli badge</code>
                     </div>
                     <div class="feature-card">
                         <h3>🧠 Deep Review</h3>
                         <p>AI-assisted feedback for mature setups. Requires API key and explicit opt-in.</p>
-                        <code>npx claudex-setup deep-review</code>
+                        <code>npx @nerviq/cli deep-review</code>
                     </div>
                 </div>
             </details>
@@ -572,23 +572,23 @@
         <section class="cta">
             <h2>Find out what you're missing.<br>Improve it safely.</h2>
             <p style="max-width:480px;margin:0 auto 32px">85 checks. Read-only discovery. Proposal bundles before writes. Domain packs, MCP packs, and workflow evidence when you need deeper rollout confidence.</p>
-            <div class="install-box mono" style="margin-bottom:24px" onclick="navigator.clipboard.writeText('npx claudex-setup');this.querySelector('.copy-icon').textContent='Copied!'">
+            <div class="install-box mono" style="margin-bottom:24px" onclick="navigator.clipboard.writeText('npx @nerviq/cli');this.querySelector('.copy-icon').textContent='Copied!'">
                 <span class="prompt">$</span>
-                <span class="cmd">npx claudex-setup</span>
+                <span class="cmd">npx @nerviq/cli</span>
                 <span class="copy-icon">Copy</span>
             </div>
             <div class="cta-buttons">
-                <a href="https://github.com/DnaFin/claudex-setup" class="btn btn-primary">View on GitHub</a>
-                <a href="https://www.npmjs.com/package/claudex-setup" class="btn btn-secondary">npm package</a>
+                <a href="https://github.com/nerviq/nerviq" class="btn btn-primary">View on GitHub</a>
+                <a href="https://www.npmjs.com/package/@nerviq/cli" class="btn btn-secondary">npm package</a>
             </div>
         </section>
 
         <footer>
             <div style="display:flex;justify-content:center;gap:24px;margin-bottom:12px">
-                <a href="https://github.com/DnaFin/claudex-setup">GitHub</a>
-                <a href="https://www.npmjs.com/package/claudex-setup">npm</a>
-                <a href="https://github.com/DnaFin/claudex-setup/blob/main/LICENSE">MIT License</a>
-                <a href="https://github.com/DnaFin/claudex-setup/blob/main/CONTRIBUTING.md">Contribute</a>
+                <a href="https://github.com/nerviq/nerviq">GitHub</a>
+                <a href="https://www.npmjs.com/package/@nerviq/cli">npm</a>
+                <a href="https://github.com/nerviq/nerviq/blob/main/LICENSE">MIT License</a>
+                <a href="https://github.com/nerviq/nerviq/blob/main/CONTRIBUTING.md">Contribute</a>
             </div>
             v1.16.2 candidate &mdash; Backed by CLAUDEX research and evidence.
         </footer>

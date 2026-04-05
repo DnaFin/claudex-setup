@@ -1,8 +1,8 @@
-# CLAUDEX-SETUP: Autonomous Project Framework
+# NERVIQ: Autonomous Project Framework
 
 ## Project Definition
 
-**Product:** `claudex-setup` - CLI tool that audits and optimizes any project for Claude Code
+**Product:** `nerviq` - CLI tool that audits and optimizes any project for Claude Code
 **Revenue model:** Free CLI (audience) + Premium newsletter (revenue) + Consulting (high-ticket)
 **Unfair advantage:** 1,107 catalog entries, 948 verified with evidence. Nobody else has this.
 
@@ -22,7 +22,7 @@
 
 ### Layer 1: Free CLI (Audience Builder)
 ```
-npx claudex-setup → audit + setup your project for Claude Code
+npx @nerviq/cli → audit + setup your project for Claude Code
 ```
 - Free, open source, zero friction
 - Goal: 1,000 downloads in first month
@@ -49,7 +49,7 @@ npx claudex-setup → audit + setup your project for Claude Code
 ## Build Plan (Priority Order)
 
 ### Week 1: CLI MVP + GitHub
-- [ ] Build `claudex-setup` CLI (audit + setup)
+- [ ] Build `nerviq` CLI (audit + setup)
 - [ ] Publish to npm
 - [ ] GitHub repo with good README
 - [ ] Test on 3 real projects
@@ -78,7 +78,7 @@ npx claudex-setup → audit + setup your project for Claude Code
 
 ### One-time setup (5 minutes total):
 1. **npm account** - create at npmjs.com if don't have, give me auth token
-2. **GitHub** - create repo `claudex-setup` (or I use existing account)
+2. **GitHub** - create repo `nerviq` (or I use existing account)
 3. **Social media** - either:
    - Give me access to post (Twitter/X, Reddit)
    - OR: I prepare posts, n8n publishes automatically

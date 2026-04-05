@@ -1,4 +1,4 @@
-# claudex-setup Release Checklist
+# nerviq Release Checklist
 
 Use this before tagging or publishing a release.
 
@@ -18,8 +18,8 @@ Use this before tagging or publishing a release.
 
 ## Trust And Governance
 
-- run `npx claudex-setup --snapshot` on the repo itself
-- run `npx claudex-setup governance --out governance.md`
+- run `npx @nerviq/cli --snapshot` on the repo itself
+- run `npx @nerviq/cli governance --out governance.md`
 - verify MCP package names and env preflight behavior for changed packs
 - verify no recommendation regressions on known scenarios
 

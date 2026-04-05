@@ -1,4 +1,4 @@
-# claudex-setup GitHub Action
+# nerviq GitHub Action
 
 Score your Claude Code setup against 84 checks and get feedback directly on pull requests.
 
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DnaFin/claudex-setup/action@main
+      - uses: nerviq/nerviq/action@main
 ```
 
 ### With threshold (fail if score is too low)
@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DnaFin/claudex-setup/action@main
+      - uses: nerviq/nerviq/action@main
         with:
           threshold: '50'
 ```
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DnaFin/claudex-setup/action@main
+      - uses: nerviq/nerviq/action@main
         with:
           comment: 'false'
 ```
@@ -61,7 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: DnaFin/claudex-setup/action@main
+      - uses: nerviq/nerviq/action@main
         id: audit
       - run: echo "Score is ${{ steps.audit.outputs.score }}/100"
 ```
@@ -83,7 +83,7 @@ jobs:
 
 ## How it works
 
-1. Installs Node.js 20 and runs `npx claudex-setup --json` on the checked-out repository.
+1. Installs Node.js 20 and runs `npx @nerviq/cli --json` on the checked-out repository.
 2. Parses the JSON output to extract `score`, `passed`, `failed`, and `checkCount`.
 3. If running on a `pull_request` event and `comment` is `true`, posts (or updates) a comment on the PR with the score and a color-coded emoji.
 4. If `threshold` is set to a non-zero value, fails the step when the score is below the threshold.
