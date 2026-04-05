@@ -155,7 +155,7 @@ function buildRichWindsurfRepo() {
     '',
     '## Project',
     '- This repo is the Windsurf rich fixture and uses app/, src/api/, prisma/, and components/.',
-    '- Create feature branches and PRs; never push directly to main.',
+    '- Create feature branches and PRs for every change.',
     '',
     '## Architecture',
     '```mermaid',
@@ -173,8 +173,10 @@ function buildRichWindsurfRepo() {
     '- Cascade may edit multiple files when a change spans API, UI, and schema layers.',
     '- Use Steps automation and slash command workflows for multi-step tasks.',
     '- Use Cascade skills and tool use deliberately for repo review, docs lookup, and safe terminal work.',
+    '- Use @mentions, file references, and codebase context when narrowing a task.',
     '- Long sessions can drift; compact context and restate the goal when sessions get long.',
     '- Warn about code reversion risk when format-on-save conflicts with agent edits.',
+    '- Prefer small task chunks and restart with a new session if a long autonomous flow stalls.',
     '',
     '## Memories',
     '- Memories are workspace local only, not cross-project, and not team synced.',
@@ -186,6 +188,7 @@ function buildRichWindsurfRepo() {
     '- Maintain audit logs and an audit trail for AI-assisted changes.',
     '- Zero data retention affects retention posture, but code is still sent for processing.',
     '- Model access policy restricts allowed models for production work.',
+    '- On Windows, prefer native Windows over WSL because Windsurf is less stable under WSL.',
   ].join('\n'));
 
   writeRule(dir, 'frontend', {
