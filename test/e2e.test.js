@@ -148,15 +148,58 @@ describe('E2E - CLI audit --json (codex)', () => {
 });
 
 describe('E2E - CLI audit unsupported platform', () => {
-  test('nerviq audit --platform gemini exits with error', () => {
+  test('nerviq audit --platform foobar exits with error', () => {
+    const dir = mkFixture('e2e-foobar');
+    try {
+      writeJson(dir, 'package.json', { name: 'test' });
+      const result = runCli(['audit', '--platform', 'foobar'], dir);
+      expect(result.status).toBe(1);
+      const stderr = result.stderr || '';
+      expect(stderr).toMatch(/unsupported/i);
+    } finally { cleanFixture(dir); }
+  });
+});
+
+describe('E2E - CLI additional platform and aggregation flows', () => {
+  test('nerviq audit --platform gemini returns valid JSON', () => {
     const dir = mkFixture('e2e-gemini');
     try {
       writeFile(dir, 'GEMINI.md', '# Gemini\nInstructions');
       writeJson(dir, 'package.json', { name: 'test' });
-      const result = runCli(['audit', '--platform', 'gemini'], dir);
-      expect(result.status).toBe(1);
-      const stderr = result.stderr || '';
-      expect(stderr).toMatch(/unsupported/i);
+      const result = runCli(['audit', '--platform', 'gemini', '--json'], dir);
+      expect(result.status).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.platform).toBe('gemini');
+      expect(typeof output.score).toBe('number');
+    } finally { cleanFixture(dir); }
+  });
+
+  test('audit --workspace returns aggregated workspace JSON', () => {
+    const dir = mkFixture('e2e-workspace');
+    try {
+      writeJson(dir, 'package.json', { name: 'mono', workspaces: ['packages/*'] });
+      writeJson(dir, 'packages/web/package.json', { name: '@mono/web' });
+      writeJson(dir, 'packages/api/package.json', { name: '@mono/api' });
+      const result = runCli(['audit', '--platform', 'claude', '--workspace', 'packages/*', '--json'], dir);
+      expect(result.status).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.workspaceCount).toBe(2);
+      expect(output.workspaces).toHaveLength(2);
+    } finally { cleanFixture(dir); }
+  });
+
+  test('org scan --json aggregates multiple repos', () => {
+    const dir = mkFixture('e2e-org');
+    try {
+      writeFile(dir, 'repo-a/CLAUDE.md', '# Repo A\n');
+      writeJson(dir, 'repo-a/package.json', { name: 'repo-a' });
+      writeFile(dir, 'repo-b/CLAUDE.md', '# Repo B\n');
+      writeJson(dir, 'repo-b/package.json', { name: 'repo-b' });
+      const result = runCli(['org', 'scan', 'repo-a', 'repo-b', '--json'], dir);
+      expect(result.status).toBe(0);
+      const output = JSON.parse(result.stdout);
+      expect(output.repoCount).toBe(2);
+      expect(output.repos).toHaveLength(2);
     } finally { cleanFixture(dir); }
   });
 });

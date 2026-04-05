@@ -61,6 +61,7 @@ export interface Check {
   fix: string | null;
   sourceUrl: string | null;
   confidence: number | null;
+  lastVerified?: string | null;
   template?: string | null;
   deprecated?: boolean;
 }

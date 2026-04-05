@@ -9,6 +9,8 @@ const { runBenchmark, printBenchmark, writeBenchmarkReport } = require('../src/b
 const { writeSnapshotArtifact, recordRecommendationOutcome, formatRecommendationOutcomeSummary, getRecommendationOutcomeSummary } = require('../src/activity');
 const { collectFeedback } = require('../src/feedback');
 const { startServer } = require('../src/server');
+const { auditWorkspaces } = require('../src/workspace');
+const { scanOrg } = require('../src/org');
 const { version } = require('../package.json');
 
 const args = process.argv.slice(2);
@@ -22,7 +24,7 @@ const COMMAND_ALIASES = {
   gov: 'governance',
   outcome: 'feedback',
 };
-const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -74,17 +76,20 @@ function parseArgs(rawArgs) {
   let platform = 'claude';
   let format = null;
   let port = null;
+  let workspace = null;
+  let webhookUrl = null;
   let commandSet = false;
   let extraArgs = [];
   let convertFrom = null;
   let convertTo = null;
   let migrateFrom = null;
   let migrateTo = null;
+  let checkVersion = null;
 
   for (let i = 0; i < rawArgs.length; i++) {
     const arg = rawArgs[i];
 
-    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack' || arg === '--require' || arg === '--key' || arg === '--status' || arg === '--effect' || arg === '--notes' || arg === '--source' || arg === '--score-delta' || arg === '--platform' || arg === '--format' || arg === '--from' || arg === '--to' || arg === '--port') {
+    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack' || arg === '--require' || arg === '--key' || arg === '--status' || arg === '--effect' || arg === '--notes' || arg === '--source' || arg === '--score-delta' || arg === '--platform' || arg === '--format' || arg === '--from' || arg === '--to' || arg === '--port' || arg === '--workspace' || arg === '--check-version' || arg === '--webhook') {
       const value = rawArgs[i + 1];
       if (!value || value.startsWith('--')) {
         throw new Error(`${arg} requires a value`);
@@ -107,6 +112,9 @@ function parseArgs(rawArgs) {
       if (arg === '--from') { convertFrom = value.trim(); migrateFrom = value.trim(); }
       if (arg === '--to') { convertTo = value.trim(); migrateTo = value.trim(); }
       if (arg === '--port') port = value.trim();
+      if (arg === '--workspace') workspace = value.trim();
+      if (arg === '--check-version') checkVersion = value.trim();
+      if (arg === '--webhook') webhookUrl = value.trim();
       i++;
       continue;
     }
@@ -191,6 +199,16 @@ function parseArgs(rawArgs) {
       continue;
     }
 
+    if (arg.startsWith('--workspace=')) {
+      workspace = arg.split('=').slice(1).join('=').trim();
+      continue;
+    }
+
+    if (arg.startsWith('--check-version=')) {
+      checkVersion = arg.split('=').slice(1).join('=').trim();
+      continue;
+    }
+
     if (arg.startsWith('--')) {
       flags.push(arg);
       continue;
@@ -206,7 +224,54 @@ function parseArgs(rawArgs) {
 
   const normalizedCommand = COMMAND_ALIASES[command] || command;
 
-  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks, feedbackKey, feedbackStatus, feedbackEffect, feedbackNotes, feedbackSource, feedbackScoreDelta, platform, format, port, extraArgs, convertFrom, convertTo, migrateFrom, migrateTo };
+  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks, feedbackKey, feedbackStatus, feedbackEffect, feedbackNotes, feedbackSource, feedbackScoreDelta, platform, format, port, workspace, extraArgs, convertFrom, convertTo, migrateFrom, migrateTo, checkVersion, webhookUrl };
+}
+
+function printWorkspaceSummary(summary, options) {
+  if (options.json) {
+    console.log(JSON.stringify(summary, null, 2));
+    return;
+  }
+
+  console.log('');
+  console.log('\x1b[1m  nerviq workspace audit\x1b[0m');
+  console.log('\x1b[2m  ═══════════════════════════════════════\x1b[0m');
+  console.log(`  Root: ${summary.rootDir}`);
+  console.log(`  Platform: ${summary.platform}`);
+  console.log(`  Workspaces: ${summary.workspaceCount}`);
+  console.log(`  Average score: \x1b[1m${summary.averageScore}/100\x1b[0m`);
+  console.log('');
+  console.log('\x1b[1m  Workspace                  Score  Pass  Total  Top action\x1b[0m');
+  console.log('  ' + '─'.repeat(72));
+  for (const item of summary.workspaces) {
+    const score = item.score === null ? 'ERR' : String(item.score);
+    const topAction = item.error || item.topAction || '-';
+    console.log(`  ${item.workspace.padEnd(26)} ${score.padStart(5)} ${String(item.passed).padStart(5)} ${String(item.total).padStart(6)}  ${topAction}`);
+  }
+  console.log('');
+}
+
+function printOrgSummary(summary, options) {
+  if (options.json) {
+    console.log(JSON.stringify(summary, null, 2));
+    return;
+  }
+
+  console.log('');
+  console.log('\x1b[1m  nerviq org scan\x1b[0m');
+  console.log('\x1b[2m  ═══════════════════════════════════════\x1b[0m');
+  console.log(`  Platform: ${summary.platform}`);
+  console.log(`  Repos: ${summary.repoCount}`);
+  console.log(`  Average score: \x1b[1m${summary.averageScore}/100\x1b[0m`);
+  console.log('');
+  console.log('\x1b[1m  Repo              Platform  Score  Top action\x1b[0m');
+  console.log('  ' + '─'.repeat(72));
+  for (const item of summary.repos) {
+    const score = item.score === null ? 'ERR' : String(item.score);
+    const topAction = item.error || item.topAction || '-';
+    console.log(`  ${item.name.padEnd(18)} ${item.platform.padEnd(8)} ${score.padStart(5)}  ${topAction}`);
+  }
+  console.log('');
 }
 
 const HELP = `
@@ -219,7 +284,9 @@ const HELP = `
     nerviq audit --platform X     Audit specific platform (claude|codex|cursor|copilot|gemini|windsurf|aider|opencode)
     nerviq audit --lite           Quick scan: top 3 gaps + next command
     nerviq audit --json           Machine-readable JSON output (for CI)
+    nerviq audit --workspace packages/*     Audit each workspace in a monorepo
     nerviq scan dir1 dir2         Compare multiple repos side-by-side
+    nerviq org scan dir1 dir2     Aggregate multiple repos into one score table
     nerviq catalog                Full check catalog (all 8 platforms)
     nerviq catalog --json         Export full check catalog as JSON
 
@@ -272,8 +339,11 @@ const HELP = `
     --only A,B        Limit plan/apply to selected proposal IDs
     --profile NAME    Permission profile: read-only | suggest-only | safe-write | power-user
     --mcp-pack A,B    Merge MCP packs into setup (e.g. context7-docs,next-devtools)
-    --format NAME     Output format: json | sarif
+    --check-version V Pin catalog to a specific version (warn on mismatch)
+    --format NAME     Output format: json | sarif | otel
+    --webhook URL     Send audit results to a webhook (Slack/Discord/generic JSON)
     --port N          Port for \`serve\` (default: 3000)
+    --workspace GLOBS Audit workspaces separately (e.g. packages/* or apps/web,apps/api)
     --snapshot        Save snapshot artifact under .claude/nerviq/snapshots/
     --lite            Short top-3 scan with one clear next step
     --dry-run         Preview changes without writing files
@@ -291,7 +361,9 @@ const HELP = `
     npx nerviq
     npx nerviq --lite
     npx nerviq --platform cursor
+    npx nerviq audit --workspace packages/*
     npx nerviq --platform codex augment
+    npx nerviq org scan ./app ./api ./infra
     npx nerviq scan ./app ./api ./infra
     npx nerviq harmony-audit
     npx nerviq convert --from claude --to codex
@@ -347,16 +419,31 @@ async function main() {
     platform: parsed.platform || 'claude',
     format: parsed.format || null,
     port: parsed.port !== null ? Number(parsed.port) : null,
+    workspace: parsed.workspace || null,
+    webhookUrl: parsed.webhookUrl || null,
     dir: process.cwd()
   };
 
-  if (!['claude', 'codex'].includes(options.platform)) {
-    console.error(`\n  Error: Unsupported platform '${options.platform}'. Use 'claude' or 'codex'.\n`);
+  if (parsed.checkVersion) {
+    if (parsed.checkVersion !== version) {
+      console.error(`\n  Warning: --check-version ${parsed.checkVersion} does not match installed nerviq version ${version}.`);
+      console.error(`  Check catalog may differ between versions. To align, run: npm install @nerviq/cli@${parsed.checkVersion}`);
+      console.error('');
+    }
+    options.checkVersion = parsed.checkVersion;
+  }
+
+  const SUPPORTED_PLATFORMS = ['claude', 'codex', 'gemini', 'copilot', 'cursor', 'windsurf', 'aider', 'opencode'];
+  if (!SUPPORTED_PLATFORMS.includes(options.platform)) {
+    console.error(`\n  Error: Unsupported platform '${options.platform}'.`);
+    console.error(`  Why: Only the following platforms are supported: ${SUPPORTED_PLATFORMS.join(', ')}.`);
+    console.error(`  Fix: Use --platform with one of the supported values, e.g.: npx nerviq --platform claude`);
+    console.error('  Docs: https://github.com/nerviq/nerviq#cross-platform\n');
     process.exit(1);
   }
 
-  if (options.format !== null && !['json', 'sarif'].includes(options.format)) {
-    console.error(`\n  Error: Unsupported format '${options.format}'. Use 'json' or 'sarif'.\n`);
+  if (options.format !== null && !['json', 'sarif', 'otel'].includes(options.format)) {
+    console.error(`\n  Error: Unsupported format '${options.format}'. Use 'json', 'sarif', or 'otel'.\n`);
     process.exit(1);
   }
 
@@ -366,7 +453,10 @@ async function main() {
   }
 
   if (options.threshold !== null && (!Number.isFinite(options.threshold) || options.threshold < 0 || options.threshold > 100)) {
-    console.error('\n  Error: --threshold must be a number between 0 and 100.\n');
+    console.error(`\n  Error: Invalid threshold value '${parsed.threshold}'.`);
+    console.error('  Why: --threshold must be a number between 0 and 100 representing the minimum passing score.');
+    console.error('  Fix: Use a valid number, e.g.: npx nerviq --threshold 70');
+    console.error('  Docs: https://github.com/nerviq/nerviq#ci-integration\n');
     process.exit(1);
   }
 
@@ -377,16 +467,21 @@ async function main() {
   if (!KNOWN_COMMANDS.includes(normalizedCommand)) {
     const suggestion = suggestCommand(command);
     console.error(`\n  Error: Unknown command '${command}'.`);
+    console.error(`  Why: '${command}' is not a recognized nerviq command or alias.`);
     if (suggestion) {
-      console.error(`  Did you mean '${suggestion}'?`);
+      console.error(`  Fix: Did you mean '${suggestion}'? Run: npx nerviq ${suggestion}`);
+    } else {
+      console.error('  Fix: Run nerviq --help to see all available commands.');
     }
-    console.error('  Run nerviq --help for usage.\n');
+    console.error('  Docs: https://github.com/nerviq/nerviq#readme\n');
     process.exit(1);
   }
 
   if (!require('fs').existsSync(options.dir)) {
     console.error(`\n  Error: Directory not found: ${options.dir}`);
-    console.error('  Run nerviq from inside your project directory.\n');
+    console.error('  Why: The current working directory does not exist or is not accessible.');
+    console.error('  Fix: cd into your project directory first, then run nerviq.');
+    console.error('  Docs: https://github.com/nerviq/nerviq#getting-started\n');
     process.exit(1);
   }
 
@@ -401,7 +496,7 @@ async function main() {
 
   try {
     const FULL_COMMAND_SET = new Set([
-      'audit', 'scan', 'badge', 'augment', 'suggest-only', 'setup', 'plan', 'apply',
+      'audit', 'org', 'scan', 'badge', 'augment', 'suggest-only', 'setup', 'plan', 'apply',
       'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'insights',
       'history', 'compare', 'trend', 'feedback', 'catalog', 'certify', 'serve', 'help', 'version',
       // Harmony + Synergy (cross-platform)
@@ -458,64 +553,24 @@ async function main() {
         console.error('  Usage: npx nerviq scan dir1 dir2 dir3\n');
         process.exit(1);
       }
-      const fs = require('fs');
-      const pathMod = require('path');
-      const rows = [];
-      for (const rawDir of scanDirs) {
-        const dir = pathMod.resolve(rawDir);
-        if (!fs.existsSync(dir)) {
-          rows.push({ name: pathMod.basename(rawDir), dir: rawDir, score: null, passed: '-', failed: '-', suggested: '-', error: 'directory not found' });
-          continue;
-        }
-        try {
-          const result = await audit({ dir, silent: true, platform: options.platform });
-          rows.push({
-            name: pathMod.basename(dir),
-            dir: rawDir,
-            score: result.score,
-            passed: result.passed,
-            failed: result.failed,
-            suggested: result.suggestedNextCommand || '-',
-            error: null,
-          });
-        } catch (err) {
-          rows.push({ name: pathMod.basename(dir), dir: rawDir, score: null, passed: '-', failed: '-', suggested: '-', error: err.message });
-        }
+      const summary = await scanOrg(scanDirs, options.platform);
+      printOrgSummary(summary, options);
+      if (options.threshold !== null && summary.averageScore < options.threshold) {
+        process.exit(1);
       }
-
-      if (options.json) {
-        console.log(JSON.stringify(rows, null, 2));
-      } else {
-        // Find weakest
-        const validRows = rows.filter(r => r.score !== null);
-        const minScore = validRows.length > 0 ? Math.min(...validRows.map(r => r.score)) : null;
-        const weakest = validRows.length > 1 && validRows.filter(r => r.score > minScore).length > 0
-          ? validRows.find(r => r.score === minScore)
-          : null;
-
-        console.log('');
-        console.log('\x1b[1m  nerviq multi-repo scan\x1b[0m');
-        console.log('\x1b[2m  ═══════════════════════════════════════\x1b[0m');
-        console.log('');
-
-        // Table header
-        const nameW = Math.max(8, ...rows.map(r => r.name.length)) + 2;
-        const header = `  ${'Project'.padEnd(nameW)} ${'Score'.padStart(5)}  ${'Pass'.padStart(4)}  ${'Fail'.padStart(4)}  Suggested Command`;
-        console.log('\x1b[1m' + header + '\x1b[0m');
-        console.log('  ' + '─'.repeat(header.trim().length));
-
-        for (const row of rows) {
-          if (row.error) {
-            console.log(`  ${row.name.padEnd(nameW)} \x1b[31m${('ERR').padStart(5)}\x1b[0m  ${String(row.passed).padStart(4)}  ${String(row.failed).padStart(4)}  ${row.error}`);
-            continue;
-          }
-          const isWeak = weakest && row.name === weakest.name && row.dir === weakest.dir;
-          const scoreColor = row.score >= 70 ? '\x1b[32m' : row.score >= 40 ? '\x1b[33m' : '\x1b[31m';
-          const prefix = isWeak ? '\x1b[31m⚠ ' : '  ';
-          const suffix = isWeak ? ' ← weakest\x1b[0m' : '';
-          console.log(`${prefix}${row.name.padEnd(nameW)} ${scoreColor}${String(row.score).padStart(5)}\x1b[0m  ${String(row.passed).padStart(4)}  ${String(row.failed).padStart(4)}  ${row.suggested}${suffix}`);
-        }
-        console.log('');
+      process.exit(0);
+    } else if (normalizedCommand === 'org') {
+      const subcommand = parsed.extraArgs[0];
+      const scanDirs = parsed.extraArgs.slice(1);
+      if (subcommand !== 'scan' || scanDirs.length === 0) {
+        console.error('\n  Error: org requires the scan subcommand and at least one directory.');
+        console.error('  Usage: npx nerviq org scan dir1 dir2 dir3\n');
+        process.exit(1);
+      }
+      const summary = await scanOrg(scanDirs, options.platform);
+      printOrgSummary(summary, options);
+      if (options.threshold !== null && summary.averageScore < options.threshold) {
+        process.exit(1);
       }
       process.exit(0);
     } else if (normalizedCommand === 'history') {
@@ -726,7 +781,7 @@ async function main() {
       const { watch } = require('../src/watch');
       await watch(options);
     } else if (normalizedCommand === 'catalog') {
-      const { generateCatalog, writeCatalogJson } = require('../src/catalog');
+      const { generateCatalog, generateCatalogWithVersion, writeCatalogJson } = require('../src/catalog');
       if (options.out) {
         const result = writeCatalogJson(options.out);
         if (options.json) {
@@ -737,7 +792,9 @@ async function main() {
       } else {
         const catalog = generateCatalog();
         if (options.json) {
-          console.log(JSON.stringify(catalog, null, 2));
+          const envelope = generateCatalogWithVersion();
+          if (options.checkVersion) envelope.requestedVersion = options.checkVersion;
+          console.log(JSON.stringify(envelope, null, 2));
         } else {
           // Print summary table
           const platforms = {};
@@ -845,7 +902,43 @@ async function main() {
         }
       }
     } else {
+      if (options.workspace) {
+        const summary = await auditWorkspaces(options.dir, options.workspace, options.platform);
+        printWorkspaceSummary(summary, options);
+        if (options.threshold !== null && summary.averageScore < options.threshold) {
+          process.exit(1);
+        }
+        process.exit(0);
+      }
       const result = await audit(options);
+      if (options.webhookUrl) {
+        try {
+          const { sendWebhook, formatSlackMessage } = require('../src/integrations');
+          // Auto-detect Slack vs generic by URL pattern
+          const isSlack = options.webhookUrl.includes('hooks.slack.com');
+          const isDiscord = options.webhookUrl.includes('discord.com/api/webhooks');
+          let payload;
+          if (isSlack) {
+            payload = formatSlackMessage(result);
+          } else if (isDiscord) {
+            const { formatDiscordMessage } = require('../src/integrations');
+            payload = formatDiscordMessage(result);
+          } else {
+            // Generic webhook: send full JSON audit result
+            payload = { platform: result.platform, score: result.score, passed: result.passed, failed: result.failed, results: result.results };
+          }
+          const webhookResp = await sendWebhook(options.webhookUrl, payload);
+          if (!options.json) {
+            if (webhookResp.ok) {
+              console.log(`  Webhook sent: ${options.webhookUrl} (${webhookResp.status})`);
+            } else {
+              console.error(`  Webhook failed: ${webhookResp.status} — ${webhookResp.body.slice(0, 200)}`);
+            }
+          }
+        } catch (webhookErr) {
+          if (!options.json) console.error(`  Webhook error: ${webhookErr.message}`);
+        }
+      }
       if (options.feedback && !options.json && options.format === null) {
         const feedbackTargets = options.lite
           ? (result.liteSummary?.topNextActions || [])
@@ -875,7 +968,10 @@ async function main() {
       }
       if (options.threshold !== null && result.score < options.threshold) {
         if (!options.json) {
-          console.error(`  Threshold failed: score ${result.score}/100 is below required ${options.threshold}/100.\n`);
+          console.error(`\n  Error: Threshold not met — score ${result.score}/100 is below required ${options.threshold}/100.`);
+          console.error('  Why: Your project audit score is lower than the minimum threshold set via --threshold.');
+          console.error('  Fix: Run `npx nerviq augment` to see improvement suggestions, then re-audit.');
+          console.error('  Docs: https://github.com/nerviq/nerviq#ci-integration\n');
         }
         process.exit(1);
       }
@@ -895,6 +991,7 @@ async function main() {
     }
   } catch (err) {
     console.error(`\n  Error: ${err.message}`);
+    console.error('  Fix: Run `npx nerviq doctor` to diagnose common issues, or check https://github.com/nerviq/nerviq#troubleshooting');
     process.exit(1);
   }
 }

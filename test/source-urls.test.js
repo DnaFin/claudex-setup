@@ -30,7 +30,7 @@ const PLATFORM_URL_RULES = {
 };
 
 describe('Official source URLs and confidence', () => {
-  test('all 673 techniques across 8 platforms expose sourceUrl and confidence', () => {
+  test('all 673 techniques across 8 platforms expose sourceUrl, confidence, and lastVerified', () => {
     let total = 0;
 
     for (const [platform, techniques] of Object.entries(PLATFORM_TECHNIQUES)) {
@@ -42,6 +42,7 @@ describe('Official source URLs and confidence', () => {
         ).toBe(true);
         expect(technique.confidence).toBeTruthy();
         expect([0.3, 0.7, 0.9]).toContain(technique.confidence);
+        expect(technique.lastVerified).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       }
     }
 

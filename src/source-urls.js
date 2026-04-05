@@ -198,6 +198,10 @@ const STALE_CONFIDENCE_IDS = new Set([
   'CX-C06',
 ]);
 
+const LAST_VERIFIED = {
+  default: '2026-04-05',
+};
+
 const RUNTIME_CONFIDENCE_IDS = {
   codex: new Set([
     'CX-B01',
@@ -249,6 +253,7 @@ function attachSourceUrls(platform, techniques) {
 
     technique.sourceUrl = resolved;
     technique.confidence = resolveConfidence(platform, technique);
+    technique.lastVerified = technique.lastVerified || LAST_VERIFIED[platform] || LAST_VERIFIED.default;
   }
 
   return techniques;
@@ -256,5 +261,6 @@ function attachSourceUrls(platform, techniques) {
 
 module.exports = {
   SOURCE_URLS,
+  LAST_VERIFIED,
   attachSourceUrls,
 };

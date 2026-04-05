@@ -5,6 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { version } = require('../package.json');
 
 const { TECHNIQUES: CLAUDE_TECHNIQUES } = require('./techniques');
 const { CODEX_TECHNIQUES } = require('./codex/techniques');
@@ -31,7 +32,7 @@ const PLATFORM_MAP = {
  * Generate a unified catalog array from all platform technique files.
  * Each entry contains:
  *   platform, id, key, name, category, impact, rating, fix, sourceUrl,
- *   confidence, template, deprecated
+ *   confidence, lastVerified, template, deprecated
  */
 function generateCatalog() {
   const catalog = [];
@@ -62,6 +63,7 @@ function generateCatalog() {
         fix: tech.fix ?? null,
         sourceUrl: tech.sourceUrl ?? null,
         confidence: tech.confidence ?? null,
+        lastVerified: tech.lastVerified ?? null,
         template: tech.template ?? null,
         deprecated: tech.deprecated ?? false,
       });
@@ -69,6 +71,20 @@ function generateCatalog() {
   }
 
   return catalog;
+}
+
+/**
+ * Generate a catalog envelope with version metadata.
+ * @returns {{ catalogVersion: string, generatedAt: string, totalChecks: number, checks: Object[] }}
+ */
+function generateCatalogWithVersion() {
+  const checks = generateCatalog();
+  return {
+    catalogVersion: version,
+    generatedAt: new Date().toISOString(),
+    totalChecks: checks.length,
+    checks,
+  };
 }
 
 /**
@@ -84,4 +100,4 @@ function writeCatalogJson(outputPath) {
   return { path: resolved, count: catalog.length };
 }
 
-module.exports = { generateCatalog, writeCatalogJson };
+module.exports = { generateCatalog, generateCatalogWithVersion, writeCatalogJson };

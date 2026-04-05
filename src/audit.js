@@ -2,6 +2,7 @@
  * Audit engine - evaluates project against CLAUDEX technique database.
  */
 
+const path = require('path');
 const { TECHNIQUES: CLAUDE_TECHNIQUES, STACKS } = require('./techniques');
 const { ProjectContext } = require('./context');
 const { CODEX_TECHNIQUES } = require('./codex/techniques');
@@ -27,7 +28,11 @@ const { sendInsights, getLocalInsights } = require('./insights');
 const { getRecommendationOutcomeSummary, getRecommendationAdjustment } = require('./activity');
 const { getFeedbackSummary } = require('./feedback');
 const { formatSarif } = require('./formatters/sarif');
+const { formatOtelMetrics } = require('./formatters/otel');
 const { loadPlugins, mergePluginChecks } = require('./plugins');
+const { hasWorkspaceConfig, detectWorkspaceGlobs, detectWorkspaces } = require('./workspace');
+const { detectDeprecationWarnings } = require('./deprecation');
+const { version: packageVersion } = require('../package.json');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -58,6 +63,8 @@ function formatLocation(file, line) {
 
 const IMPACT_ORDER = { critical: 3, high: 2, medium: 1, low: 0 };
 const WEIGHTS = { critical: 15, high: 10, medium: 5, low: 2 };
+const LARGE_INSTRUCTION_WARN_BYTES = 50 * 1024;
+const LARGE_INSTRUCTION_SKIP_BYTES = 1024 * 1024;
 const CATEGORY_MODULES = {
   memory: 'CLAUDE.md',
   quality: 'verification',
@@ -347,6 +354,171 @@ function getAuditSpec(platform = 'claude') {
     techniques: CLAUDE_TECHNIQUES,
     ContextClass: ProjectContext,
     platformVersion: null,
+  };
+}
+
+function normalizeRelativePath(filePath) {
+  return String(filePath || '').replace(/\\/g, '/').replace(/^\.\//, '');
+}
+
+function addPath(target, filePath) {
+  if (!filePath || typeof filePath !== 'string') return;
+  target.add(normalizeRelativePath(filePath));
+}
+
+function addDirFiles(ctx, target, dirPath, filter) {
+  if (typeof ctx.dirFiles !== 'function') return;
+  for (const file of ctx.dirFiles(dirPath)) {
+    if (filter && !filter.test(file)) continue;
+    addPath(target, path.join(dirPath, file));
+  }
+}
+
+function instructionFileCandidates(spec, ctx) {
+  const candidates = new Set();
+
+  if (spec.platform === 'claude') {
+    addPath(candidates, 'CLAUDE.md');
+    addPath(candidates, '.claude/CLAUDE.md');
+    addDirFiles(ctx, candidates, '.claude/rules', /\.md$/i);
+    addDirFiles(ctx, candidates, '.claude/commands', /\.md$/i);
+    addDirFiles(ctx, candidates, '.claude/agents', /\.md$/i);
+    if (typeof ctx.dirFiles === 'function') {
+      for (const skillDir of ctx.dirFiles('.claude/skills')) {
+        addPath(candidates, path.join('.claude', 'skills', skillDir, 'SKILL.md'));
+      }
+    }
+  }
+
+  if (spec.platform === 'codex') {
+    addPath(candidates, 'AGENTS.md');
+    addPath(candidates, 'AGENTS.override.md');
+    addPath(candidates, typeof ctx.agentsMdPath === 'function' ? ctx.agentsMdPath() : null);
+    addDirFiles(ctx, candidates, 'codex/rules');
+    addDirFiles(ctx, candidates, '.codex/rules');
+    if (typeof ctx.skillDirs === 'function') {
+      for (const skillDir of ctx.skillDirs()) {
+        addPath(candidates, path.join('.agents', 'skills', skillDir, 'SKILL.md'));
+      }
+    }
+  }
+
+  if (spec.platform === 'gemini') {
+    addPath(candidates, 'GEMINI.md');
+    addPath(candidates, '.gemini/GEMINI.md');
+    addDirFiles(ctx, candidates, '.gemini/agents', /\.md$/i);
+    if (typeof ctx.skillDirs === 'function') {
+      for (const skillDir of ctx.skillDirs()) {
+        addPath(candidates, path.join('.gemini', 'skills', skillDir, 'SKILL.md'));
+      }
+    }
+  }
+
+  if (spec.platform === 'copilot') {
+    addPath(candidates, '.github/copilot-instructions.md');
+    addDirFiles(ctx, candidates, '.github/instructions', /\.instructions\.md$/i);
+    addDirFiles(ctx, candidates, '.github/prompts', /\.prompt\.md$/i);
+  }
+
+  if (spec.platform === 'cursor') {
+    addPath(candidates, '.cursorrules');
+    addDirFiles(ctx, candidates, '.cursor/rules', /\.mdc$/i);
+    addDirFiles(ctx, candidates, '.cursor/commands', /\.md$/i);
+  }
+
+  if (spec.platform === 'windsurf') {
+    addPath(candidates, '.windsurfrules');
+    addDirFiles(ctx, candidates, '.windsurf/rules', /\.md$/i);
+    addDirFiles(ctx, candidates, '.windsurf/workflows', /\.md$/i);
+    addDirFiles(ctx, candidates, '.windsurf/memories', /\.(md|json)$/i);
+  }
+
+  if (spec.platform === 'aider' && typeof ctx.conventionFiles === 'function') {
+    for (const file of ctx.conventionFiles()) {
+      addPath(candidates, file);
+    }
+  }
+
+  if (spec.platform === 'opencode') {
+    addPath(candidates, 'AGENTS.md');
+    addPath(candidates, 'CLAUDE.md');
+    addDirFiles(ctx, candidates, '.opencode/commands', /\.(md|markdown|ya?ml)$/i);
+    if (typeof ctx.skillDirs === 'function') {
+      for (const skillDir of ctx.skillDirs()) {
+        addPath(candidates, path.join('.opencode', 'commands', skillDir, 'SKILL.md'));
+      }
+    }
+  }
+
+  return [...candidates];
+}
+
+function inspectInstructionFiles(spec, ctx) {
+  const warnings = [];
+
+  for (const filePath of instructionFileCandidates(spec, ctx)) {
+    const byteCount = typeof ctx.fileSizeBytes === 'function' ? ctx.fileSizeBytes(filePath) : null;
+    if (!Number.isFinite(byteCount) || byteCount <= LARGE_INSTRUCTION_WARN_BYTES) continue;
+
+    const content = typeof ctx.fileContent === 'function' ? ctx.fileContent(filePath) : null;
+    warnings.push({
+      file: normalizeRelativePath(filePath),
+      byteCount,
+      lineCount: typeof content === 'string' ? content.split(/\r?\n/).length : null,
+      skipped: byteCount > LARGE_INSTRUCTION_SKIP_BYTES,
+      severity: byteCount > LARGE_INSTRUCTION_SKIP_BYTES ? 'critical' : 'warning',
+      message: byteCount > LARGE_INSTRUCTION_SKIP_BYTES
+        ? 'Instruction file exceeds 1MB and will be skipped during audit.'
+        : 'Instruction file exceeds 50KB. Audit will continue, but this file may reduce runtime clarity.',
+    });
+  }
+
+  return warnings;
+}
+
+function guardSkippedInstructionFiles(ctx, warnings) {
+  const skippedFiles = new Set(
+    warnings.filter((item) => item.skipped).map((item) => normalizeRelativePath(item.file))
+  );
+
+  if (skippedFiles.size === 0) return;
+
+  const originalFileContent = typeof ctx.fileContent === 'function' ? ctx.fileContent.bind(ctx) : null;
+  const originalLineNumber = typeof ctx.lineNumber === 'function' ? ctx.lineNumber.bind(ctx) : null;
+
+  if (originalFileContent) {
+    ctx.fileContent = (filePath) => {
+      if (skippedFiles.has(normalizeRelativePath(filePath))) return null;
+      return originalFileContent(filePath);
+    };
+  }
+
+  if (originalLineNumber) {
+    ctx.lineNumber = (filePath, matcher) => {
+      if (skippedFiles.has(normalizeRelativePath(filePath))) return null;
+      return originalLineNumber(filePath, matcher);
+    };
+  }
+}
+
+function buildWorkspaceHint(dir) {
+  if (!hasWorkspaceConfig(dir)) {
+    return null;
+  }
+
+  const patterns = detectWorkspaceGlobs(dir);
+  const workspaces = detectWorkspaces(dir);
+  if (patterns.length === 0 && workspaces.length === 0) {
+    return null;
+  }
+
+  return {
+    detected: true,
+    patterns,
+    workspaces,
+    suggestedCommand: patterns.length > 0
+      ? `npx nerviq audit --workspace ${patterns.join(',')}`
+      : `npx nerviq audit --workspace ${workspaces.join(',')}`,
   };
 }
 
@@ -702,10 +874,18 @@ function printLiteAudit(result, dir) {
   if (result.platformScopeNote) {
     console.log(colorize(`  Scope: ${result.platformScopeNote.message}`, 'dim'));
   }
+  if (result.workspaceHint && result.workspaceHint.workspaces.length > 0) {
+    console.log(colorize(`  Workspaces: ${result.workspaceHint.workspaces.join(', ')}`, 'dim'));
+  }
   if (result.platformCaveats && result.platformCaveats.length > 0) {
     console.log(colorize('  Platform caveats:', 'yellow'));
     result.platformCaveats.slice(0, 2).forEach((item) => {
       console.log(colorize(`     - ${item.title}: ${item.message}`, 'dim'));
+    });
+  }
+  if (result.largeInstructionFiles && result.largeInstructionFiles.length > 0) {
+    result.largeInstructionFiles.slice(0, 2).forEach((item) => {
+      console.log(colorize(`  Large file: ${item.file} (${Math.round(item.byteCount / 1024)}KB)`, 'yellow'));
     });
   }
   console.log('');
@@ -750,10 +930,13 @@ async function audit(options) {
   const spec = getAuditSpec(options.platform || 'claude');
   const silent = options.silent || false;
   const ctx = new spec.ContextClass(options.dir);
+  const largeInstructionFiles = inspectInstructionFiles(spec, ctx);
+  guardSkippedInstructionFiles(ctx, largeInstructionFiles);
   const stacks = ctx.detectStacks(STACKS);
   const results = [];
   const outcomeSummary = getRecommendationOutcomeSummary(options.dir);
   const fpFeedback = getFeedbackSummary(options.dir);
+  const workspaceHint = buildWorkspaceHint(options.dir);
 
   // Load and merge plugin checks
   const plugins = loadPlugins(options.dir);
@@ -772,6 +955,24 @@ async function audit(options) {
       file,
       line: Number.isFinite(line) ? line : null,
       passed,
+    });
+  }
+
+  if (largeInstructionFiles.length > 0) {
+    results.push({
+      key: 'largeInstructionFile',
+      id: null,
+      name: 'Large instruction file warning',
+      category: 'performance',
+      impact: 'medium',
+      rating: null,
+      fix: 'Split oversized instruction files so they stay under 50KB, and keep any single instruction file below 1MB.',
+      sourceUrl: null,
+      confidence: 'high',
+      file: largeInstructionFiles[0].file,
+      line: null,
+      passed: null,
+      details: largeInstructionFiles,
     });
   }
 
@@ -825,6 +1026,23 @@ async function audit(options) {
   const categoryScores = computeCategoryScores(applicable, passed);
   const platformScopeNote = getPlatformScopeNote(spec, ctx);
   const platformCaveats = getPlatformCaveats(spec, ctx);
+  const deprecationWarnings = detectDeprecationWarnings(failed, packageVersion);
+  const warnings = [
+    ...largeInstructionFiles.map((item) => ({
+      kind: 'large-instruction-file',
+      severity: item.severity,
+      message: item.message,
+      file: item.file,
+      lineCount: item.lineCount,
+      byteCount: item.byteCount,
+      skipped: item.skipped,
+    })),
+    ...deprecationWarnings.map((item) => ({
+      kind: 'deprecated-feature',
+      severity: 'warning',
+      ...item,
+    })),
+  ];
   const recommendedDomainPacks = spec.platform === 'codex'
     ? detectCodexDomainPacks(ctx, stacks, getCodexDomainPackSignals(ctx))
     : [];
@@ -850,6 +1068,10 @@ async function audit(options) {
       totalEntries: outcomeSummary.totalEntries,
       keysTracked: outcomeSummary.keys,
     },
+    largeInstructionFiles,
+    deprecationWarnings,
+    warnings,
+    workspaceHint,
     platformScopeNote,
     platformCaveats,
     recommendedDomainPacks,
@@ -867,9 +1089,8 @@ async function audit(options) {
   }
 
   if (options.json) {
-    const { version } = require('../package.json');
     console.log(JSON.stringify({
-      version,
+      version: packageVersion,
       timestamp: new Date().toISOString(),
       ...result
     }, null, 2));
@@ -878,6 +1099,11 @@ async function audit(options) {
 
   if (options.format === 'sarif') {
     console.log(JSON.stringify(formatSarif(result, { dir: options.dir }), null, 2));
+    return result;
+  }
+
+  if (options.format === 'otel') {
+    console.log(JSON.stringify(formatOtelMetrics(result), null, 2));
     return result;
   }
 
@@ -911,6 +1137,35 @@ async function audit(options) {
         console.log(colorize(`     at ${formatLocation(caveat.file, caveat.line)}`, 'dim'));
       }
     }
+    console.log('');
+  }
+
+  if (largeInstructionFiles.length > 0) {
+    console.log(colorize('  Large instruction files', 'yellow'));
+    for (const item of largeInstructionFiles) {
+      const sizeKb = Math.round(item.byteCount / 1024);
+      console.log(colorize(`     ${item.file} (${sizeKb}KB, ${item.lineCount || '?'} lines)`, 'bold'));
+      console.log(colorize(`     → ${item.message}`, 'dim'));
+    }
+    console.log('');
+  }
+
+  if (deprecationWarnings.length > 0) {
+    console.log(colorize('  Deprecated feature warnings', 'yellow'));
+    for (const item of deprecationWarnings) {
+      console.log(colorize(`     ${item.feature}`, 'bold'));
+      console.log(colorize(`     → ${item.message}`, 'dim'));
+      console.log(colorize(`     Alternative: ${item.alternative}`, 'dim'));
+    }
+    console.log('');
+  }
+
+  if (workspaceHint && !options.workspace) {
+    console.log(colorize('  Monorepo detected', 'blue'));
+    if (workspaceHint.workspaces.length > 0) {
+      console.log(colorize(`     Workspaces: ${workspaceHint.workspaces.join(', ')}`, 'dim'));
+    }
+    console.log(colorize(`     Tip: ${workspaceHint.suggestedCommand}`, 'dim'));
     console.log('');
   }
 

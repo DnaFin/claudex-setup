@@ -1,6 +1,22 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { version } = require('../package.json');
+
+/**
+ * Generate a machine-level user identity for audit tracking.
+ * Format: hostname:username — no PII, just machine identity.
+ * @returns {string}
+ */
+function getUserId() {
+  try {
+    const hostname = os.hostname();
+    const username = os.userInfo().username;
+    return `${hostname}:${username}`;
+  } catch {
+    return 'unknown:unknown';
+  }
+}
 
 let _lastTimestamp = '';
 let _counter = 0;
@@ -42,6 +58,7 @@ function writeActivityArtifact(dir, type, payload) {
     id,
     type,
     createdAt: new Date().toISOString(),
+    userId: getUserId(),
     ...payload,
   });
   return {
@@ -58,6 +75,7 @@ function writeRollbackArtifact(dir, payload) {
   writeJson(filePath, {
     id,
     createdAt: new Date().toISOString(),
+    userId: getUserId(),
     rollbackType: 'delete-created-files',
     ...payload,
   });
@@ -161,6 +179,7 @@ function writeSnapshotArtifact(dir, snapshotKind, payload, meta = {}) {
     snapshotKind,
     id,
     createdAt: new Date().toISOString(),
+    userId: getUserId(),
     generatedBy: `nerviq@${version}`,
     directory: dir,
     summary,
@@ -511,6 +530,7 @@ function formatRecommendationOutcomeSummary(dir) {
 }
 
 module.exports = {
+  getUserId,
   ensureArtifactDirs,
   writeActivityArtifact,
   writeRollbackArtifact,
