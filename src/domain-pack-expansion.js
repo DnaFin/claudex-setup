@@ -191,6 +191,182 @@ const PACK_BLUEPRINTS = [
     recommendedModules: ['Hardware integration guide', 'Device messaging review', 'Firmware safety checks'],
     benchmarkFocus: ['device-surface safety', 'messaging reliability', 'firmware guardrails'],
   },
+  {
+    key: 'healthcare',
+    label: 'Healthcare',
+    useWhen: 'Repos handling HIPAA compliance, HL7/FHIR integrations, PHI data, or medical records workflows.',
+    adoption: 'Recommended when patient data protection, regulatory compliance, and clinical data standards are central concerns.',
+    recommendedModules: ['HIPAA compliance guide', 'PHI data handling review', 'Clinical data safety checks'],
+    benchmarkFocus: ['HIPAA compliance posture', 'PHI protection', 'clinical data standards'],
+  },
+  {
+    key: 'fintech',
+    label: 'Fintech',
+    useWhen: 'Repos with PCI-DSS requirements, KYC/AML workflows, transaction processing, or financial regulation compliance.',
+    adoption: 'Recommended when financial data safety, regulatory compliance, and transaction integrity are core concerns.',
+    recommendedModules: ['PCI-DSS compliance guide', 'Transaction safety review', 'KYC/AML workflow checks'],
+    benchmarkFocus: ['PCI compliance posture', 'transaction integrity', 'regulatory readiness'],
+  },
+  {
+    key: 'gaming',
+    label: 'Gaming',
+    useWhen: 'Repos with ECS patterns, asset pipelines, multiplayer networking, or game loop architectures.',
+    adoption: 'Recommended when game loop performance, asset management, and multiplayer synchronization drive the workflow.',
+    recommendedModules: ['Game loop optimization guide', 'Asset pipeline review', 'Multiplayer safety checks'],
+    benchmarkFocus: ['game-loop performance', 'asset pipeline quality', 'multiplayer synchronization'],
+  },
+  {
+    key: 'iot',
+    label: 'IoT',
+    useWhen: 'Repos centered on MQTT messaging, edge computing, OTA firmware updates, or sensor data ingestion.',
+    adoption: 'Recommended when device communication protocols, edge processing, and sensor data pipelines are primary concerns.',
+    recommendedModules: ['MQTT integration guide', 'Edge computing review', 'OTA update safety checks'],
+    benchmarkFocus: ['device messaging reliability', 'edge processing safety', 'OTA update integrity'],
+  },
+  {
+    key: 'streaming',
+    label: 'Streaming',
+    useWhen: 'Repos handling video/audio codecs, CDN integration, adaptive bitrate streaming, or transcoding pipelines.',
+    adoption: 'Recommended when media delivery quality, codec management, and CDN configuration are central to the product.',
+    recommendedModules: ['Media delivery guide', 'Codec and transcoding review', 'CDN configuration checks'],
+    benchmarkFocus: ['media delivery quality', 'transcoding safety', 'CDN configuration'],
+  },
+  {
+    key: 'robotics',
+    label: 'Robotics',
+    useWhen: 'Repos with ROS integration, sensor fusion, real-time control constraints, or actuator management.',
+    adoption: 'Recommended when real-time safety, sensor data fusion, and hardware control are foundational to the repo.',
+    recommendedModules: ['Real-time control guide', 'Sensor fusion review', 'Actuator safety checks'],
+    benchmarkFocus: ['real-time constraint safety', 'sensor fusion quality', 'actuator control integrity'],
+  },
+  {
+    key: 'ar-vr',
+    label: 'AR / VR',
+    useWhen: 'Repos focused on 3D rendering, spatial computing, XR frameworks, or immersive experience development.',
+    adoption: 'Recommended when 3D rendering performance, spatial interaction, and XR platform integration drive the workflow.',
+    recommendedModules: ['3D rendering guide', 'Spatial computing review', 'XR framework checks'],
+    benchmarkFocus: ['rendering performance', 'spatial interaction quality', 'XR platform compatibility'],
+  },
+  {
+    key: 'climate-tech',
+    label: 'Climate Tech',
+    useWhen: 'Repos handling carbon tracking, energy modeling, ESG reporting, or environmental data workflows.',
+    adoption: 'Recommended when emissions data accuracy, energy modeling, and ESG compliance are central concerns.',
+    recommendedModules: ['Carbon tracking guide', 'Energy modeling review', 'ESG reporting checks'],
+    benchmarkFocus: ['emissions data accuracy', 'energy model quality', 'ESG compliance readiness'],
+  },
+  {
+    key: 'govtech',
+    label: 'GovTech',
+    useWhen: 'Repos requiring accessibility compliance, internationalization, audit trails, or government service standards.',
+    adoption: 'Recommended when accessibility, audit traceability, and regulatory compliance are mandatory product requirements.',
+    recommendedModules: ['Accessibility compliance guide', 'Audit trail review', 'Government standards checks'],
+    benchmarkFocus: ['accessibility compliance', 'audit trail completeness', 'regulatory standards'],
+  },
+  {
+    key: 'edtech',
+    label: 'EdTech',
+    useWhen: 'Repos with LMS integration, assessment engines, progress tracking, or educational content delivery.',
+    adoption: 'Recommended when learning management, student progress tracking, and assessment integrity are core product concerns.',
+    recommendedModules: ['LMS integration guide', 'Assessment engine review', 'Progress tracking checks'],
+    benchmarkFocus: ['LMS integration quality', 'assessment integrity', 'progress tracking accuracy'],
+  },
+  {
+    key: 'martech',
+    label: 'MarTech',
+    useWhen: 'Repos handling analytics pipelines, A/B testing frameworks, personalization engines, or marketing automation.',
+    adoption: 'Recommended when analytics accuracy, experiment integrity, and personalization workflows drive the product.',
+    recommendedModules: ['Analytics pipeline guide', 'A/B testing review', 'Personalization safety checks'],
+    benchmarkFocus: ['analytics accuracy', 'experiment integrity', 'personalization quality'],
+  },
+  {
+    key: 'proptech',
+    label: 'PropTech',
+    useWhen: 'Repos handling property data, geospatial analysis, building management systems, or real estate workflows.',
+    adoption: 'Recommended when property data accuracy, geospatial processing, and building system integration are central.',
+    recommendedModules: ['Property data guide', 'Geospatial processing review', 'Building systems checks'],
+    benchmarkFocus: ['property data accuracy', 'geospatial quality', 'building system integration'],
+  },
+  {
+    key: 'legaltech',
+    label: 'LegalTech',
+    useWhen: 'Repos focused on document automation, compliance management, e-discovery, or legal workflow tooling.',
+    adoption: 'Recommended when document accuracy, compliance tracking, and legal data handling are primary concerns.',
+    recommendedModules: ['Document automation guide', 'Compliance workflow review', 'E-discovery safety checks'],
+    benchmarkFocus: ['document accuracy', 'compliance tracking', 'legal data handling'],
+  },
+  {
+    key: 'agritech',
+    label: 'AgriTech',
+    useWhen: 'Repos handling agricultural sensor data, crop modeling, supply chain tracking, or farm management systems.',
+    adoption: 'Recommended when sensor data processing, crop analytics, and supply chain traceability are core concerns.',
+    recommendedModules: ['Sensor data pipeline guide', 'Crop modeling review', 'Supply chain tracking checks'],
+    benchmarkFocus: ['sensor data quality', 'crop model accuracy', 'supply chain traceability'],
+  },
+  {
+    key: 'biotech',
+    label: 'BioTech',
+    useWhen: 'Repos with bioinformatics pipelines, lab automation systems, or regulatory submission workflows.',
+    adoption: 'Recommended when biological data processing, lab workflow automation, and regulatory compliance drive the repo.',
+    recommendedModules: ['Bioinformatics pipeline guide', 'Lab automation review', 'Regulatory compliance checks'],
+    benchmarkFocus: ['bioinformatics accuracy', 'lab automation safety', 'regulatory compliance'],
+  },
+  {
+    key: 'cybersecurity',
+    label: 'Cybersecurity',
+    useWhen: 'Repos focused on threat detection, SIEM integration, incident response, or security operations tooling.',
+    adoption: 'Recommended when threat detection accuracy, incident response workflows, and security telemetry are central.',
+    recommendedModules: ['Threat detection guide', 'SIEM integration review', 'Incident response checks'],
+    benchmarkFocus: ['threat detection quality', 'SIEM integration', 'incident response readiness'],
+  },
+  {
+    key: 'logistics',
+    label: 'Logistics',
+    useWhen: 'Repos handling route optimization, fleet management, shipment tracking, or warehouse management systems.',
+    adoption: 'Recommended when routing accuracy, fleet coordination, and tracking reliability are core product concerns.',
+    recommendedModules: ['Route optimization guide', 'Fleet management review', 'Tracking system checks'],
+    benchmarkFocus: ['routing accuracy', 'fleet coordination', 'tracking reliability'],
+  },
+  {
+    key: 'media',
+    label: 'Media',
+    useWhen: 'Repos with CMS-driven publishing, digital asset management, content delivery pipelines, or editorial workflows.',
+    adoption: 'Recommended when content management, asset lifecycle, and delivery pipelines are central to the product.',
+    recommendedModules: ['Content management guide', 'Digital asset review', 'Content delivery checks'],
+    benchmarkFocus: ['content management quality', 'asset lifecycle safety', 'delivery pipeline reliability'],
+  },
+  {
+    key: 'social',
+    label: 'Social',
+    useWhen: 'Repos with feed algorithms, content moderation, real-time messaging, or social graph management.',
+    adoption: 'Recommended when feed quality, moderation safety, and messaging reliability are core product concerns.',
+    recommendedModules: ['Feed algorithm guide', 'Content moderation review', 'Messaging safety checks'],
+    benchmarkFocus: ['feed algorithm quality', 'moderation effectiveness', 'messaging reliability'],
+  },
+  {
+    key: 'travel',
+    label: 'Travel',
+    useWhen: 'Repos with booking engines, GDS integration, dynamic pricing, or travel inventory management.',
+    adoption: 'Recommended when booking reliability, pricing accuracy, and GDS integration are primary concerns.',
+    recommendedModules: ['Booking engine guide', 'GDS integration review', 'Pricing safety checks'],
+    benchmarkFocus: ['booking reliability', 'GDS integration quality', 'pricing accuracy'],
+  },
+  {
+    key: 'insurance',
+    label: 'Insurance',
+    useWhen: 'Repos handling claims processing, risk modeling, underwriting workflows, or policy management systems.',
+    adoption: 'Recommended when claims accuracy, risk model integrity, and underwriting workflow safety are core concerns.',
+    recommendedModules: ['Claims processing guide', 'Risk modeling review', 'Underwriting safety checks'],
+    benchmarkFocus: ['claims processing accuracy', 'risk model integrity', 'underwriting safety'],
+  },
+  {
+    key: 'energy',
+    label: 'Energy',
+    useWhen: 'Repos handling grid management, smart metering, renewable energy systems, or energy trading platforms.',
+    adoption: 'Recommended when grid reliability, metering accuracy, and energy system integration are central concerns.',
+    recommendedModules: ['Grid management guide', 'Smart metering review', 'Energy system checks'],
+    benchmarkFocus: ['grid reliability', 'metering accuracy', 'energy system integration'],
+  },
 ];
 
 const PLATFORM_DEFAULTS = {
@@ -560,6 +736,292 @@ function detectAdditionalDomainPacks(options) {
       'Embedded or device-integration signals detected.',
       hasDependency(depKeys, [/^mqtt$/i]) ? 'MQTT dependency detected.' : null,
       hasDependency(depKeys, [/^johnny-five$/i]) ? 'Johnny-Five dependency detected.' : null,
+    ]);
+  }
+
+  // Healthcare detection
+  if (
+    hasDependency(depKeys, [/^fhir/i, /^hl7/i, /^@medplum\//i, /^hapi-fhir/i]) ||
+    ctx.hasDir('hipaa') || ctx.hasDir('phi') || ctx.hasDir('medical') || ctx.hasDir('patients') ||
+    hasAnyFile(files, /(^|\/)(hipaa|fhir|hl7)/i)
+  ) {
+    addMatch('healthcare', [
+      'Healthcare or clinical data signals detected.',
+      hasDependency(depKeys, [/^fhir/i, /^hl7/i]) ? 'FHIR/HL7 dependency detected.' : null,
+      ctx.hasDir('patients') ? 'Patients directory detected.' : null,
+    ]);
+  }
+
+  // Fintech detection
+  if (
+    hasDependency(depKeys, [/^plaid$/i, /^@plaid\//i, /^dwolla$/i, /^alpaca/i, /^polygon\.io/i]) ||
+    ctx.hasDir('kyc') || ctx.hasDir('aml') || ctx.hasDir('transactions') ||
+    (pkg.keywords && pkg.keywords.some(k => ['fintech', 'pci-dss', 'kyc', 'aml'].includes(k)))
+  ) {
+    addMatch('fintech', [
+      'Fintech or financial compliance signals detected.',
+      hasDependency(depKeys, [/^plaid$/i, /^@plaid\//i]) ? 'Plaid dependency detected.' : null,
+      ctx.hasDir('transactions') ? 'Transactions directory detected.' : null,
+    ]);
+  }
+
+  // Gaming detection
+  if (
+    hasDependency(depKeys, [/^unity/i, /^godot/i, /^kaboom/i, /^excalibur/i, /^playcanvas/i, /^babylonjs/i, /^@babylonjs\//i]) ||
+    ctx.hasDir('sprites') || ctx.hasDir('assets/sprites') || ctx.hasDir('scenes') ||
+    hasAnyFile(files, /(^|\/)(game\.config|game\.json|\.gdproject|\.uproject)/i)
+  ) {
+    addMatch('gaming', [
+      'Game development signals detected.',
+      ctx.hasDir('sprites') ? 'Sprites directory detected.' : null,
+      ctx.hasDir('scenes') ? 'Scenes directory detected.' : null,
+    ]);
+  }
+
+  // IoT detection
+  if (
+    hasDependency(depKeys, [/^mqtt$/i, /^async-mqtt$/i, /^aws-iot-device-sdk/i, /^azure-iot/i, /^node-red/i]) ||
+    ctx.hasDir('sensors') || ctx.hasDir('devices') || ctx.hasDir('firmware') ||
+    hasAnyFile(files, /(^|\/)(mosquitto\.conf|iot|sensors)/i)
+  ) {
+    addMatch('iot', [
+      'IoT or sensor data signals detected.',
+      hasDependency(depKeys, [/^mqtt$/i, /^async-mqtt$/i]) ? 'MQTT dependency detected.' : null,
+      ctx.hasDir('sensors') ? 'Sensors directory detected.' : null,
+    ]);
+  }
+
+  // Streaming detection
+  if (
+    hasDependency(depKeys, [/^fluent-ffmpeg$/i, /^hls\.js$/i, /^dash\.js$/i, /^shaka-player$/i, /^video\.js$/i, /^mux/i, /^@mux\//i, /^cloudinary/i]) ||
+    ctx.hasDir('transcode') || ctx.hasDir('streams') ||
+    hasAnyFile(files, /(^|\/)(ffmpeg|transcode|hls|dash)/i)
+  ) {
+    addMatch('streaming', [
+      'Media streaming signals detected.',
+      hasDependency(depKeys, [/^fluent-ffmpeg$/i]) ? 'FFmpeg dependency detected.' : null,
+      hasDependency(depKeys, [/^hls\.js$/i, /^dash\.js$/i]) ? 'Adaptive bitrate streaming dependency detected.' : null,
+    ]);
+  }
+
+  // Robotics detection
+  if (
+    hasDependency(depKeys, [/^rosnodejs$/i, /^rclnodejs$/i, /^roslib$/i, /^ros2/i]) ||
+    ctx.hasDir('ros') || ctx.hasDir('catkin_ws') || ctx.hasDir('robot') ||
+    hasAnyFile(files, /(^|\/)(CMakeLists\.txt|package\.xml|\.launch)/i) && ctx.hasDir('src')
+  ) {
+    addMatch('robotics', [
+      'Robotics or ROS signals detected.',
+      hasDependency(depKeys, [/^rosnodejs$/i, /^rclnodejs$/i]) ? 'ROS dependency detected.' : null,
+      ctx.hasDir('catkin_ws') ? 'Catkin workspace detected.' : null,
+    ]);
+  }
+
+  // AR/VR detection
+  if (
+    hasDependency(depKeys, [/^aframe$/i, /^@react-three\/xr$/i, /^webxr/i, /^@babylonjs\/core$/i, /^ar\.js$/i, /^mind-ar/i, /^8thwall/i]) ||
+    ctx.hasDir('xr') || ctx.hasDir('vr') || ctx.hasDir('ar') ||
+    hasAnyFile(files, /(^|\/)(.xr|spatial|immersive)/i)
+  ) {
+    addMatch('ar-vr', [
+      'AR/VR or spatial computing signals detected.',
+      hasDependency(depKeys, [/^aframe$/i]) ? 'A-Frame dependency detected.' : null,
+      hasDependency(depKeys, [/^@react-three\/xr$/i]) ? 'React Three XR dependency detected.' : null,
+    ]);
+  }
+
+  // Climate Tech detection
+  if (
+    hasDependency(depKeys, [/^carbon/i, /^climatiq/i, /^patch-node$/i, /^@cloverly\//i]) ||
+    ctx.hasDir('emissions') || ctx.hasDir('carbon') || ctx.hasDir('esg') ||
+    (pkg.keywords && pkg.keywords.some(k => ['carbon', 'climate', 'esg', 'sustainability', 'emissions'].includes(k)))
+  ) {
+    addMatch('climate-tech', [
+      'Climate tech or sustainability signals detected.',
+      ctx.hasDir('emissions') ? 'Emissions directory detected.' : null,
+      ctx.hasDir('esg') ? 'ESG directory detected.' : null,
+    ]);
+  }
+
+  // GovTech detection
+  if (
+    hasDependency(depKeys, [/^pa11y$/i, /^axe-core$/i, /^@axe-core\//i, /^react-aria/i, /^@react-aria\//i]) ||
+    ctx.hasDir('audit-logs') || ctx.hasDir('accessibility') ||
+    (pkg.keywords && pkg.keywords.some(k => ['government', 'govtech', 'a11y', 'wcag', 'section508'].includes(k)))
+  ) {
+    addMatch('govtech', [
+      'Government technology or accessibility compliance signals detected.',
+      hasDependency(depKeys, [/^axe-core$/i, /^@axe-core\//i]) ? 'Axe accessibility dependency detected.' : null,
+      ctx.hasDir('audit-logs') ? 'Audit logs directory detected.' : null,
+    ]);
+  }
+
+  // EdTech detection
+  if (
+    hasDependency(depKeys, [/^scorm/i, /^xapi/i, /^lti/i, /^@canvas\//i]) ||
+    ctx.hasDir('courses') || ctx.hasDir('assessments') || ctx.hasDir('curriculum') || ctx.hasDir('lms') ||
+    (pkg.keywords && pkg.keywords.some(k => ['edtech', 'lms', 'elearning', 'assessment'].includes(k)))
+  ) {
+    addMatch('edtech', [
+      'EdTech or learning management signals detected.',
+      ctx.hasDir('courses') ? 'Courses directory detected.' : null,
+      ctx.hasDir('assessments') ? 'Assessments directory detected.' : null,
+    ]);
+  }
+
+  // MarTech detection
+  if (
+    hasDependency(depKeys, [/^@segment\//i, /^segment/i, /^mixpanel$/i, /^amplitude/i, /^optimizely/i, /^@optimizely\//i, /^launchdarkly/i, /^@launchdarkly\//i]) ||
+    ctx.hasDir('analytics') || ctx.hasDir('experiments') || ctx.hasDir('personalization') ||
+    hasAnyFile(files, /(^|\/)(segment|analytics|ab-test)/i)
+  ) {
+    addMatch('martech', [
+      'Marketing technology or analytics signals detected.',
+      hasDependency(depKeys, [/^@segment\//i, /^segment/i]) ? 'Segment dependency detected.' : null,
+      hasDependency(depKeys, [/^optimizely/i, /^@optimizely\//i]) ? 'Optimizely dependency detected.' : null,
+    ]);
+  }
+
+  // PropTech detection
+  if (
+    hasDependency(depKeys, [/^turf$/i, /^@turf\//i, /^mapbox/i, /^@mapbox\//i, /^leaflet$/i, /^openlayers/i]) ||
+    ctx.hasDir('properties') || ctx.hasDir('geospatial') || ctx.hasDir('buildings') ||
+    (pkg.keywords && pkg.keywords.some(k => ['proptech', 'real-estate', 'geospatial', 'property'].includes(k)))
+  ) {
+    addMatch('proptech', [
+      'Property technology or geospatial signals detected.',
+      hasDependency(depKeys, [/^@turf\//i, /^turf$/i]) ? 'Turf.js geospatial dependency detected.' : null,
+      hasDependency(depKeys, [/^mapbox/i, /^@mapbox\//i]) ? 'Mapbox dependency detected.' : null,
+    ]);
+  }
+
+  // LegalTech detection
+  if (
+    hasDependency(depKeys, [/^docusign/i, /^@docusign\//i, /^docassemble/i, /^clio/i]) ||
+    ctx.hasDir('contracts') || ctx.hasDir('legal') || ctx.hasDir('compliance') || ctx.hasDir('discovery') ||
+    (pkg.keywords && pkg.keywords.some(k => ['legaltech', 'legal', 'compliance', 'e-discovery', 'ediscovery'].includes(k)))
+  ) {
+    addMatch('legaltech', [
+      'Legal technology or compliance signals detected.',
+      hasDependency(depKeys, [/^docusign/i, /^@docusign\//i]) ? 'DocuSign dependency detected.' : null,
+      ctx.hasDir('contracts') ? 'Contracts directory detected.' : null,
+    ]);
+  }
+
+  // AgriTech detection
+  if (
+    hasDependency(depKeys, [/^agworld/i, /^farmos/i, /^cropsar/i]) ||
+    ctx.hasDir('crops') || ctx.hasDir('farm') || ctx.hasDir('agriculture') || ctx.hasDir('harvest') ||
+    (pkg.keywords && pkg.keywords.some(k => ['agritech', 'agriculture', 'farming', 'crop', 'precision-agriculture'].includes(k)))
+  ) {
+    addMatch('agritech', [
+      'Agricultural technology signals detected.',
+      ctx.hasDir('crops') ? 'Crops directory detected.' : null,
+      ctx.hasDir('farm') ? 'Farm directory detected.' : null,
+    ]);
+  }
+
+  // BioTech detection
+  if (
+    hasDependency(depKeys, [/^bionode/i, /^bioinformatics/i, /^@biom3\//i, /^openbabel/i]) ||
+    ctx.hasDir('bioinformatics') || ctx.hasDir('lab') || ctx.hasDir('sequences') || ctx.hasDir('genomics') ||
+    hasAnyFile(files, /(^|\/)(\.fasta|\.fastq|\.vcf|\.bam|\.sam)/i)
+  ) {
+    addMatch('biotech', [
+      'Biotech or bioinformatics signals detected.',
+      ctx.hasDir('genomics') ? 'Genomics directory detected.' : null,
+      hasAnyFile(files, /(\.fasta|\.fastq|\.vcf)/i) ? 'Bioinformatics data files detected.' : null,
+    ]);
+  }
+
+  // Cybersecurity detection
+  if (
+    hasDependency(depKeys, [/^snort/i, /^suricata/i, /^zeek/i, /^wazuh/i, /^elastic-siem/i, /^splunk/i, /^@elastic\/elasticsearch$/i]) ||
+    ctx.hasDir('threats') || ctx.hasDir('incidents') || ctx.hasDir('siem') || ctx.hasDir('detection-rules') ||
+    (pkg.keywords && pkg.keywords.some(k => ['cybersecurity', 'siem', 'threat-detection', 'incident-response'].includes(k)))
+  ) {
+    addMatch('cybersecurity', [
+      'Cybersecurity or threat detection signals detected.',
+      ctx.hasDir('detection-rules') ? 'Detection rules directory detected.' : null,
+      ctx.hasDir('incidents') ? 'Incidents directory detected.' : null,
+    ]);
+  }
+
+  // Logistics detection
+  if (
+    hasDependency(depKeys, [/^graphhopper/i, /^osrm/i, /^mapbox-directions/i, /^@googlemaps\//i]) ||
+    ctx.hasDir('routes') || ctx.hasDir('fleet') || ctx.hasDir('shipments') || ctx.hasDir('warehouse') ||
+    (pkg.keywords && pkg.keywords.some(k => ['logistics', 'fleet', 'routing', 'shipment', 'warehouse'].includes(k)))
+  ) {
+    addMatch('logistics', [
+      'Logistics or fleet management signals detected.',
+      ctx.hasDir('fleet') ? 'Fleet directory detected.' : null,
+      ctx.hasDir('shipments') ? 'Shipments directory detected.' : null,
+    ]);
+  }
+
+  // Media detection
+  if (
+    hasDependency(depKeys, [/^keystonejs/i, /^@keystonejs\//i, /^ghost/i, /^@tryghost\//i, /^wordpress/i, /^tinymce/i]) ||
+    ctx.hasDir('editorial') || ctx.hasDir('dam') || ctx.hasDir('assets/media') || ctx.hasDir('publications') ||
+    (pkg.keywords && pkg.keywords.some(k => ['media', 'publishing', 'editorial', 'digital-asset'].includes(k)))
+  ) {
+    addMatch('media', [
+      'Media or digital publishing signals detected.',
+      hasDependency(depKeys, [/^keystonejs/i, /^@keystonejs\//i]) ? 'KeystoneJS CMS detected.' : null,
+      ctx.hasDir('editorial') ? 'Editorial directory detected.' : null,
+    ]);
+  }
+
+  // Social detection
+  if (
+    hasDependency(depKeys, [/^stream-chat/i, /^@stream-io\//i, /^getstream/i, /^socket\.io$/i, /^perspective-api/i]) ||
+    ctx.hasDir('feed') || ctx.hasDir('moderation') || ctx.hasDir('messaging') || ctx.hasDir('social') ||
+    (pkg.keywords && pkg.keywords.some(k => ['social', 'feed', 'moderation', 'messaging', 'community'].includes(k)))
+  ) {
+    addMatch('social', [
+      'Social platform signals detected.',
+      ctx.hasDir('feed') ? 'Feed directory detected.' : null,
+      ctx.hasDir('moderation') ? 'Moderation directory detected.' : null,
+    ]);
+  }
+
+  // Travel detection
+  if (
+    hasDependency(depKeys, [/^amadeus/i, /^sabre/i, /^travelport/i, /^booking/i, /^skyscanner/i]) ||
+    ctx.hasDir('bookings') || ctx.hasDir('reservations') || ctx.hasDir('itineraries') || ctx.hasDir('pricing') ||
+    (pkg.keywords && pkg.keywords.some(k => ['travel', 'booking', 'gds', 'hospitality', 'reservation'].includes(k)))
+  ) {
+    addMatch('travel', [
+      'Travel or booking platform signals detected.',
+      hasDependency(depKeys, [/^amadeus/i]) ? 'Amadeus GDS dependency detected.' : null,
+      ctx.hasDir('bookings') ? 'Bookings directory detected.' : null,
+    ]);
+  }
+
+  // Insurance detection
+  if (
+    hasDependency(depKeys, [/^guidewire/i, /^duck-creek/i, /^actuarial/i, /^socotra/i]) ||
+    ctx.hasDir('claims') || ctx.hasDir('underwriting') || ctx.hasDir('policies') || ctx.hasDir('risk-models') ||
+    (pkg.keywords && pkg.keywords.some(k => ['insurance', 'insurtech', 'claims', 'underwriting', 'actuarial'].includes(k)))
+  ) {
+    addMatch('insurance', [
+      'Insurance or risk management signals detected.',
+      ctx.hasDir('claims') ? 'Claims directory detected.' : null,
+      ctx.hasDir('underwriting') ? 'Underwriting directory detected.' : null,
+    ]);
+  }
+
+  // Energy detection
+  if (
+    hasDependency(depKeys, [/^openadr/i, /^green-button/i, /^iec61850/i, /^modbus/i, /^opc-ua/i]) ||
+    ctx.hasDir('grid') || ctx.hasDir('metering') || ctx.hasDir('energy') || ctx.hasDir('renewables') ||
+    (pkg.keywords && pkg.keywords.some(k => ['energy', 'smart-grid', 'metering', 'renewable', 'utility'].includes(k)))
+  ) {
+    addMatch('energy', [
+      'Energy or grid management signals detected.',
+      ctx.hasDir('grid') ? 'Grid directory detected.' : null,
+      ctx.hasDir('metering') ? 'Metering directory detected.' : null,
     ]);
   }
 }
