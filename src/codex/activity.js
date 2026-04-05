@@ -5,7 +5,7 @@
  * Provides: history, compare, trend, watch, feedback, insights.
  *
  * Codex snapshots are stored alongside Claude snapshots in
- * .claude/claudex-setup/snapshots/ but filtered by platform='codex'.
+ * .nerviq/snapshots/ (legacy: .claude/claudex-setup/snapshots/) but filtered by platform='codex'.
  */
 
 const path = require('path');

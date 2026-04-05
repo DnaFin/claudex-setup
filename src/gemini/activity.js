@@ -5,7 +5,7 @@
  * Provides: history, compare, trend, feedback, insights.
  *
  * Gemini snapshots are stored alongside Claude snapshots in
- * .claude/claudex-setup/snapshots/ but filtered by platform='gemini'.
+ * .nerviq/snapshots/ (legacy: .claude/claudex-setup/snapshots/) but filtered by platform='gemini'.
  */
 
 const path = require('path');

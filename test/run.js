@@ -788,7 +788,9 @@ async function main() {
       writeJson(dir, 'package.json', { name: 'app' });
       const result = runCli(['--snapshot'], dir);
       assert.equal(result.status, 0, 'audit --snapshot should succeed');
-      const snapshotRoot = path.join(dir, '.claude', 'claudex-setup', 'snapshots');
+      const snapshotRootNew = path.join(dir, '.nerviq', 'snapshots');
+      const snapshotRootLegacy = path.join(dir, '.claude', 'claudex-setup', 'snapshots');
+      const snapshotRoot = fs.existsSync(snapshotRootNew) ? snapshotRootNew : snapshotRootLegacy;
       const files = fs.readdirSync(snapshotRoot).filter(file => file.endsWith('-audit.json'));
       assert.ok(files.length >= 1, 'audit snapshot file should be created');
       const envelope = JSON.parse(fs.readFileSync(path.join(snapshotRoot, files[0]), 'utf8'));
@@ -805,7 +807,9 @@ async function main() {
       writeJson(dir, 'package.json', { name: 'app' });
       const result = runCli(['benchmark', '--snapshot'], dir);
       assert.equal(result.status, 0, 'benchmark --snapshot should succeed');
-      const snapshotRoot = path.join(dir, '.claude', 'claudex-setup', 'snapshots');
+      const snapshotRootNew = path.join(dir, '.nerviq', 'snapshots');
+      const snapshotRootLegacy = path.join(dir, '.claude', 'claudex-setup', 'snapshots');
+      const snapshotRoot = fs.existsSync(snapshotRootNew) ? snapshotRootNew : snapshotRootLegacy;
       const files = fs.readdirSync(snapshotRoot).filter(file => file.endsWith('-benchmark.json'));
       assert.ok(files.length >= 1, 'benchmark snapshot file should be created');
       const envelope = JSON.parse(fs.readFileSync(path.join(snapshotRoot, files[0]), 'utf8'));
@@ -822,7 +826,9 @@ async function main() {
       const result = runCli(['plan', '--out', outFile], dir);
       assert.equal(result.status, 0, 'plan should succeed');
       assert.ok(fs.existsSync(outFile), 'Plan file should be created');
-      assert.ok(fs.existsSync(path.join(dir, '.claude', 'claudex-setup', 'activity')), 'Plan export should create an activity artifact');
+      const activityNew = path.join(dir, '.nerviq', 'activity');
+      const activityLegacy = path.join(dir, '.claude', 'claudex-setup', 'activity');
+      assert.ok(fs.existsSync(activityNew) || fs.existsSync(activityLegacy), 'Plan export should create an activity artifact');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
@@ -861,7 +867,9 @@ async function main() {
       const payload = JSON.parse(result.stdout);
       assert.ok(payload.artifact, 'feedback should return artifact metadata');
       assert.equal(payload.summary.totalEntries, 1, 'feedback summary should include the new outcome');
-      assert.ok(fs.existsSync(path.join(dir, '.claude', 'claudex-setup', 'outcomes', 'index.json')), 'feedback should create an outcomes index');
+      const outcomesNew = path.join(dir, '.nerviq', 'outcomes', 'index.json');
+      const outcomesLegacy = path.join(dir, '.claude', 'claudex-setup', 'outcomes', 'index.json');
+      assert.ok(fs.existsSync(outcomesNew) || fs.existsSync(outcomesLegacy), 'feedback should create an outcomes index');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
@@ -904,7 +912,9 @@ async function main() {
       const applyResult = runCli(['apply', '--plan', planFile, '--only', 'claude-md,hooks'], dir);
       assert.equal(applyResult.status, 0, 'apply should succeed with exported plan');
       assert.ok(fs.existsSync(path.join(dir, 'CLAUDE.md')), 'apply should create CLAUDE.md from plan file');
-      assert.ok(fs.existsSync(path.join(dir, '.claude', 'claudex-setup', 'rollbacks')), 'apply should create rollback artifacts');
+      const rollbackNew = path.join(dir, '.nerviq', 'rollbacks');
+      const rollbackLegacy = path.join(dir, '.claude', 'claudex-setup', 'rollbacks');
+      assert.ok(fs.existsSync(rollbackNew) || fs.existsSync(rollbackLegacy), 'apply should create rollback artifacts');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
