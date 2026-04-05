@@ -3,7 +3,6 @@ const os = require('os');
 const path = require('path');
 const { version } = require('../package.json');
 const {
-  resolveProjectStatePath,
   resolveProjectStateReadPath,
   ensureProjectStateDir,
 } = require('./state-paths');

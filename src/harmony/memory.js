@@ -11,7 +11,6 @@
 const fs = require('fs');
 const path = require('path');
 const {
-  resolveHarmonyStatePath,
   resolveHarmonyStateReadPath,
   ensureHarmonyStateDir,
 } = require('../state-paths');
