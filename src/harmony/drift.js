@@ -97,7 +97,7 @@ function detectMcpDrift(model) {
   const drifts = [];
   const allPlatforms = model.activePlatforms.map(p => p.platform);
   const mcpCapablePlatforms = allPlatforms.filter(p =>
-    p === 'claude' || p === 'gemini' || p === 'copilot' || p === 'cursor'
+    p === 'claude' || p === 'gemini' || p === 'copilot' || p === 'cursor' || p === 'windsurf' || p === 'opencode'
   );
 
   if (mcpCapablePlatforms.length < 2) return drifts;
@@ -150,7 +150,7 @@ function detectRuleDrift(model) {
 
   // Platforms that support rules: claude (.claude/rules), copilot (.github/instructions), cursor (.cursor/rules)
   const ruleCapable = allPlatforms.filter(p =>
-    p === 'claude' || p === 'copilot' || p === 'cursor'
+    p === 'claude' || p === 'copilot' || p === 'cursor' || p === 'windsurf'
   );
 
   if (ruleCapable.length < 2) return drifts;

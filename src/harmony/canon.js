@@ -3,7 +3,7 @@
  *
  * Reads ALL platform config files from a single project and builds a unified
  * understanding of instructions, MCP servers, trust posture, and governance
- * across Claude, Codex, Gemini, Copilot, and Cursor.
+ * across Claude, Codex, Gemini, Copilot, Cursor, Windsurf, Aider, and OpenCode.
  */
 
 const fs = require('fs');
@@ -13,10 +13,17 @@ const { CodexProjectContext } = require('../codex/context');
 const { GeminiProjectContext } = require('../gemini/context');
 const { CopilotProjectContext } = require('../copilot/context');
 const { CursorProjectContext } = require('../cursor/context');
+const { WindsurfProjectContext } = require('../windsurf/context');
+const { AiderProjectContext } = require('../aider/context');
+const { OpenCodeProjectContext } = require('../opencode/context');
 const { getCodexGovernanceSummary } = require('../codex/governance');
 const { getGeminiGovernanceSummary } = require('../gemini/governance');
 const { getCopilotGovernanceSummary } = require('../copilot/governance');
 const { getCursorGovernanceSummary } = require('../cursor/governance');
+const { getWindsurfGovernanceSummary } = require('../windsurf/governance');
+const { getAiderGovernanceSummary } = require('../aider/governance');
+const { getOpenCodeGovernanceSummary } = require('../opencode/governance');
+const { tryParseJsonc } = require('../opencode/config-parser');
 
 // ─── Platform detection signatures ──────────────────────────────────────────
 
@@ -96,6 +103,52 @@ const PLATFORM_SIGNATURES = {
     rulesDir: '.cursor/rules',
     hooksDir: null,
   },
+  windsurf: {
+    label: 'Windsurf',
+    detect: (dir) => {
+      try {
+        if (fs.existsSync(path.join(dir, '.windsurfrules'))) return true;
+        if (fs.existsSync(path.join(dir, '.windsurf'))) return true;
+        return false;
+      } catch { return false; }
+    },
+    instructionFiles: ['.windsurfrules'],
+    configFiles: ['.windsurfrules', '.windsurf/mcp.json', '.cascadeignore'],
+    mcpFiles: ['.windsurf/mcp.json'],
+    rulesDir: '.windsurf/rules',
+    hooksDir: '.windsurf/workflows',
+  },
+  aider: {
+    label: 'Aider',
+    detect: (dir) => {
+      try {
+        if (fs.existsSync(path.join(dir, '.aider.conf.yml'))) return true;
+        if (fs.existsSync(path.join(dir, '.aiderignore'))) return true;
+        return false;
+      } catch { return false; }
+    },
+    instructionFiles: ['CONVENTIONS.md', '.aider.conventions.md'],
+    configFiles: ['.aider.conf.yml', '.aider.model.settings.yml', '.aiderignore'],
+    mcpFiles: [],
+    rulesDir: null,
+    hooksDir: null,
+  },
+  opencode: {
+    label: 'OpenCode',
+    detect: (dir) => {
+      try {
+        if (fs.existsSync(path.join(dir, 'opencode.json'))) return true;
+        if (fs.existsSync(path.join(dir, 'opencode.jsonc'))) return true;
+        if (fs.existsSync(path.join(dir, '.opencode'))) return true;
+        return false;
+      } catch { return false; }
+    },
+    instructionFiles: ['AGENTS.md', 'CLAUDE.md'],
+    configFiles: ['opencode.json', 'opencode.jsonc'],
+    mcpFiles: ['opencode.json', 'opencode.jsonc'],
+    rulesDir: null,
+    hooksDir: null,
+  },
 };
 
 // ─── Context builders per platform ──────────────────────────────────────────
@@ -106,6 +159,9 @@ const CONTEXT_BUILDERS = {
   gemini: (dir) => new GeminiProjectContext(dir),
   copilot: (dir) => new CopilotProjectContext(dir),
   cursor: (dir) => new CursorProjectContext(dir),
+  windsurf: (dir) => new WindsurfProjectContext(dir),
+  aider: (dir) => new AiderProjectContext(dir),
+  opencode: (dir) => new OpenCodeProjectContext(dir),
 };
 
 const GOVERNANCE_GETTERS = {
@@ -113,6 +169,9 @@ const GOVERNANCE_GETTERS = {
   gemini: getGeminiGovernanceSummary,
   copilot: getCopilotGovernanceSummary,
   cursor: getCursorGovernanceSummary,
+  windsurf: getWindsurfGovernanceSummary,
+  aider: getAiderGovernanceSummary,
+  opencode: getOpenCodeGovernanceSummary,
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -131,6 +190,11 @@ function safeParseJson(content) {
   } catch {
     return null;
   }
+}
+
+function safeParseJsonc(content) {
+  const parsed = tryParseJsonc(content);
+  return parsed.ok ? parsed.data : null;
 }
 
 /**
@@ -177,6 +241,17 @@ function extractMcpFromMcpJson(content) {
   }));
 }
 
+function extractMcpFromOpenCodeConfig(content) {
+  const json = safeParseJsonc(content);
+  if (!json) return [];
+  const servers = json.mcpServers || json.servers || {};
+  return Object.keys(servers).map(name => ({
+    name,
+    command: servers[name].command || null,
+    args: servers[name].args || [],
+  }));
+}
+
 /**
  * Extract MCP server names from Gemini settings.json.
  */
@@ -205,6 +280,8 @@ function readMcpServers(dir, platform, mcpFiles) {
       extracted = extractMcpFromClaudeSettings(content);
     } else if (platform === 'gemini') {
       extracted = extractMcpFromGeminiSettings(content);
+    } else if (platform === 'opencode') {
+      extracted = extractMcpFromOpenCodeConfig(content);
     } else {
       extracted = extractMcpFromMcpJson(content);
     }
@@ -266,6 +343,27 @@ function detectTrustPosture(platform, ctx) {
   if (platform === 'cursor') {
     // Cursor has no sandbox equivalent
     return 'no-sandbox';
+  }
+
+  if (platform === 'windsurf') {
+    if (ctx.fileContent('.cascadeignore')) return 'guarded';
+    if (ctx.fileContent('.windsurf/mcp.json')) return 'team-managed';
+    return 'foreground';
+  }
+
+  if (platform === 'aider') {
+    const config = ctx.configContent ? (ctx.configContent() || '') : '';
+    if (/^\s*(yes|yes-always)\s*:\s*true\b/m.test(config)) return 'full-auto';
+    if (/^\s*auto-commits\s*:\s*true\b/m.test(config)) return 'git-guarded';
+    return 'manual-review';
+  }
+
+  if (platform === 'opencode') {
+    const config = ctx.configContent ? (ctx.configContent() || '') : '';
+    if (/"\*"\s*:\s*"allow"/.test(config)) return 'unrestricted';
+    if (/"(?:bash|edit|task|external_directory)"\s*:\s*"deny"/.test(config)) return 'locked-down';
+    if (/"(?:bash|edit|task|external_directory)"\s*:\s*"ask"/.test(config)) return 'prompted';
+    return 'standard';
   }
 
   return 'unknown';

@@ -90,6 +90,33 @@ describe('Harmony Canon', () => {
     } finally { cleanFixture(dir); }
   });
 
+  test('detectActivePlatforms detects windsurf from .windsurfrules', () => {
+    const dir = mkFixture('windsurf');
+    try {
+      writeFile(dir, '.windsurfrules', '# Windsurf\nRules');
+      const platforms = detectActivePlatforms(dir);
+      expect(platforms.map(p => p.platform)).toContain('windsurf');
+    } finally { cleanFixture(dir); }
+  });
+
+  test('detectActivePlatforms detects aider from .aider.conf.yml', () => {
+    const dir = mkFixture('aider');
+    try {
+      writeFile(dir, '.aider.conf.yml', 'auto-commits: true\n');
+      const platforms = detectActivePlatforms(dir);
+      expect(platforms.map(p => p.platform)).toContain('aider');
+    } finally { cleanFixture(dir); }
+  });
+
+  test('detectActivePlatforms detects opencode from opencode.json', () => {
+    const dir = mkFixture('opencode');
+    try {
+      writeJson(dir, 'opencode.json', { permissions: { bash: 'ask' } });
+      const platforms = detectActivePlatforms(dir);
+      expect(platforms.map(p => p.platform)).toContain('opencode');
+    } finally { cleanFixture(dir); }
+  });
+
   test('buildCanonicalModel returns valid structure with activePlatforms array', () => {
     const dir = mkFixture('canon-model');
     try {
@@ -105,9 +132,9 @@ describe('Harmony Canon', () => {
     } finally { cleanFixture(dir); }
   });
 
-  test('PLATFORM_SIGNATURES has all 5 platforms', () => {
+  test('PLATFORM_SIGNATURES has all 8 platforms', () => {
     expect(Object.keys(PLATFORM_SIGNATURES)).toEqual(
-      expect.arrayContaining(['claude', 'codex', 'gemini', 'copilot', 'cursor'])
+      expect.arrayContaining(['claude', 'codex', 'gemini', 'copilot', 'cursor', 'windsurf', 'aider', 'opencode'])
     );
   });
 });
@@ -301,18 +328,18 @@ describe('Harmony Advisor', () => {
     expect(ciReview.recommendedPlatform).toBe('codex');
   });
 
-  test('PLATFORM_STRENGTHS has all 5 platforms', () => {
+  test('PLATFORM_STRENGTHS has all 8 platforms', () => {
     const keys = Object.keys(PLATFORM_STRENGTHS);
     expect(keys).toEqual(
-      expect.arrayContaining(['claude', 'codex', 'gemini', 'copilot', 'cursor'])
+      expect.arrayContaining(['claude', 'codex', 'gemini', 'copilot', 'cursor', 'windsurf', 'aider', 'opencode'])
     );
-    expect(keys.length).toBe(5);
+    expect(keys.length).toBe(8);
   });
 
   test('rankPlatformsForTask returns sorted array', () => {
     const rankings = rankPlatformsForTask('bug-fix');
     expect(Array.isArray(rankings)).toBe(true);
-    expect(rankings.length).toBe(5);
+    expect(rankings.length).toBe(8);
     // Sorted descending by score
     for (let i = 1; i < rankings.length; i++) {
       expect(rankings[i - 1].score).toBeGreaterThanOrEqual(rankings[i].score);

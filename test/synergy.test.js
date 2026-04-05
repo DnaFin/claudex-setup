@@ -63,12 +63,12 @@ describe('Synergy Routing', () => {
     expect(taskType).toBe('refactor');
   });
 
-  test('PLATFORM_CAPABILITIES has claude, codex, gemini, copilot, cursor', () => {
+  test('PLATFORM_CAPABILITIES has all 8 supported platforms', () => {
     const keys = Object.keys(PLATFORM_CAPABILITIES);
     expect(keys).toEqual(
-      expect.arrayContaining(['claude', 'codex', 'gemini', 'copilot', 'cursor'])
+      expect.arrayContaining(['claude', 'codex', 'gemini', 'copilot', 'cursor', 'windsurf', 'aider', 'opencode'])
     );
-    expect(keys.length).toBe(5);
+    expect(keys.length).toBe(8);
   });
 
   test('routeTask with history boosts platform with good track record', () => {
@@ -161,7 +161,7 @@ describe('Synergy Compensation', () => {
     expect(result).toHaveProperty('recommendedAdditions');
     // Claude is weak at CI (2), codex is strong at CI (5) — should compensate
     const ciComp = result.compensations.find(
-      c => c.weakness.platform === 'claude' && c.weakness.area === 'CI'
+      c => c.weakness.platform === 'claude' && c.weakness.area === 'ci'
     );
     expect(ciComp).toBeDefined();
     expect(ciComp.compensatedBy.platform).toBe('codex');
@@ -241,6 +241,22 @@ describe('Synergy Learning', () => {
     const propagations = propagateInsight(insight, 'claude', ['claude', 'codex']);
     expect(propagations.length).toBe(1);
     expect(propagations[0].platform).toBe('codex');
+  });
+
+  test('propagateInsight adapts recommendations for windsurf, aider, and opencode', () => {
+    const insight = {
+      type: 'verification-command',
+      recommendation: 'Run npm test',
+      command: 'npm test',
+      outcome: 'helpful',
+      score_delta: 8,
+    };
+    const propagations = propagateInsight(insight, 'codex', ['windsurf', 'aider', 'opencode']);
+    expect(propagations.map(p => p.platform)).toEqual(['windsurf', 'aider', 'opencode']);
+    for (const propagation of propagations) {
+      expect(typeof propagation.adaptedRecommendation).toBe('string');
+      expect(propagation.adaptedRecommendation.length).toBeGreaterThan(0);
+    }
   });
 
   test('getCrossLearnings returns array for empty dir', () => {

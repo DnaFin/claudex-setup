@@ -42,6 +42,9 @@ const PLATFORM_AUDIT_MAP = {
   gemini: 'gemini',
   copilot: 'copilot',
   cursor: 'cursor',
+  windsurf: 'windsurf',
+  aider: 'aider',
+  opencode: 'opencode',
 };
 
 // ─── Cross-platform recommendations ────────────────────────────────────────

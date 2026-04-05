@@ -68,6 +68,27 @@ function collectPlatformAudits(dir) {
     if (result) results.push({ platform: 'cursor', ...result });
   } catch (_e) { /* platform not available */ }
 
+  // Try Windsurf audit
+  try {
+    const { audit } = require('../audit');
+    const result = audit({ dir, silent: true, platform: 'windsurf' });
+    if (result) results.push({ platform: 'windsurf', ...result });
+  } catch (_e) { /* platform not available */ }
+
+  // Try Aider audit
+  try {
+    const { audit } = require('../audit');
+    const result = audit({ dir, silent: true, platform: 'aider' });
+    if (result) results.push({ platform: 'aider', ...result });
+  } catch (_e) { /* platform not available */ }
+
+  // Try OpenCode audit
+  try {
+    const { audit } = require('../audit');
+    const result = audit({ dir, silent: true, platform: 'opencode' });
+    if (result) results.push({ platform: 'opencode', ...result });
+  } catch (_e) { /* platform not available */ }
+
   return results;
 }
 
