@@ -1,40 +1,50 @@
-# Test infrastructure
+# ─── Test infrastructure ────────────────────────────────────────────────────
 test/
 coverage/
+*.test.js
 
-# Development tools
+# ─── Experiments and research ───────────────────────────────────────────────
+experiments/
+research/
+
+# ─── Development tooling ────────────────────────────────────────────────────
 tools/
 apf/
+sdk/
 
-# Documentation (keep README.md via package.json "files")
+# ─── Documentation (README.md kept via package.json files field) ─────────────
 docs/
 CONTRIBUTING.md
 PERFORMANCE.md
+CHANGELOG.md
 AGENTS.md
 CLAUDE.md
 APF.md
 
-# CI / GitHub
+# ─── Content directory (marketing / blog / templates — not used at runtime) ─
+content/
+
+# ─── CI / GitHub ─────────────────────────────────────────────────────────────
 .github/
 
-# Editor / AI config (not needed at runtime)
+# ─── Editor and AI agent configs ─────────────────────────────────────────────
 .claude/
 .codex/
 .agents/
 vscode-extension/
 
-# Build / infra
+# ─── Build / infra ────────────────────────────────────────────────────────────
 .wrangler/
 wrangler.toml
 action/
 action.yml
-sdk/
 
-# Dev config files
+# ─── Dev config files ─────────────────────────────────────────────────────────
 jest.config.js
 .editorconfig
 .env
+.env*
 
-# Logs and lock files
+# ─── Logs and generated files ─────────────────────────────────────────────────
 *.log
 package-lock.json

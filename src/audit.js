@@ -25,6 +25,7 @@ const { OpenCodeProjectContext } = require('./opencode/context');
 const { getBadgeMarkdown } = require('./badge');
 const { sendInsights, getLocalInsights } = require('./insights');
 const { getRecommendationOutcomeSummary, getRecommendationAdjustment } = require('./activity');
+const { getFeedbackSummary } = require('./feedback');
 const { formatSarif } = require('./formatters/sarif');
 const { loadPlugins, mergePluginChecks } = require('./plugins');
 
@@ -441,24 +442,48 @@ function getQuickWins(failed, options = {}) {
     .slice(0, 3);
 }
 
-function getRecommendationPriorityScore(item, outcomeSummaryByKey = {}) {
+/**
+ * Compute a multiplier based on FP (helpful/not-helpful) feedback for a check key.
+ * - >50% "not helpful" feedback: lower priority by 30% (multiplier 0.7)
+ * - >80% "helpful" feedback: boost priority by 20% (multiplier 1.2)
+ * - Otherwise: no change (multiplier 1.0)
+ * @param {Object} fpFeedbackByKey - Keyed feedback summary from getFeedbackSummary().byKey
+ * @param {string} key - The check key to look up
+ * @returns {number} Multiplier to apply to priority score
+ */
+function getFpFeedbackMultiplier(fpFeedbackByKey, key) {
+  if (!fpFeedbackByKey) return 1.0;
+  const bucket = fpFeedbackByKey[key];
+  if (!bucket || bucket.total === 0) return 1.0;
+
+  const unhelpfulRate = bucket.unhelpful / bucket.total;
+  const helpfulRate = bucket.helpful / bucket.total;
+
+  if (unhelpfulRate > 0.5) return 0.7;
+  if (helpfulRate > 0.8) return 1.2;
+  return 1.0;
+}
+
+function getRecommendationPriorityScore(item, outcomeSummaryByKey = {}, fpFeedbackByKey = null) {
   const impactScore = (IMPACT_ORDER[item.impact] ?? 0) * 100;
   const feedbackAdjustment = getRecommendationAdjustment(outcomeSummaryByKey, item.key);
   const brevityPenalty = Math.min((item.fix || '').length, 240) / 20;
-  return impactScore + (feedbackAdjustment * 10) - brevityPenalty;
+  const raw = impactScore + (feedbackAdjustment * 10) - brevityPenalty;
+  return raw * getFpFeedbackMultiplier(fpFeedbackByKey, item.key);
 }
 
 function buildTopNextActions(failed, limit = 5, outcomeSummaryByKey = {}, options = {}) {
   const pool = getPrioritizedFailed(failed);
+  const fpByKey = options.fpFeedbackByKey || null;
 
   return [...pool]
     .sort((a, b) => {
       const scoreB = options.platform === 'codex'
         ? codexPriorityScore(b, outcomeSummaryByKey)
-        : getRecommendationPriorityScore(b, outcomeSummaryByKey);
+        : getRecommendationPriorityScore(b, outcomeSummaryByKey, fpByKey);
       const scoreA = options.platform === 'codex'
         ? codexPriorityScore(a, outcomeSummaryByKey)
-        : getRecommendationPriorityScore(a, outcomeSummaryByKey);
+        : getRecommendationPriorityScore(a, outcomeSummaryByKey, fpByKey);
       return scoreB - scoreA;
     })
     .slice(0, limit)
@@ -479,7 +504,7 @@ function buildTopNextActions(failed, limit = 5, outcomeSummaryByKey = {}, option
       const evidenceClass = options.platform === 'codex' ? codexEvidenceClass(fullItem) : (feedback ? 'measured' : 'estimated');
       const priorityScore = options.platform === 'codex'
         ? codexPriorityScore(fullItem, outcomeSummaryByKey)
-        : Math.max(0, Math.min(100, Math.round(getRecommendationPriorityScore(fullItem, outcomeSummaryByKey) / 3)));
+        : Math.max(0, Math.min(100, Math.round(getRecommendationPriorityScore(fullItem, outcomeSummaryByKey, fpByKey) / 3)));
 
       signals.push(`evidence:${evidenceClass}`);
       if (options.platform === 'codex' && CODEX_HARD_FAIL_KEYS.has(key)) {
@@ -728,6 +753,7 @@ async function audit(options) {
   const stacks = ctx.detectStacks(STACKS);
   const results = [];
   const outcomeSummary = getRecommendationOutcomeSummary(options.dir);
+  const fpFeedback = getFeedbackSummary(options.dir);
 
   // Load and merge plugin checks
   const plugins = loadPlugins(options.dir);
@@ -795,7 +821,7 @@ async function audit(options) {
   const organicEarned = organicPassed.reduce((sum, r) => sum + (WEIGHTS[r.impact] || 5), 0);
   const organicScore = maxScore > 0 ? Math.round((organicEarned / maxScore) * 100) : 0;
   const quickWins = getQuickWins(failed, { platform: spec.platform });
-  const topNextActions = buildTopNextActions(failed, 5, outcomeSummary.byKey, { platform: spec.platform });
+  const topNextActions = buildTopNextActions(failed, 5, outcomeSummary.byKey, { platform: spec.platform, fpFeedbackByKey: fpFeedback.byKey });
   const categoryScores = computeCategoryScores(applicable, passed);
   const platformScopeNote = getPlatformScopeNote(spec, ctx);
   const platformCaveats = getPlatformCaveats(spec, ctx);
@@ -1008,4 +1034,4 @@ async function audit(options) {
   return result;
 }
 
-module.exports = { audit, buildTopNextActions };
+module.exports = { audit, buildTopNextActions, getFpFeedbackMultiplier, getRecommendationPriorityScore };

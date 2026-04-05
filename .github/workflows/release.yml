@@ -30,7 +30,17 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Generate SBOM
+        run: node tools/generate-sbom.js
+
       - name: Publish with provenance
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Upload SBOM as release artifact
+        uses: softprops/action-gh-release@v2
+        with:
+          files: sbom.cdx.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
