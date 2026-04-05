@@ -1279,7 +1279,25 @@ async function audit(options) {
     console.log('');
   }
 
-  console.log(colorize(`  Backed by CLAUDEX research and evidence for ${spec.platformLabel}`, 'dim'));
+  // Cross-platform synergy hint
+  try {
+    const { detectActivePlatforms } = require('./harmony/canon');
+    const { analyzeCompensation } = require('./synergy/compensation');
+    const { calculateSynergyScore } = require('./synergy/ranking');
+    const detected = detectActivePlatforms(options.dir);
+    const activePlatforms = (detected || []).filter(p => p.detected).map(p => p.platform);
+    if (activePlatforms.length >= 2) {
+      const comp = analyzeCompensation(activePlatforms);
+      const synergyScore = calculateSynergyScore(activePlatforms);
+      console.log(colorize(`  Cross-platform synergy: ${activePlatforms.length} platforms detected`, 'blue'));
+      console.log(colorize(`     Platforms: ${activePlatforms.join(', ')}`, 'dim'));
+      console.log(colorize(`     Compensations: ${comp.compensations.length} | Gaps: ${comp.uncoveredGaps.length}`, 'dim'));
+      console.log(colorize(`     Run: npx nerviq harmony-audit for full cross-platform analysis`, 'dim'));
+      console.log('');
+    }
+  } catch { /* synergy display is optional */ }
+
+  console.log(colorize(`  Backed by NERVIQ research and evidence for ${spec.platformLabel}`, 'dim'));
   console.log(colorize('  https://github.com/nerviq/nerviq', 'dim'));
   console.log('');
 
