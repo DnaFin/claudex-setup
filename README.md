@@ -4,7 +4,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@nerviq/cli)](https://www.npmjs.com/package/@nerviq/cli)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
-[![Checks: 1955](https://img.shields.io/badge/checks-1955-brightgreen)](https://github.com/nerviq/nerviq)
+[![Checks: 2039](https://img.shields.io/badge/checks-2039-brightgreen)](https://github.com/nerviq/nerviq)
 [![Nerviq Certified Gold](https://img.shields.io/badge/Nerviq-Nerviq%20Certified%20Gold-gold)](https://nerviq.net)
 
 ---
@@ -78,7 +78,7 @@ npx @nerviq/cli benchmark          # Before/after in isolated copy
 
 No install required. Zero dependencies.
 
-## 1,955 Checks Across 83 Categories
+## 2,039 Checks Across 96 Categories
 
 | Category Group | Checks | Examples |
 |----------------|--------|---------|
@@ -217,7 +217,7 @@ Levels:
 
 | Command | What it does |
 |---------|-------------|
-| `nerviq audit` | Score 0-100 against 1,955 checks |
+| `nerviq audit` | Score 0-100 against 2,039 checks |
 | `nerviq audit --lite` | Quick top-3 scan |
 | `nerviq setup` | Generate starter-safe CLAUDE.md + hooks + commands |
 | `nerviq augment` | Repo-aware improvement plan (no writes) |
@@ -270,7 +270,7 @@ Nerviq is built on the CLAUDEX knowledge engine — the largest verified catalog
 
 - **448+ research documents** covering all 8 platforms
 - **332+ experiments** with tested, rated results
-- **1,955 checks** across 8 platforms and 10 languages, each with `sourceUrl` and `confidence` level (0.0-1.0)
+- **2,039 checks** across 8 platforms and 10 languages, each with `sourceUrl` and `confidence` level (0.0-1.0)
 - Every check is traceable to primary documentation or verified experiment
 - 90-day freshness cycle: stale findings are re-verified or pruned
 
