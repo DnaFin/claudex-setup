@@ -55,6 +55,16 @@ const TASK_TYPE_PROFILES = {
     requiredStrengths: { reasoning: 0.3, automation: 0.3, ide: 0.2, refactoring: 0.2 },
     description: 'Starting new projects or major new features from scratch.',
   },
+  'harness-optimization': {
+    label: 'Config Optimization',
+    requiredStrengths: { governance: 0.4, automation: 0.3, reasoning: 0.3 },
+    description: 'Optimizing AI coding agent configuration and harness settings.',
+  },
+  'phased-migration': {
+    label: 'Phased Migration',
+    requiredStrengths: { reasoning: 0.4, refactoring: 0.3, architecture: 0.3 },
+    description: 'Multi-phase migrations requiring sequential execution with validation gates.',
+  },
 };
 
 // ─── Scoring ──────────────────────────────────────────────────────────────────

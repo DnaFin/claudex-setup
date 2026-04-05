@@ -328,6 +328,28 @@ describe('Harmony Advisor', () => {
     expect(ciReview.recommendedPlatform).toBe('codex');
   });
 
+  test('generateStrategicAdvice routes harness optimization to claude', () => {
+    const audits = [
+      { platform: 'claude', score: 80 },
+      { platform: 'codex', score: 70 },
+    ];
+    const advice = generateStrategicAdvice(null, audits);
+    const harnessOptimization = advice.taskRouting.find(r => r.taskType === 'harness-optimization');
+    expect(harnessOptimization).toBeDefined();
+    expect(harnessOptimization.recommendedPlatform).toBe('claude');
+  });
+
+  test('generateStrategicAdvice routes phased migration to claude', () => {
+    const audits = [
+      { platform: 'claude', score: 80 },
+      { platform: 'codex', score: 70 },
+    ];
+    const advice = generateStrategicAdvice(null, audits);
+    const phasedMigration = advice.taskRouting.find(r => r.taskType === 'phased-migration');
+    expect(phasedMigration).toBeDefined();
+    expect(phasedMigration.recommendedPlatform).toBe('claude');
+  });
+
   test('PLATFORM_STRENGTHS has all 8 platforms', () => {
     const keys = Object.keys(PLATFORM_STRENGTHS);
     expect(keys).toEqual(

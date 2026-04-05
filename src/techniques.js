@@ -10,6 +10,11 @@ function hasFrontendSignals(ctx) {
     ctx.files.some(f => /tailwind\.config|vite\.config|next\.config|svelte\.config|nuxt\.config|pages\/|components\/|app\//i.test(f));
 }
 
+function getClaudeHookContents(ctx) {
+  const hookFiles = ctx.dirFiles('.claude/hooks').filter(f => /\.(js|cjs|mjs|ts|sh|py)$/.test(f));
+  return hookFiles.map(f => ctx.fileContent(`.claude/hooks/${f}`) || '');
+}
+
 const { containsEmbeddedSecret } = require('./secret-patterns');
 const { attachSourceUrls } = require('./source-urls');
 const { buildSupplementalChecks } = require('./supplemental-checks');
@@ -2914,18 +2919,77 @@ const TECHNIQUES = {
     id: 110003,
     name: 'Hook scripts handle exit codes correctly',
     check: (ctx) => {
-      const hooksDir = ctx.dirFiles('.claude/hooks');
-      if (!hooksDir || hooksDir.length === 0) return null;
-      const hookFiles = hooksDir.filter(f => /\.(js|sh|py)$/.test(f));
-      if (hookFiles.length === 0) return null;
-      const hasExitHandling = hookFiles.some(f => {
-        const content = ctx.fileContent('.claude/hooks/' + f) || '';
-        return /process\.exit|exit\s+[012]|sys\.exit|return\s+[012]/i.test(content);
-      });
-      return hasExitHandling;
+      const hookContents = getClaudeHookContents(ctx);
+      if (hookContents.length === 0) return null;
+      return hookContents.some(content => /process\.exit|exit\s+[012]|sys\.exit|return\s+[012]/i.test(content));
     },
     impact: 'low', rating: 3, category: 'governance',
     fix: 'Hooks should use explicit exit codes: 0=success, 1=warning, 2=block. See Claude Code docs.',
+    template: null,
+    confidence: 0.7,
+  },
+
+  loopSafetyBoundaries: {
+    id: 110004,
+    name: 'Loop safety boundaries configured',
+    check: (ctx) => {
+      const md = ctx.claudeMdContent() || '';
+      const settings = ctx.fileContent('.claude/settings.json') || '';
+      const hookContents = getClaudeHookContents(ctx).join('\n');
+      const loopSafetyConfig = [md, settings, hookContents].filter(Boolean).join('\n');
+
+      return /max[-_ ]?turns|maxTurns|max[-_ ]?tokens|maxTokens|loop(?:[-_ ]?(?:limit|limits|safety|guard|budget|boundary|boundaries))|iteration(?:[-_ ]?(?:limit|limits|guard|budget|cap|caps|count|max(?:imum)?))/i.test(loopSafetyConfig);
+    },
+    impact: 'medium', rating: 4, category: 'governance',
+    fix: 'Document loop safety limits such as maxTurns, maxTokens, or iteration caps in CLAUDE.md, settings, or hook guards.',
+    template: null,
+    confidence: 0.8,
+  },
+
+  consistencyPassAtK: {
+    id: 110005,
+    name: 'Consistency/pass@k evaluation mentioned',
+    check: (ctx) => {
+      const md = ctx.claudeMdContent() || '';
+      const configPaths = [
+        'package.json',
+        'jest.config.js',
+        'jest.config.cjs',
+        'jest.config.mjs',
+        'vitest.config.js',
+        'vitest.config.ts',
+        'playwright.config.js',
+        'playwright.config.ts',
+        'pytest.ini',
+        'pyproject.toml',
+        'tox.ini',
+        '.github/workflows/ci.yml',
+        '.github/workflows/ci.yaml',
+        '.github/workflows/test.yml',
+        '.github/workflows/test.yaml',
+      ];
+      const configContent = configPaths
+        .map(file => ctx.fileContent(file) || '')
+        .filter(Boolean)
+        .join('\n');
+
+      return /pass@k|consistency|multiple runs?|reproducib/i.test(`${md}\n${configContent}`);
+    },
+    impact: 'low', rating: 3, category: 'quality',
+    fix: 'Mention pass@k or consistency testing in CLAUDE.md or test configuration so repeated-run quality evaluation is explicit.',
+    template: null,
+    confidence: 0.7,
+  },
+
+  instinctToSkillProgression: {
+    id: 110006,
+    name: 'Instinct-to-skill progression documented',
+    check: (ctx) => {
+      const md = ctx.claudeMdContent() || '';
+      return /progressive learning|instinct[- ]to[- ]skill|instinct.{0,40}skill|skill.{0,40}instinct|graduated|phased approach/i.test(md);
+    },
+    impact: 'low', rating: 3, category: 'features',
+    fix: 'Document a progressive learning path that turns repeated instincts into reusable skills or phased practices.',
     template: null,
     confidence: 0.7,
   },

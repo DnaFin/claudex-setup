@@ -1,4 +1,23 @@
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
 const { TECHNIQUES, STACKS, containsEmbeddedSecret } = require('../src/techniques');
+const { ProjectContext } = require('../src/context');
+
+function mkFixture(name) {
+  return fs.mkdtempSync(path.join(os.tmpdir(), `techniques-jest-${name}-`));
+}
+
+function cleanFixture(dir) {
+  fs.rmSync(dir, { recursive: true, force: true });
+}
+
+function writeFile(dir, relPath, content) {
+  const full = path.join(dir, relPath);
+  fs.mkdirSync(path.dirname(full), { recursive: true });
+  fs.writeFileSync(full, content, 'utf8');
+}
 
 describe('Techniques', () => {
   test('all techniques have required fields', () => {
@@ -23,8 +42,8 @@ describe('Techniques', () => {
     expect(names.length).toBe(unique.size);
   });
 
-  test('technique count is 268 after adding 48 supplemental + Python/Go/Rust/Java + Ruby/DotNet/PHP stack checks', () => {
-    expect(Object.keys(TECHNIQUES).length).toBe(268);
+  test('technique count is 274 after adding ECC-inspired checks', () => {
+    expect(Object.keys(TECHNIQUES).length).toBe(274);
   });
 
   test('embedded secret detector catches Anthropic-style keys with dashes', () => {
@@ -37,6 +56,39 @@ describe('Techniques', () => {
 
   test('embedded secret detector ignores placeholder guidance text', () => {
     expect(containsEmbeddedSecret('Set ANTHROPIC_API_KEY in your environment before running the review.')).toBe(false);
+  });
+
+  test('loop safety technique detects configured boundaries', () => {
+    const dir = mkFixture('loop-safety');
+    try {
+      writeFile(dir, 'CLAUDE.md', '# Project\nUse maxTurns: 50 and maxTokens: 20000 for bounded review loops.\n');
+      const ctx = new ProjectContext(dir);
+      expect(TECHNIQUES.loopSafetyBoundaries.check(ctx)).toBe(true);
+    } finally {
+      cleanFixture(dir);
+    }
+  });
+
+  test('consistency/pass@k technique detects repeated-run guidance', () => {
+    const dir = mkFixture('pass-at-k');
+    try {
+      writeFile(dir, 'CLAUDE.md', '# Evaluation\nRun pass@k consistency checks with multiple runs for reproducibility.\n');
+      const ctx = new ProjectContext(dir);
+      expect(TECHNIQUES.consistencyPassAtK.check(ctx)).toBe(true);
+    } finally {
+      cleanFixture(dir);
+    }
+  });
+
+  test('instinct-to-skill technique detects phased learning guidance', () => {
+    const dir = mkFixture('instinct-skill');
+    try {
+      writeFile(dir, 'CLAUDE.md', '# Learning\nUse a progressive learning path with an instinct-to-skill phased approach.\n');
+      const ctx = new ProjectContext(dir);
+      expect(TECHNIQUES.instinctToSkillProgression.check(ctx)).toBe(true);
+    } finally {
+      cleanFixture(dir);
+    }
   });
 });
 
