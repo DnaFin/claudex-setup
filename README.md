@@ -4,7 +4,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@nerviq/cli)](https://www.npmjs.com/package/@nerviq/cli)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
-[![Checks: 673](https://img.shields.io/badge/checks-673-brightgreen)](https://github.com/nerviq/nerviq)
+[![Checks: 1955](https://img.shields.io/badge/checks-1955-brightgreen)](https://github.com/nerviq/nerviq)
 [![Nerviq Certified Gold](https://img.shields.io/badge/Nerviq-Nerviq%20Certified%20Gold-gold)](https://nerviq.net)
 
 ---
@@ -15,14 +15,29 @@ Nerviq v1.0 ships with full audit, setup, governance, and benchmark support for 
 
 | Platform | Checks | Status |
 |----------|--------|--------|
-| Claude Code | 90 | Full |
-| Codex (OpenAI) | 83 | Full |
-| Gemini CLI (Google) | 83 | Full |
-| GitHub Copilot | 83 | Full |
-| Cursor | 83 | Full |
-| Windsurf | 83 | Full |
-| Aider | 85 | Full |
-| OpenCode | 83 | Full |
+| Claude Code | 309 | Full |
+| Codex (OpenAI) | 225 | Full |
+| Gemini CLI (Google) | 219 | Full |
+| GitHub Copilot | 218 | Full |
+| Cursor | 267 | Full |
+| Windsurf | 265 | Full |
+| Aider | 249 | Full |
+| OpenCode | 251 | Full |
+
+### 10 Stack-Specific Languages
+
+| Language | Checks | Key Areas |
+|----------|--------|-----------|
+| Python | 26 | pyproject, typing, pytest, linting, async, security |
+| Go | 21 | go.mod, vet, fmt, error wrapping, interfaces |
+| Rust | 21 | Cargo, clippy, unsafe docs, editions, cross-compile |
+| Java/Spring | 21 | Maven/Gradle, JUnit, Spring Boot, migrations |
+| Ruby | 16 | Gemfile, RSpec, Rubocop, Rails |
+| PHP | 16 | Composer, PHPUnit, Laravel, PSR |
+| .NET | 16 | csproj, NuGet, xUnit, EF Core |
+| Flutter | 15 | pubspec, analysis, state management, l10n |
+| Swift | 10 | SPM, SwiftLint, async/await, doc comments |
+| Kotlin | 10 | Gradle, ktlint, coroutines, Compose, KMP |
 
 ---
 
@@ -63,23 +78,24 @@ npx @nerviq/cli benchmark          # Before/after in isolated copy
 
 No install required. Zero dependencies.
 
-## 673 Checks Across 14 Categories
+## 1,955 Checks Across 83 Categories
 
-| Category | Checks | Examples |
-|----------|--------|---------|
-| Memory & Context | 9 | CLAUDE.md, architecture, @path imports, CLAUDE.local.md |
-| Quality | 8 | verification loops, test/lint/build commands |
-| Security | 7 | permissions, deny rules, secrets detection |
-| Automation | 8 | hooks (30+ event types), notification, subagent tracking |
-| Workflow | 9 | skills, subagents, rules, commands, snapshots |
-| Git & Hygiene | 14 | .gitignore, env protection, README, changelog |
-| Tools & MCP | 4 | .mcp.json, Context7, multi-server |
-| Prompting | 6 | XML tags, constraints, examples, role definition |
-| DevOps | 5 | Docker, CI, Terraform |
-| Design | 2 | frontend anti-slop, Tailwind |
-| Performance | 3 | compaction, context management, effort level |
-| Features | 2 | channels, worktrees |
-| Quality Deep | 9 | freshness, contradictions, deprecated patterns |
+| Category Group | Checks | Examples |
+|----------------|--------|---------|
+| Stack-Specific (10 languages) | 172 | Python, Go, Rust, Java, Ruby, PHP, .NET, Flutter, Swift, Kotlin |
+| Platform Config & Instructions | ~150 | CLAUDE.md, AGENTS.md, rules, managed blocks |
+| Security & Trust | ~80 | permissions, deny rules, secrets, trust posture |
+| Quality & Testing | ~70 | verification loops, lint/test/build, coverage |
+| Automation & Hooks | ~60 | PreToolUse, PostToolUse, notification hooks |
+| Workflow & Commands | ~50 | skills, commands, agents, snapshots |
+| Git & Hygiene | ~40 | .gitignore, env protection, changelog |
+| Tools & MCP | ~40 | .mcp.json, multi-server, Context7 |
+| Governance & Compliance | ~30 | permission profiles, audit trails |
+| DevOps & Infrastructure | ~30 | Docker, CI, Terraform, monitoring |
+| Cross-Platform Intelligence | ~25 | harmony, synergy, drift detection |
+| Enterprise & Freshness | ~20 | freshness tracking, deprecation, SBOM |
+| Memory & Context | ~15 | context management, compaction, @path |
+| Prompting & Design | ~10 | XML tags, constraints, frontend patterns |
 
 ## Harmony — Cross-Platform Alignment
 
@@ -92,6 +108,7 @@ npx @nerviq/cli harmony-drift      # Detect drift between platform configs
 npx @nerviq/cli harmony-advise     # Cross-platform improvement advice
 npx @nerviq/cli harmony-watch      # Live monitoring for config drift
 npx @nerviq/cli harmony-governance # Unified governance across platforms
+npx @nerviq/cli harmony-add <platform>  # Add a new platform to your project
 ```
 
 ## Synergy — Multi-Agent Amplification
@@ -200,7 +217,7 @@ Levels:
 
 | Command | What it does |
 |---------|-------------|
-| `nerviq audit` | Score 0-100 against 673 checks |
+| `nerviq audit` | Score 0-100 against 1,955 checks |
 | `nerviq audit --lite` | Quick top-3 scan |
 | `nerviq setup` | Generate starter-safe CLAUDE.md + hooks + commands |
 | `nerviq augment` | Repo-aware improvement plan (no writes) |
@@ -251,9 +268,9 @@ Levels:
 
 Nerviq is built on the CLAUDEX knowledge engine — the largest verified catalog of AI coding agent techniques:
 
-- **315 research documents** covering all 8 platforms
-- **100+ experiments** with tested, rated results
-- **673 checks** each with `sourceUrl` and `confidence` level (0.0-1.0)
+- **448+ research documents** covering all 8 platforms
+- **332+ experiments** with tested, rated results
+- **1,955 checks** across 8 platforms and 10 languages, each with `sourceUrl` and `confidence` level (0.0-1.0)
 - Every check is traceable to primary documentation or verified experiment
 - 90-day freshness cycle: stale findings are re-verified or pruned
 
