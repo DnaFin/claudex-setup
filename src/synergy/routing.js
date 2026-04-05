@@ -5,13 +5,7 @@
  * project history, and active platform availability.
  */
 
-const PLATFORM_CAPABILITIES = {
-  claude: { reasoning: 5, refactoring: 5, debugging: 5, CI: 2, IDE: 2, UI: 1, async: 3, review: 5, architecture: 5 },
-  codex: { reasoning: 4, CI: 5, cloudTasks: 5, IDE: 3, async: 5, UI: 2, refactoring: 4, debugging: 3, review: 4 },
-  gemini: { reasoning: 4, context: 5, sandbox: 5, CI: 3, IDE: 3, UI: 2, refactoring: 3, debugging: 3, async: 4 },
-  copilot: { inline: 5, cloudAgent: 4, IDE: 4, CI: 4, reasoning: 3, UI: 3, refactoring: 3, review: 3, debugging: 3 },
-  cursor: { IDE: 5, UI: 5, background: 4, automation: 4, reasoning: 3, refactoring: 4, inline: 4, debugging: 4 },
-};
+const { PLATFORM_CAPABILITIES } = require('../shared/capabilities');
 
 const TASK_TYPE_PATTERNS = [
   { type: 'bugfix', patterns: ['bug', 'fix', 'error', 'crash', 'broken', 'issue', 'regression', 'failing'] },
@@ -27,16 +21,16 @@ const TASK_TYPE_PATTERNS = [
 ];
 
 const TASK_CAPABILITY_MAP = {
-  bugfix: ['debugging', 'reasoning', 'IDE'],
-  refactor: ['refactoring', 'reasoning', 'IDE'],
+  bugfix: ['debugging', 'reasoning', 'ide'],
+  refactor: ['refactoring', 'reasoning', 'ide'],
   review: ['review', 'reasoning', 'context'],
-  UI: ['UI', 'IDE', 'inline'],
-  CI: ['CI', 'cloudTasks', 'async'],
-  infrastructure: ['CI', 'cloudTasks', 'sandbox'],
-  testing: ['debugging', 'CI', 'sandbox'],
+  UI: ['ui', 'ide', 'inline'],
+  CI: ['ci', 'cloudTasks', 'async'],
+  infrastructure: ['ci', 'cloudTasks', 'sandbox'],
+  testing: ['debugging', 'ci', 'sandbox'],
   architecture: ['architecture', 'reasoning', 'context'],
   documentation: ['reasoning', 'context', 'inline'],
-  feature: ['reasoning', 'IDE', 'refactoring'],
+  feature: ['reasoning', 'ide', 'refactoring'],
 };
 
 /**

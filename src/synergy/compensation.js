@@ -5,26 +5,7 @@
  * platform additions to fill coverage gaps.
  */
 
-const { PLATFORM_CAPABILITIES } = require('./routing');
-
-const AREA_LABELS = {
-  reasoning: 'Complex reasoning & analysis',
-  refactoring: 'Code refactoring',
-  debugging: 'Bug diagnosis & debugging',
-  CI: 'CI/CD pipeline integration',
-  IDE: 'IDE integration',
-  UI: 'UI/frontend work',
-  async: 'Async/background tasks',
-  review: 'Code review',
-  architecture: 'Architecture design',
-  inline: 'Inline code completion',
-  cloudTasks: 'Cloud-based tasks',
-  context: 'Large context handling',
-  sandbox: 'Sandboxed execution',
-  cloudAgent: 'Cloud agent mode',
-  background: 'Background processing',
-  automation: 'Workflow automation',
-};
+const { PLATFORM_CAPABILITIES, CAPABILITY_LABELS: AREA_LABELS } = require('../shared/capabilities');
 
 const WEAKNESS_THRESHOLD = 3;
 const STRENGTH_THRESHOLD = 4;

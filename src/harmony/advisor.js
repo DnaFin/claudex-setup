@@ -8,69 +8,9 @@
  * Zero external dependencies - imports only from sibling/parent modules.
  */
 
-// ─── Platform Strength Matrix (from CLAUDEX research) ─────────────────────────
+// ─── Platform Strength Matrix (canonical source: shared/capabilities.js) ─────
 
-const PLATFORM_STRENGTHS = {
-  claude: {
-    label: 'Claude Code',
-    reasoning: 5,
-    refactoring: 5,
-    ci: 2,
-    ide: 2,
-    sandbox: 3,
-    inline: 3,
-    context: 4,
-    automation: 4,
-  },
-  codex: {
-    label: 'Codex',
-    reasoning: 4,
-    ci: 5,
-    cloud: 5,
-    ide: 3,
-    sandbox: 4,
-    refactoring: 4,
-    inline: 2,
-    context: 3,
-    automation: 4,
-  },
-  gemini: {
-    label: 'Gemini CLI',
-    reasoning: 4,
-    context: 5,
-    sandbox: 5,
-    ci: 3,
-    ide: 3,
-    refactoring: 3,
-    inline: 2,
-    cloud: 4,
-    automation: 3,
-  },
-  copilot: {
-    label: 'GitHub Copilot',
-    inline: 5,
-    'cloud-agent': 4,
-    ide: 4,
-    ci: 4,
-    governance: 3,
-    reasoning: 3,
-    refactoring: 3,
-    context: 3,
-    automation: 3,
-  },
-  cursor: {
-    label: 'Cursor',
-    ide: 5,
-    ui: 5,
-    background: 4,
-    automation: 4,
-    reasoning: 3,
-    refactoring: 3,
-    inline: 4,
-    context: 3,
-    ci: 2,
-  },
-};
+const { PLATFORM_CAPABILITIES: PLATFORM_STRENGTHS } = require('../shared/capabilities');
 
 // ─── Task-type to platform-strength mapping ───────────────────────────────────
 
@@ -82,7 +22,7 @@ const TASK_TYPE_PROFILES = {
   },
   'ci-review': {
     label: 'CI / Async Review',
-    requiredStrengths: { ci: 0.5, cloud: 0.3, automation: 0.2 },
+    requiredStrengths: { ci: 0.4, cloudTasks: 0.3, async: 0.2, automation: 0.1 },
     description: 'Asynchronous code review and CI-integrated workflows.',
   },
   'ui-work': {
@@ -97,7 +37,7 @@ const TASK_TYPE_PROFILES = {
   },
   'infrastructure': {
     label: 'Infrastructure',
-    requiredStrengths: { sandbox: 0.4, cloud: 0.3, reasoning: 0.3 },
+    requiredStrengths: { sandbox: 0.4, cloudTasks: 0.3, reasoning: 0.3 },
     description: 'Infrastructure, DevOps, and sandbox-heavy workflows.',
   },
   'refactoring': {
