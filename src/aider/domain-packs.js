@@ -7,7 +7,9 @@
  * - Git is the only safety mechanism
  */
 
-const AIDER_DOMAIN_PACKS = [
+const { buildAdditionalDomainPacks, detectAdditionalDomainPacks } = require('../domain-pack-expansion');
+
+const BASE_AIDER_DOMAIN_PACKS = [
   {
     key: 'baseline-general',
     label: 'Baseline General',
@@ -170,6 +172,13 @@ const AIDER_DOMAIN_PACKS = [
   },
 ];
 
+const AIDER_DOMAIN_PACKS = [
+  ...BASE_AIDER_DOMAIN_PACKS,
+  ...buildAdditionalDomainPacks('aider', {
+    existingKeys: new Set(BASE_AIDER_DOMAIN_PACKS.map((pack) => pack.key)),
+  }),
+];
+
 function uniqueByKey(matches) {
   const seen = new Set();
   return matches.filter(m => {
@@ -181,9 +190,10 @@ function uniqueByKey(matches) {
 
 function detectAiderDomainPacks(ctx) {
   const matches = [];
+  const pkg = typeof ctx.jsonFile === 'function' ? (ctx.jsonFile('package.json') || {}) : {};
   const deps = ctx.allDependencies ? ctx.allDependencies() : {};
   const files = ctx.files || [];
-  const filenames = files.join('\n');
+  const stackKeys = new Set();
 
   function addMatch(key, reasons) {
     const pack = AIDER_DOMAIN_PACKS.find(p => p.key === key);
@@ -262,6 +272,21 @@ function detectAiderDomainPacks(ctx) {
   if (isSecurity) {
     addMatch('security-focused', ['Detected security-focused repo signals.']);
   }
+
+  const hasCi = Boolean(ctx.fileContent('.github/workflows')) || files.some((file) => /^\.github\/workflows\//.test(file));
+
+  detectAdditionalDomainPacks({
+    ctx,
+    pkg,
+    deps,
+    stackKeys,
+    addMatch,
+    hasBackend: isBackend,
+    hasFrontend: isFrontend,
+    hasInfra: isInfra,
+    hasCi,
+    isEnterpriseGoverned: hasPolicyFiles,
+  });
 
   if (matches.length === 0) {
     addMatch('baseline-general', [

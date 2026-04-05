@@ -114,8 +114,8 @@ describe('MCP Packs', () => {
     }
   });
 
-  test('MCP pack count is 26', () => {
-    expect(MCP_PACKS.length).toBe(26);
+  test('MCP pack count is 49', () => {
+    expect(MCP_PACKS.length).toBe(49);
   });
 
   test('normalizeMcpPackKeys filters invalid keys', () => {

@@ -1,0 +1,571 @@
+const PACK_BLUEPRINTS = [
+  {
+    key: 'blockchain',
+    label: 'Blockchain',
+    useWhen: 'Repos with smart contracts, wallet logic, chain integrations, or on-chain deployment tooling.',
+    adoption: 'Recommended when contract review, deployment safety, and chain-specific build workflows are core to the repo.',
+    recommendedModules: ['Contract review guide', 'Wallet and secret safety', 'Deployment verification'],
+    benchmarkFocus: ['contract-aware verification', 'wallet and secret safety', 'deployment review'],
+  },
+  {
+    key: 'realtime',
+    label: 'Realtime',
+    useWhen: 'Repos centered on websockets, live collaboration, presence, or push-driven event flows.',
+    adoption: 'Recommended when event delivery, connection lifecycle, and concurrency behavior matter as much as CRUD flows.',
+    recommendedModules: ['Event flow guide', 'Connection lifecycle checks', 'Delivery and retry posture'],
+    benchmarkFocus: ['live event safety', 'connection lifecycle review', 'delivery resilience'],
+  },
+  {
+    key: 'graphql',
+    label: 'GraphQL',
+    useWhen: 'Repos with GraphQL schemas, resolvers, or GraphQL-first clients and services.',
+    adoption: 'Recommended when schema contracts and resolver changes need stronger review and verification loops.',
+    recommendedModules: ['Schema contract guide', 'Resolver verification', 'Client-server contract checks'],
+    benchmarkFocus: ['schema safety', 'resolver correctness', 'contract review'],
+  },
+  {
+    key: 'serverless',
+    label: 'Serverless',
+    useWhen: 'Repos built around functions, lambdas, edge handlers, or platform-managed deployment surfaces.',
+    adoption: 'Recommended when deployment packaging, environment isolation, and runtime constraints drive the workflow.',
+    recommendedModules: ['Function deployment guide', 'Cold-start aware verification', 'Environment isolation checklist'],
+    benchmarkFocus: ['deployment safety', 'runtime fit', 'environment isolation'],
+  },
+  {
+    key: 'microservices',
+    label: 'Microservices',
+    useWhen: 'Repos coordinating several services, contracts, or inter-service boundaries across a shared system.',
+    adoption: 'Recommended when service boundaries, orchestration, and contract compatibility need stronger guardrails.',
+    recommendedModules: ['Service boundary guide', 'Contract and proto review', 'Multi-service orchestration checks'],
+    benchmarkFocus: ['service-boundary safety', 'contract review', 'multi-service coordination'],
+  },
+  {
+    key: 'cli-tool',
+    label: 'CLI Tool',
+    useWhen: 'Repos whose primary product surface is a terminal command, scaffolder, or developer-facing CLI.',
+    adoption: 'Recommended when command UX, flags, help text, and packaging are part of the product contract.',
+    recommendedModules: ['CLI UX guide', 'Flag and help contract', 'Distribution checklist'],
+    benchmarkFocus: ['command UX quality', 'flag safety', 'distribution readiness'],
+  },
+  {
+    key: 'browser-ext',
+    label: 'Browser Extension',
+    useWhen: 'Repos shipping browser extensions, add-ons, or extension-like surfaces with manifest-driven permissions.',
+    adoption: 'Recommended when manifest review, permission minimization, and cross-browser packaging are central concerns.',
+    recommendedModules: ['Extension manifest guide', 'Permission review', 'Store packaging checklist'],
+    benchmarkFocus: ['manifest safety', 'permission posture', 'store packaging readiness'],
+  },
+  {
+    key: 'desktop',
+    label: 'Desktop App',
+    useWhen: 'Repos shipping desktop software through Electron, Tauri, or similar native-shell frameworks.',
+    adoption: 'Recommended when native bridges, packaging, and OS-specific release workflows shape the repo.',
+    recommendedModules: ['Desktop packaging guide', 'Native bridge safety', 'Cross-platform release checks'],
+    benchmarkFocus: ['native-surface safety', 'packaging quality', 'cross-platform release readiness'],
+  },
+  {
+    key: 'game-dev',
+    label: 'Game Development',
+    useWhen: 'Repos focused on gameplay loops, rendering, scenes, or asset-heavy interactive experiences.',
+    adoption: 'Recommended when performance, asset pipelines, and engine-specific workflows dominate the repo.',
+    recommendedModules: ['Asset pipeline guide', 'Render loop safety', 'Performance regression checks'],
+    benchmarkFocus: ['render-loop safety', 'asset pipeline quality', 'performance regressions'],
+  },
+  {
+    key: 'data-viz',
+    label: 'Data Visualization',
+    useWhen: 'Repos centered on charts, dashboards, visual analytics, or data-heavy rendering surfaces.',
+    adoption: 'Recommended when chart correctness, data transforms, and rendering fidelity are core product risks.',
+    recommendedModules: ['Chart correctness guide', 'Dataset transformation review', 'Render performance checks'],
+    benchmarkFocus: ['visual correctness', 'data-transform review', 'render performance'],
+  },
+  {
+    key: 'cms',
+    label: 'CMS',
+    useWhen: 'Repos driven by structured content, headless CMS models, authoring flows, or publishing pipelines.',
+    adoption: 'Recommended when content modeling, preview, and publish behavior need stronger workflow guidance.',
+    recommendedModules: ['Content model guide', 'Authoring workflow review', 'Preview and publish checks'],
+    benchmarkFocus: ['content-model safety', 'authoring workflow quality', 'publish readiness'],
+  },
+  {
+    key: 'testing-framework',
+    label: 'Testing Framework',
+    useWhen: 'Repos where the main engineering loop is defined by a first-class test runner and CI test discipline.',
+    adoption: 'Recommended when test ergonomics, coverage, and CI parity are foundational to the repo workflow.',
+    recommendedModules: ['Test runner baseline', 'Coverage and flake control', 'CI test parity'],
+    benchmarkFocus: ['test-loop quality', 'coverage posture', 'CI parity'],
+  },
+  {
+    key: 'devtools',
+    label: 'Developer Tools',
+    useWhen: 'Repos building plugins, editor extensions, bundler plugins, or other developer-facing tooling.',
+    adoption: 'Recommended when extension APIs, integration contracts, and distribution workflows matter to product quality.',
+    recommendedModules: ['Developer-tool integration guide', 'Extension/plugin API review', 'Distribution checks'],
+    benchmarkFocus: ['integration safety', 'API compatibility', 'distribution readiness'],
+  },
+  {
+    key: 'auth-service',
+    label: 'Auth Service',
+    useWhen: 'Repos centered on authentication, identity, session issuance, or user access management.',
+    adoption: 'Recommended when auth boundaries, token handling, and identity-provider integrations are primary concerns.',
+    recommendedModules: ['Auth boundary guide', 'Session/token review', 'Identity-provider integration checks'],
+    benchmarkFocus: ['auth-boundary safety', 'session and token review', 'identity-provider fit'],
+  },
+  {
+    key: 'payments',
+    label: 'Payments',
+    useWhen: 'Repos where billing, subscriptions, checkout, or payment-provider integrations are the core workflow.',
+    adoption: 'Recommended when money movement, webhooks, and retry semantics are product-critical.',
+    recommendedModules: ['Payment flow guide', 'Webhook and retry review', 'Financial safety checks'],
+    benchmarkFocus: ['payment-flow safety', 'webhook correctness', 'financial guardrails'],
+  },
+  {
+    key: 'notifications',
+    label: 'Notifications',
+    useWhen: 'Repos whose product flows depend on email, SMS, push, or multi-channel user notifications.',
+    adoption: 'Recommended when delivery channels, templates, and retry policies drive the system behavior.',
+    recommendedModules: ['Delivery channel guide', 'Template lifecycle review', 'Retry and rate-limit checks'],
+    benchmarkFocus: ['delivery reliability', 'template quality', 'retry posture'],
+  },
+  {
+    key: 'search',
+    label: 'Search',
+    useWhen: 'Repos built around search indexing, query relevance, or external search infrastructure.',
+    adoption: 'Recommended when indexing, ranking, and synchronization between source data and search need stronger review.',
+    recommendedModules: ['Indexing guide', 'Query relevance review', 'Sync and backfill checks'],
+    benchmarkFocus: ['indexing safety', 'relevance quality', 'sync correctness'],
+  },
+  {
+    key: 'queue-worker',
+    label: 'Queue Worker',
+    useWhen: 'Repos organized around job queues, background workers, retries, or asynchronous orchestration.',
+    adoption: 'Recommended when idempotency, retries, and worker operational safety define the workflow.',
+    recommendedModules: ['Queue processing guide', 'Retry and idempotency review', 'Worker scaling checks'],
+    benchmarkFocus: ['job safety', 'retry correctness', 'worker scalability'],
+  },
+  {
+    key: 'observability',
+    label: 'Observability',
+    useWhen: 'Repos where logs, traces, metrics, or platform telemetry are a first-class operating surface.',
+    adoption: 'Recommended when log quality, telemetry coverage, and alertability are central to production readiness.',
+    recommendedModules: ['Logging and telemetry guide', 'Error-tracing review', 'Alertability checks'],
+    benchmarkFocus: ['telemetry coverage', 'traceability', 'alert readiness'],
+  },
+  {
+    key: 'i18n',
+    label: 'Internationalization',
+    useWhen: 'Repos with locale files, translation workflows, or runtime language switching as a product feature.',
+    adoption: 'Recommended when fallback behavior, message keys, and translation coverage shape the user experience.',
+    recommendedModules: ['Locale and message guide', 'Fallback coverage', 'Translation workflow checks'],
+    benchmarkFocus: ['translation coverage', 'fallback safety', 'message-key consistency'],
+  },
+  {
+    key: 'static-site',
+    label: 'Static Site',
+    useWhen: 'Repos generating static documentation, marketing, blog, or content-first sites.',
+    adoption: 'Recommended when content builds, routing, and publishing pipelines dominate the workflow.',
+    recommendedModules: ['Content build guide', 'Template and routing review', 'Publish pipeline checks'],
+    benchmarkFocus: ['build correctness', 'routing safety', 'publish readiness'],
+  },
+  {
+    key: 'api-gateway',
+    label: 'API Gateway',
+    useWhen: 'Repos built around gateway routing, proxying, traffic policy, or service aggregation layers.',
+    adoption: 'Recommended when upstream contracts, routing rules, and auth policy at the edge are major concerns.',
+    recommendedModules: ['Gateway routing guide', 'Policy and auth review', 'Upstream contract checks'],
+    benchmarkFocus: ['routing safety', 'policy correctness', 'upstream compatibility'],
+  },
+  {
+    key: 'ml-ops',
+    label: 'ML Ops',
+    useWhen: 'Repos focused on experiment tracking, data lineage, model artifacts, or promotion workflows.',
+    adoption: 'Recommended when model lifecycle and experiment traceability matter as much as the model code itself.',
+    recommendedModules: ['Experiment tracking guide', 'Artifact lifecycle review', 'Model promotion checks'],
+    benchmarkFocus: ['artifact traceability', 'experiment hygiene', 'promotion safety'],
+  },
+  {
+    key: 'embedded-iot',
+    label: 'Embedded / IoT',
+    useWhen: 'Repos integrating with hardware devices, MQTT-like messaging, or embedded runtime constraints.',
+    adoption: 'Recommended when device messaging, firmware safety, and hardware integration dominate the repo.',
+    recommendedModules: ['Hardware integration guide', 'Device messaging review', 'Firmware safety checks'],
+    benchmarkFocus: ['device-surface safety', 'messaging reliability', 'firmware guardrails'],
+  },
+];
+
+const PLATFORM_DEFAULTS = {
+  claude: {
+    recommendedModules: ['CLAUDE.md baseline'],
+    recommendedProposalFamilies: ['claude-md', 'commands', 'rules'],
+    recommendedSurfaces: ['CLAUDE.md', '.claude/settings.json', '.github/workflows/'],
+    recommendedMcpPacks: ['context7-docs'],
+  },
+  codex: {
+    recommendedModules: ['AGENTS.md baseline', 'Codex config baseline'],
+    recommendedProposalFamilies: ['codex-agents-md', 'codex-config', 'codex-ci-review'],
+    recommendedSurfaces: ['AGENTS.md', '.codex/config.toml', '.github/workflows/'],
+  },
+  gemini: {
+    recommendedModules: ['GEMINI.md baseline', 'Gemini settings baseline'],
+    recommendedProposalFamilies: ['gemini-md', 'gemini-settings', 'gemini-hooks'],
+    recommendedSurfaces: ['GEMINI.md', '.gemini/settings.json', '.github/workflows/'],
+  },
+  copilot: {
+    recommendedModules: ['copilot-instructions baseline', 'VS Code settings baseline'],
+    recommendedProposalFamilies: ['copilot-instructions', 'copilot-vscode-settings', 'copilot-ci-review'],
+    recommendedSurfaces: ['.github/copilot-instructions.md', '.vscode/settings.json', '.github/workflows/'],
+  },
+  cursor: {
+    recommendedModules: ['.cursor/rules baseline', 'Cursor MCP baseline'],
+    recommendedProposalFamilies: ['cursor-rules', 'cursor-mcp', 'cursor-ci-review'],
+    recommendedSurfaces: ['.cursor/rules/', '.cursor/mcp.json', '.github/workflows/'],
+  },
+  windsurf: {
+    recommendedModules: ['.windsurf/rules baseline', 'Windsurf MCP baseline'],
+    recommendedProposalFamilies: ['windsurf-rules', 'windsurf-mcp', 'windsurf-ci-review'],
+    recommendedSurfaces: ['.windsurf/rules/', '.windsurf/mcp.json', '.github/workflows/'],
+  },
+  aider: {
+    recommendedModules: ['.aider.conf.yml baseline', 'Convention file starter'],
+    recommendedProposalFamilies: ['aider-conf-yml', 'aider-conventions', 'aider-ci'],
+    recommendedSurfaces: ['.aider.conf.yml', 'CONVENTIONS.md', '.github/workflows/'],
+  },
+  opencode: {
+    recommendedModules: ['AGENTS.md baseline', 'OpenCode config baseline'],
+    recommendedProposalFamilies: ['opencode-agents-md', 'opencode-config', 'opencode-ci'],
+    recommendedSurfaces: ['AGENTS.md', 'opencode.json', '.github/workflows/'],
+  },
+};
+
+function depMapKeys(deps) {
+  return Object.keys(deps || {}).map((key) => key.toLowerCase());
+}
+
+function hasDependency(depKeys, matchers) {
+  return depKeys.some((key) => matchers.some((matcher) => {
+    if (typeof matcher === 'string') return key === matcher.toLowerCase();
+    return matcher.test(key);
+  }));
+}
+
+function hasAnyFile(files, pattern) {
+  return files.some((file) => pattern.test(file));
+}
+
+function getFileContent(ctx, filePath) {
+  return typeof ctx.fileContent === 'function' ? (ctx.fileContent(filePath) || '') : '';
+}
+
+function countComposeServices(content) {
+  if (!content || !/^\s*services\s*:\s*$/m.test(content)) return 0;
+  const lines = content.split(/\r?\n/);
+  let inServices = false;
+  let count = 0;
+
+  for (const line of lines) {
+    if (!inServices) {
+      if (/^\s*services\s*:\s*$/.test(line)) {
+        inServices = true;
+      }
+      continue;
+    }
+
+    if (!line.trim()) continue;
+    if (/^\S/.test(line)) break;
+    if (/^\s{2}[A-Za-z0-9_.-]+\s*:\s*$/.test(line)) count += 1;
+  }
+
+  return count;
+}
+
+function getManifestInfo(ctx, files) {
+  const manifestPath = files.find((file) => /(^|\/)manifest\.json$/i.test(file));
+  if (!manifestPath) return { path: null, content: '' };
+  return { path: manifestPath, content: getFileContent(ctx, manifestPath) };
+}
+
+function getComposeInfo(ctx, files) {
+  const composePath = files.find((file) => /(^|\/)(docker-compose|compose)\.ya?ml$/i.test(file));
+  if (!composePath) return { path: null, services: 0 };
+  const content = getFileContent(ctx, composePath);
+  return { path: composePath, services: countComposeServices(content) };
+}
+
+function buildAdditionalDomainPacks(platform, options = {}) {
+  const defaults = PLATFORM_DEFAULTS[platform];
+  if (!defaults) {
+    throw new Error(`Unknown domain-pack expansion platform '${platform}'`);
+  }
+
+  const existingKeys = options.existingKeys || new Set();
+
+  return PACK_BLUEPRINTS
+    .filter((pack) => !existingKeys.has(pack.key))
+    .map((pack) => ({
+      key: pack.key,
+      label: pack.label,
+      useWhen: pack.useWhen,
+      adoption: pack.adoption,
+      recommendedModules: [...defaults.recommendedModules, ...pack.recommendedModules.slice(0, 2)],
+      recommendedProposalFamilies: defaults.recommendedProposalFamilies.slice(0, 3),
+      recommendedSurfaces: defaults.recommendedSurfaces.slice(0, 3),
+      benchmarkFocus: pack.benchmarkFocus.slice(0, 3),
+      ...(defaults.recommendedMcpPacks ? { recommendedMcpPacks: defaults.recommendedMcpPacks.slice(0, 3) } : {}),
+    }));
+}
+
+function detectAdditionalDomainPacks(options) {
+  const {
+    ctx,
+    pkg = {},
+    deps = {},
+    stackKeys = new Set(),
+    addMatch,
+    hasBackend = false,
+    hasFrontend = false,
+    hasInfra = false,
+    hasCi = false,
+  } = options;
+
+  const files = Array.isArray(ctx.files) ? ctx.files : [];
+  const depKeys = depMapKeys(deps);
+  const pkgBin = pkg && pkg.bin;
+  const hasBinField = typeof pkgBin === 'string' || (pkgBin && typeof pkgBin === 'object' && Object.keys(pkgBin).length > 0);
+  const manifest = getManifestInfo(ctx, files);
+  const compose = getComposeInfo(ctx, files);
+  const vercelConfig = getFileContent(ctx, 'vercel.json');
+
+  if (
+    hasAnyFile(files, /(^|\/)(hardhat\.config\.(js|ts)|truffle-config\.js|foundry\.toml)$/i) ||
+    hasAnyFile(files, /\.sol$/i) ||
+    hasDependency(depKeys, [/^hardhat$/i, /^truffle$/i, /^ethers$/i, /^viem$/i, /^@openzeppelin\//i])
+  ) {
+    addMatch('blockchain', [
+      hasAnyFile(files, /\.sol$/i) ? 'Smart-contract source files detected.' : 'Blockchain toolchain files detected.',
+      hasAnyFile(files, /foundry\.toml$/i) ? 'Foundry config detected.' : null,
+      hasDependency(depKeys, [/^hardhat$/i]) ? 'Hardhat dependency detected.' : null,
+    ]);
+  }
+
+  if (hasDependency(depKeys, [/^socket\.io$/i, /^socket\.io-client$/i, /^ws$/i, /^ably/i, /^pusher/i])) {
+    addMatch('realtime', [
+      'Realtime communication dependencies detected.',
+      hasDependency(depKeys, [/^socket\.io$/i, /^socket\.io-client$/i]) ? 'Socket.IO dependency detected.' : null,
+      hasDependency(depKeys, [/^ws$/i]) ? 'WebSocket dependency detected.' : null,
+    ]);
+  }
+
+  if (
+    hasAnyFile(files, /(^|\/)(schema\.graphql|schema\.gql|.*\.graphqlrc(\.(json|ya?ml))?)$/i) ||
+    hasDependency(depKeys, [/^graphql$/i, /^@apollo\//i, /^apollo-/i, /^urql$/i, /^relay/i])
+  ) {
+    addMatch('graphql', [
+      hasAnyFile(files, /\.graphql$/i) ? 'GraphQL schema files detected.' : 'GraphQL tooling detected.',
+      hasAnyFile(files, /\.graphqlrc/i) ? '.graphqlrc detected.' : null,
+      hasDependency(depKeys, [/^@apollo\//i, /^apollo-/i]) ? 'Apollo dependency detected.' : null,
+    ]);
+  }
+
+  if (
+    hasAnyFile(files, /(^|\/)(serverless\.ya?ml|sam\.ya?ml)$/i) ||
+    /"functions"\s*:\s*\{/i.test(vercelConfig) ||
+    (hasInfra && hasAnyFile(files, /vercel\.json$/i))
+  ) {
+    addMatch('serverless', [
+      hasAnyFile(files, /serverless\.ya?ml$/i) ? 'Serverless framework config detected.' : 'Function deployment config detected.',
+      hasAnyFile(files, /sam\.ya?ml$/i) ? 'AWS SAM config detected.' : null,
+      /"functions"\s*:\s*\{/i.test(vercelConfig) ? 'Vercel functions config detected.' : null,
+    ]);
+  }
+
+  if (compose.services >= 3 || hasAnyFile(files, /\.proto$/i)) {
+    addMatch('microservices', [
+      compose.services >= 3 ? `Compose file defines ${compose.services} services.` : 'Protocol buffer contracts detected.',
+      hasAnyFile(files, /\.proto$/i) ? 'Proto files detected.' : null,
+      compose.path ? `${compose.path} detected.` : null,
+    ]);
+  }
+
+  if (hasBinField && hasDependency(depKeys, [/^commander$/i, /^yargs$/i, /^oclif/i, /^cac$/i])) {
+    addMatch('cli-tool', [
+      'CLI bin entry and command-parser dependencies detected.',
+      hasDependency(depKeys, [/^commander$/i]) ? 'Commander dependency detected.' : null,
+      hasDependency(depKeys, [/^yargs$/i]) ? 'Yargs dependency detected.' : null,
+    ]);
+  }
+
+  if (manifest.path && /browser_specific_settings/i.test(manifest.content)) {
+    addMatch('browser-ext', [
+      'Browser extension manifest detected.',
+      `${manifest.path} contains browser_specific_settings.`,
+      null,
+    ]);
+  }
+
+  if (
+    hasDependency(depKeys, [/^electron$/i, /^electron-builder$/i, /^@tauri-apps\//i, /^tauri$/i]) ||
+    files.includes('tauri.conf.json') ||
+    ctx.hasDir('src-tauri')
+  ) {
+    addMatch('desktop', [
+      'Desktop application framework signals detected.',
+      ctx.hasDir('src-tauri') ? 'src-tauri directory detected.' : null,
+      hasDependency(depKeys, [/^electron$/i]) ? 'Electron dependency detected.' : null,
+    ]);
+  }
+
+  if (hasDependency(depKeys, [/^phaser$/i, /^three$/i, /^three\.js$/i, /^pixi\.js$/i, /^@pixi\//i])) {
+    addMatch('game-dev', [
+      'Game-development rendering dependencies detected.',
+      hasDependency(depKeys, [/^phaser$/i]) ? 'Phaser dependency detected.' : null,
+      hasDependency(depKeys, [/^three$/i, /^three\.js$/i]) ? 'Three.js dependency detected.' : null,
+    ]);
+  }
+
+  if (hasDependency(depKeys, [/^d3/i, /^chart\.js$/i, /^plotly/i, /^recharts$/i, /^visx/i])) {
+    addMatch('data-viz', [
+      'Data-visualization dependencies detected.',
+      hasDependency(depKeys, [/^d3/i]) ? 'D3 dependency detected.' : null,
+      hasDependency(depKeys, [/^chart\.js$/i]) ? 'Chart.js dependency detected.' : null,
+    ]);
+  }
+
+  if (hasDependency(depKeys, [/^strapi/i, /^contentful$/i, /^contentful-/i, /^sanity$/i, /^@sanity\//i])) {
+    addMatch('cms', [
+      'CMS or content-platform dependencies detected.',
+      hasDependency(depKeys, [/^strapi/i]) ? 'Strapi dependency detected.' : null,
+      hasDependency(depKeys, [/^contentful/i]) ? 'Contentful dependency detected.' : null,
+    ]);
+  }
+
+  if (
+    hasDependency(depKeys, [/^jest$/i, /^vitest$/i, /^@playwright\/test$/i, /^playwright$/i]) ||
+    hasAnyFile(files, /(^|\/)(jest\.config|vitest\.config|playwright\.config)\./i)
+  ) {
+    addMatch('testing-framework', [
+      'Primary test-framework signals detected.',
+      hasDependency(depKeys, [/^jest$/i]) ? 'Jest dependency detected.' : null,
+      hasDependency(depKeys, [/^vitest$/i]) ? 'Vitest dependency detected.' : null,
+    ]);
+  }
+
+  if (
+    hasDependency(depKeys, [/^vscode$/i, /^@types\/vscode$/i, /^webpack$/i, /^rollup$/i]) &&
+    (pkg.engines && pkg.engines.vscode || hasAnyFile(files, /(^|\/)(extension\.(ts|js)|webpack\..*plugin\.(ts|js))$/i))
+  ) {
+    addMatch('devtools', [
+      'Developer-tooling integration signals detected.',
+      pkg.engines && pkg.engines.vscode ? 'VS Code extension engine declared.' : null,
+      hasAnyFile(files, /extension\.(ts|js)$/i) ? 'Extension entrypoint detected.' : null,
+    ]);
+  }
+
+  if (hasDependency(depKeys, [/^passport$/i, /^passport-/i, /^auth0$/i, /^@auth0\//i, /^@clerk\//i, /^clerk$/i])) {
+    addMatch('auth-service', [
+      'Authentication-platform dependencies detected.',
+      hasDependency(depKeys, [/^passport$/i, /^passport-/i]) ? 'Passport dependency detected.' : null,
+      hasDependency(depKeys, [/^@clerk\//i, /^clerk$/i]) ? 'Clerk dependency detected.' : null,
+    ]);
+  }
+
+  if (
+    hasDependency(depKeys, [/^stripe$/i, /^@stripe\//i, /^paypal$/i, /^@paypal\//i, /^braintree$/i]) ||
+    ctx.hasDir('payments')
+  ) {
+    addMatch('payments', [
+      'Payment-platform signals detected.',
+      hasDependency(depKeys, [/^stripe$/i, /^@stripe\//i]) ? 'Stripe dependency detected.' : null,
+      hasDependency(depKeys, [/^paypal$/i, /^@paypal\//i]) ? 'PayPal dependency detected.' : null,
+    ]);
+  }
+
+  if (hasDependency(depKeys, [/^@sendgrid\//i, /^nodemailer$/i, /^ses$/i, /^@aws-sdk\/client-ses$/i, /^twilio$/i])) {
+    addMatch('notifications', [
+      'Notification-channel dependencies detected.',
+      hasDependency(depKeys, [/^@sendgrid\//i]) ? 'SendGrid dependency detected.' : null,
+      hasDependency(depKeys, [/^twilio$/i]) ? 'Twilio dependency detected.' : null,
+    ]);
+  }
+
+  if (hasDependency(depKeys, [/^@elastic\/elasticsearch$/i, /^elasticsearch$/i, /^algoliasearch$/i, /^meilisearch$/i])) {
+    addMatch('search', [
+      'Search-platform dependencies detected.',
+      hasDependency(depKeys, [/^@elastic\/elasticsearch$/i, /^elasticsearch$/i]) ? 'Elasticsearch dependency detected.' : null,
+      hasDependency(depKeys, [/^algoliasearch$/i]) ? 'Algolia dependency detected.' : null,
+    ]);
+  }
+
+  if (hasDependency(depKeys, [/^bull$/i, /^bullmq$/i, /^amqplib$/i, /^rabbitmq$/i, /^@aws-sdk\/client-sqs$/i, /^sqs-consumer$/i])) {
+    addMatch('queue-worker', [
+      'Queue or worker dependencies detected.',
+      hasDependency(depKeys, [/^bull$/i, /^bullmq$/i]) ? 'Bull/BullMQ dependency detected.' : null,
+      hasDependency(depKeys, [/^amqplib$/i, /^rabbitmq$/i]) ? 'RabbitMQ dependency detected.' : null,
+    ]);
+  }
+
+  if (hasDependency(depKeys, [/^winston$/i, /^pino$/i, /^datadog$/i, /^dd-trace$/i, /^@datadog\//i])) {
+    addMatch('observability', [
+      'Observability dependencies detected.',
+      hasDependency(depKeys, [/^winston$/i]) ? 'Winston dependency detected.' : null,
+      hasDependency(depKeys, [/^pino$/i]) ? 'Pino dependency detected.' : null,
+    ]);
+  }
+
+  if (hasDependency(depKeys, [/^i18next$/i, /^react-intl$/i, /^formatjs$/i, /^next-intl$/i]) || ctx.hasDir('locales')) {
+    addMatch('i18n', [
+      'Internationalization signals detected.',
+      ctx.hasDir('locales') ? 'Locales directory detected.' : null,
+      hasDependency(depKeys, [/^i18next$/i]) ? 'i18next dependency detected.' : null,
+    ]);
+  }
+
+  if (
+    hasDependency(depKeys, [/^gatsby$/i, /^@11ty\/eleventy$/i, /^hugo-bin$/i, /^jekyll$/i]) ||
+    hasAnyFile(files, /(^|\/)(hugo\.toml|_config\.yml|_config\.yaml|gatsby-config\.(js|ts)|eleventy\.config\.(js|cjs|mjs))$/i)
+  ) {
+    addMatch('static-site', [
+      'Static-site generator signals detected.',
+      hasDependency(depKeys, [/^gatsby$/i]) ? 'Gatsby dependency detected.' : null,
+      hasAnyFile(files, /(^|\/)(hugo\.toml|_config\.yml|_config\.yaml)$/i) ? 'Static-site config detected.' : null,
+    ]);
+  }
+
+  if (
+    hasDependency(depKeys, [/^kong$/i, /^express-gateway$/i]) ||
+    hasAnyFile(files, /(^|\/)(kong\.ya?ml|gateway\.config\.(json|ya?ml))$/i)
+  ) {
+    addMatch('api-gateway', [
+      'API-gateway signals detected.',
+      hasDependency(depKeys, [/^express-gateway$/i]) ? 'express-gateway dependency detected.' : null,
+      hasAnyFile(files, /kong\.ya?ml$/i) ? 'Kong config detected.' : null,
+    ]);
+  }
+
+  if (
+    hasDependency(depKeys, [/^mlflow$/i, /^wandb$/i, /^dvc$/i]) ||
+    hasAnyFile(files, /(^|\/)(dvc\.yaml|dvc\.yml|mlruns\/|wandb\/)/i)
+  ) {
+    addMatch('ml-ops', [
+      'ML Ops tracking or artifact signals detected.',
+      hasDependency(depKeys, [/^mlflow$/i]) ? 'MLflow dependency detected.' : null,
+      hasDependency(depKeys, [/^wandb$/i]) ? 'Weights & Biases dependency detected.' : null,
+    ]);
+  }
+
+  if (
+    hasDependency(depKeys, [/^johnny-five$/i, /^mqtt$/i, /^particle-/i, /^particle$/i]) ||
+    hasAnyFile(files, /\.ino$/i)
+  ) {
+    addMatch('embedded-iot', [
+      'Embedded or device-integration signals detected.',
+      hasDependency(depKeys, [/^mqtt$/i]) ? 'MQTT dependency detected.' : null,
+      hasDependency(depKeys, [/^johnny-five$/i]) ? 'Johnny-Five dependency detected.' : null,
+    ]);
+  }
+}
+
+module.exports = {
+  PACK_BLUEPRINTS,
+  buildAdditionalDomainPacks,
+  detectAdditionalDomainPacks,
+};

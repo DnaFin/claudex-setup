@@ -328,6 +328,168 @@ const MCP_PACKS = [
       },
     },
   },
+  // ── 24 new packs ─────────────────────────────────────────────────────────
+  {
+    key: 'supabase-mcp',
+    label: 'Supabase',
+    useWhen: 'Repos using Supabase for database, auth, or storage.',
+    adoption: 'Recommended for full-stack repos using Supabase. Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
+    servers: { supabase: { command: 'npx', args: ['-y', '@supabase/mcp-server-supabase@latest'], env: { SUPABASE_URL: '${SUPABASE_URL}', SUPABASE_SERVICE_ROLE_KEY: '${SUPABASE_SERVICE_ROLE_KEY}' } } },
+  },
+  {
+    key: 'prisma-mcp',
+    label: 'Prisma ORM',
+    useWhen: 'Repos using Prisma for database schema management and migrations.',
+    adoption: 'Recommended for any repo with a Prisma schema. No auth required beyond DATABASE_URL.',
+    servers: { prisma: { command: 'npx', args: ['-y', 'prisma-mcp-server@latest'], env: { DATABASE_URL: '${DATABASE_URL}' } } },
+  },
+  {
+    key: 'vercel-mcp',
+    label: 'Vercel',
+    useWhen: 'Repos deployed on Vercel that benefit from deployment management and log access.',
+    adoption: 'Recommended for Next.js and other Vercel-hosted repos. Requires VERCEL_TOKEN.',
+    servers: { vercel: { command: 'npx', args: ['-y', '@vercel/mcp-server@latest'], env: { VERCEL_TOKEN: '${VERCEL_TOKEN}' } } },
+  },
+  {
+    key: 'cloudflare-mcp',
+    label: 'Cloudflare',
+    useWhen: 'Repos using Cloudflare Workers, KV, R2, or D1.',
+    adoption: 'Recommended for edge-compute repos. Requires CLOUDFLARE_API_TOKEN.',
+    servers: { cloudflare: { command: 'npx', args: ['-y', '@cloudflare/mcp-server-cloudflare@latest'], env: { CLOUDFLARE_API_TOKEN: '${CLOUDFLARE_API_TOKEN}' } } },
+  },
+  {
+    key: 'aws-mcp',
+    label: 'AWS (S3, Lambda, DynamoDB)',
+    useWhen: 'Repos using AWS services — S3, Lambda, DynamoDB, or CloudFormation.',
+    adoption: 'Recommended for cloud-infra repos. Requires AWS credentials.',
+    servers: { aws: { command: 'npx', args: ['-y', '@aws-samples/mcp-server-aws@latest'], env: { AWS_ACCESS_KEY_ID: '${AWS_ACCESS_KEY_ID}', AWS_SECRET_ACCESS_KEY: '${AWS_SECRET_ACCESS_KEY}', AWS_REGION: '${AWS_REGION}' } } },
+  },
+  {
+    key: 'redis-mcp',
+    label: 'Redis',
+    useWhen: 'Repos using Redis for caching, sessions, or pub/sub.',
+    adoption: 'Recommended for performance-critical repos with Redis. Requires REDIS_URL.',
+    servers: { redis: { command: 'npx', args: ['-y', 'redis-mcp-server@latest'], env: { REDIS_URL: '${REDIS_URL}' } } },
+  },
+  {
+    key: 'mongodb-mcp',
+    label: 'MongoDB',
+    useWhen: 'Repos using MongoDB as document database.',
+    adoption: 'Recommended for document-model repos. Requires MONGODB_URI.',
+    servers: { mongodb: { command: 'npx', args: ['-y', '@mongodb-js/mongodb-mcp-server@latest'], env: { MONGODB_URI: '${MONGODB_URI}' } } },
+  },
+  {
+    key: 'twilio-mcp',
+    label: 'Twilio',
+    useWhen: 'Repos integrating SMS, voice, or messaging via Twilio.',
+    adoption: 'Recommended for communication-feature repos. Requires TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.',
+    servers: { twilio: { command: 'npx', args: ['-y', 'twilio-mcp-server@latest'], env: { TWILIO_ACCOUNT_SID: '${TWILIO_ACCOUNT_SID}', TWILIO_AUTH_TOKEN: '${TWILIO_AUTH_TOKEN}' } } },
+  },
+  {
+    key: 'sendgrid-mcp',
+    label: 'SendGrid',
+    useWhen: 'Repos using SendGrid for transactional or marketing email.',
+    adoption: 'Recommended for repos with email delivery workflows. Requires SENDGRID_API_KEY.',
+    servers: { sendgrid: { command: 'npx', args: ['-y', 'sendgrid-mcp-server@latest'], env: { SENDGRID_API_KEY: '${SENDGRID_API_KEY}' } } },
+  },
+  {
+    key: 'algolia-mcp',
+    label: 'Algolia Search',
+    useWhen: 'Repos using Algolia for search indexing and discovery.',
+    adoption: 'Recommended for e-commerce and content-heavy repos. Requires ALGOLIA_APP_ID and ALGOLIA_API_KEY.',
+    servers: { algolia: { command: 'npx', args: ['-y', 'algolia-mcp-server@latest'], env: { ALGOLIA_APP_ID: '${ALGOLIA_APP_ID}', ALGOLIA_API_KEY: '${ALGOLIA_API_KEY}' } } },
+  },
+  {
+    key: 'planetscale-mcp',
+    label: 'PlanetScale',
+    useWhen: 'Repos using PlanetScale serverless MySQL database.',
+    adoption: 'Recommended for MySQL-based repos on PlanetScale. Requires PLANETSCALE_TOKEN.',
+    servers: { planetscale: { command: 'npx', args: ['-y', 'planetscale-mcp-server@latest'], env: { PLANETSCALE_TOKEN: '${PLANETSCALE_TOKEN}' } } },
+  },
+  {
+    key: 'neon-mcp',
+    label: 'Neon Serverless Postgres',
+    useWhen: 'Repos using Neon for serverless PostgreSQL.',
+    adoption: 'Recommended for serverless and edge Postgres repos. Requires NEON_API_KEY.',
+    servers: { neon: { command: 'npx', args: ['-y', '@neondatabase/mcp-server-neon@latest'], env: { NEON_API_KEY: '${NEON_API_KEY}' } } },
+  },
+  {
+    key: 'turso-mcp',
+    label: 'Turso Edge SQLite',
+    useWhen: 'Repos using Turso for distributed edge SQLite.',
+    adoption: 'Recommended for edge and multi-region apps. Requires TURSO_DATABASE_URL and TURSO_AUTH_TOKEN.',
+    servers: { turso: { command: 'npx', args: ['-y', 'turso-mcp-server@latest'], env: { TURSO_DATABASE_URL: '${TURSO_DATABASE_URL}', TURSO_AUTH_TOKEN: '${TURSO_AUTH_TOKEN}' } } },
+  },
+  {
+    key: 'upstash-mcp',
+    label: 'Upstash (Redis + Kafka)',
+    useWhen: 'Repos using Upstash for serverless Redis, Kafka, or QStash.',
+    adoption: 'Recommended for serverless caching and messaging. Requires UPSTASH_REDIS_REST_URL.',
+    servers: { upstash: { command: 'npx', args: ['-y', '@upstash/mcp-server@latest'], env: { UPSTASH_REDIS_REST_URL: '${UPSTASH_REDIS_REST_URL}', UPSTASH_REDIS_REST_TOKEN: '${UPSTASH_REDIS_REST_TOKEN}' } } },
+  },
+  {
+    key: 'convex-mcp',
+    label: 'Convex',
+    useWhen: 'Repos using Convex as reactive backend-as-a-service.',
+    adoption: 'Recommended for real-time full-stack repos on Convex. Requires CONVEX_DEPLOYMENT.',
+    servers: { convex: { command: 'npx', args: ['-y', '@convex-dev/mcp-server@latest'], env: { CONVEX_DEPLOYMENT: '${CONVEX_DEPLOYMENT}' } } },
+  },
+  {
+    key: 'clerk-mcp',
+    label: 'Clerk Authentication',
+    useWhen: 'Repos using Clerk for user authentication and session management.',
+    adoption: 'Recommended for SaaS repos with Clerk auth. Requires CLERK_SECRET_KEY.',
+    servers: { clerk: { command: 'npx', args: ['-y', '@clerk/mcp-server@latest'], env: { CLERK_SECRET_KEY: '${CLERK_SECRET_KEY}' } } },
+  },
+  {
+    key: 'resend-mcp',
+    label: 'Resend Email',
+    useWhen: 'Repos using Resend for developer-focused transactional email.',
+    adoption: 'Recommended for modern full-stack repos using Resend. Requires RESEND_API_KEY.',
+    servers: { resend: { command: 'npx', args: ['-y', 'resend-mcp-server@latest'], env: { RESEND_API_KEY: '${RESEND_API_KEY}' } } },
+  },
+  {
+    key: 'temporal-mcp',
+    label: 'Temporal Workflow',
+    useWhen: 'Repos using Temporal for durable workflow orchestration.',
+    adoption: 'Recommended for async-workflow and microservice repos. Requires TEMPORAL_ADDRESS.',
+    servers: { temporal: { command: 'npx', args: ['-y', 'temporal-mcp-server@latest'], env: { TEMPORAL_ADDRESS: '${TEMPORAL_ADDRESS}' } } },
+  },
+  {
+    key: 'launchdarkly-mcp',
+    label: 'LaunchDarkly Feature Flags',
+    useWhen: 'Repos using LaunchDarkly for feature flags and experimentation.',
+    adoption: 'Recommended for feature-flag-driven development. Requires LAUNCHDARKLY_ACCESS_TOKEN.',
+    servers: { launchdarkly: { command: 'npx', args: ['-y', 'launchdarkly-mcp-server@latest'], env: { LAUNCHDARKLY_ACCESS_TOKEN: '${LAUNCHDARKLY_ACCESS_TOKEN}' } } },
+  },
+  {
+    key: 'datadog-mcp',
+    label: 'Datadog',
+    useWhen: 'Repos using Datadog for monitoring, APM, and log management.',
+    adoption: 'Recommended for production repos with Datadog observability. Requires DATADOG_API_KEY.',
+    servers: { datadog: { command: 'npx', args: ['-y', '@datadog/mcp-server@latest'], env: { DATADOG_API_KEY: '${DATADOG_API_KEY}', DATADOG_APP_KEY: '${DATADOG_APP_KEY}' } } },
+  },
+  {
+    key: 'grafana-mcp',
+    label: 'Grafana',
+    useWhen: 'Repos using Grafana for dashboards and observability.',
+    adoption: 'Recommended for observability-focused repos. Requires GRAFANA_URL and GRAFANA_API_KEY.',
+    servers: { grafana: { command: 'npx', args: ['-y', 'grafana-mcp-server@latest'], env: { GRAFANA_URL: '${GRAFANA_URL}', GRAFANA_API_KEY: '${GRAFANA_API_KEY}' } } },
+  },
+  {
+    key: 'circleci-mcp',
+    label: 'CircleCI',
+    useWhen: 'Repos using CircleCI for CI/CD pipelines.',
+    adoption: 'Recommended for CircleCI-powered projects. Requires CIRCLECI_TOKEN.',
+    servers: { circleci: { command: 'npx', args: ['-y', 'circleci-mcp-server@latest'], env: { CIRCLECI_TOKEN: '${CIRCLECI_TOKEN}' } } },
+  },
+  {
+    key: 'anthropic-mcp',
+    label: 'Anthropic Claude API',
+    useWhen: 'Repos that build on or integrate the Anthropic Claude API.',
+    adoption: 'Recommended for AI-powered apps using Claude. Requires ANTHROPIC_API_KEY.',
+    servers: { anthropic: { command: 'npx', args: ['-y', '@anthropic-ai/mcp-server@latest'], env: { ANTHROPIC_API_KEY: '${ANTHROPIC_API_KEY}' } } },
+  },
 ];
 
 function clone(value) {
@@ -579,6 +741,77 @@ function recommendMcpPacks(stacks = [], domainPacks = [], options = {}) {
   // Infisical for security-focused
   if (domainKeys.has('security-focused') || domainKeys.has('regulated-lite')) {
     recommended.add('infisical-secrets');
+  }
+
+  // ── New 24 packs recommendation logic ──────────────────────────────────────
+  if (ctx && (hasDependency(deps, '@supabase/supabase-js') || hasDependency(deps, '@supabase/auth-helpers-nextjs') || hasFileContentMatch(ctx, '.env', /SUPABASE/i) || hasFileContentMatch(ctx, '.env.example', /SUPABASE/i))) {
+    recommended.add('supabase-mcp');
+  }
+  if (ctx && (hasFileContentMatch(ctx, 'schema.prisma', /\S/) || hasDependency(deps, '@prisma/client') || hasDependency(deps, 'prisma'))) {
+    recommended.add('prisma-mcp');
+  }
+  if (ctx && (ctx.files.includes('vercel.json') || ctx.files.includes('.vercel') || hasFileContentMatch(ctx, 'package.json', /"deploy":\s*"vercel/i) || hasFileContentMatch(ctx, '.env', /VERCEL_TOKEN/i))) {
+    recommended.add('vercel-mcp');
+  }
+  if (ctx && (hasFileContentMatch(ctx, 'wrangler.toml', /\S/) || hasFileContentMatch(ctx, 'wrangler.json', /\S/) || hasDependency(deps, 'wrangler') || hasFileContentMatch(ctx, '.env', /CLOUDFLARE/i))) {
+    recommended.add('cloudflare-mcp');
+  }
+  if (ctx && (hasFileContentMatch(ctx, '.env', /AWS_ACCESS_KEY/i) || hasFileContentMatch(ctx, '.env.example', /AWS_/i) || ctx.files.some(f => /serverless\.yml|template\.ya?ml|cdk\.json/.test(f)))) {
+    recommended.add('aws-mcp');
+  }
+  if (ctx && (hasDependency(deps, 'redis') || hasDependency(deps, 'ioredis') || hasDependency(deps, '@redis/client') || hasFileContentMatch(ctx, '.env', /REDIS_URL/i))) {
+    recommended.add('redis-mcp');
+  }
+  if (ctx && (hasDependency(deps, 'mongoose') || hasDependency(deps, 'mongodb') || hasFileContentMatch(ctx, '.env', /MONGODB_URI/i) || hasFileContentMatch(ctx, '.env.example', /MONGO/i))) {
+    recommended.add('mongodb-mcp');
+  }
+  if (ctx && (hasDependency(deps, 'twilio') || hasFileContentMatch(ctx, '.env', /TWILIO_/i) || hasFileContentMatch(ctx, '.env.example', /TWILIO_/i))) {
+    recommended.add('twilio-mcp');
+  }
+  if (ctx && (hasDependency(deps, '@sendgrid/mail') || hasDependency(deps, 'sendgrid') || hasFileContentMatch(ctx, '.env', /SENDGRID_API_KEY/i))) {
+    recommended.add('sendgrid-mcp');
+  }
+  if (ctx && (hasDependency(deps, 'algoliasearch') || hasDependency(deps, '@algolia/client-search') || hasFileContentMatch(ctx, '.env', /ALGOLIA_/i))) {
+    recommended.add('algolia-mcp');
+  }
+  if (ctx && (hasFileContentMatch(ctx, '.env', /PLANETSCALE_TOKEN/i) || hasFileContentMatch(ctx, '.env.example', /PLANETSCALE/i))) {
+    recommended.add('planetscale-mcp');
+  }
+  if (ctx && (hasDependency(deps, '@neondatabase/serverless') || hasFileContentMatch(ctx, '.env', /NEON_/i) || hasFileContentMatch(ctx, '.env.example', /NEON_/i))) {
+    recommended.add('neon-mcp');
+  }
+  if (ctx && (hasDependency(deps, '@libsql/client') || hasFileContentMatch(ctx, '.env', /TURSO_/i) || hasFileContentMatch(ctx, '.env.example', /TURSO_/i))) {
+    recommended.add('turso-mcp');
+  }
+  if (ctx && (hasDependency(deps, '@upstash/redis') || hasDependency(deps, '@upstash/kafka') || hasFileContentMatch(ctx, '.env', /UPSTASH_/i))) {
+    recommended.add('upstash-mcp');
+  }
+  if (ctx && (hasDependency(deps, 'convex') || hasDependency(deps, 'convex-dev') || hasFileContentMatch(ctx, 'convex.json', /\S/) || hasFileContentMatch(ctx, '.env', /CONVEX_/i))) {
+    recommended.add('convex-mcp');
+  }
+  if (ctx && (hasDependency(deps, '@clerk/nextjs') || hasDependency(deps, '@clerk/clerk-sdk-node') || hasDependency(deps, '@clerk/backend') || hasFileContentMatch(ctx, '.env', /CLERK_/i))) {
+    recommended.add('clerk-mcp');
+  }
+  if (ctx && (hasDependency(deps, 'resend') || hasFileContentMatch(ctx, '.env', /RESEND_API_KEY/i) || hasFileContentMatch(ctx, '.env.example', /RESEND_/i))) {
+    recommended.add('resend-mcp');
+  }
+  if (ctx && (hasDependency(deps, '@temporalio/client') || hasDependency(deps, '@temporalio/worker') || hasFileContentMatch(ctx, '.env', /TEMPORAL_/i))) {
+    recommended.add('temporal-mcp');
+  }
+  if (ctx && (hasDependency(deps, '@launchdarkly/node-server-sdk') || hasDependency(deps, 'launchdarkly-js-client-sdk') || hasFileContentMatch(ctx, '.env', /LAUNCHDARKLY_/i))) {
+    recommended.add('launchdarkly-mcp');
+  }
+  if (ctx && (hasDependency(deps, 'dd-trace') || hasDependency(deps, 'datadog-metrics') || hasFileContentMatch(ctx, '.env', /DATADOG_/i))) {
+    recommended.add('datadog-mcp');
+  }
+  if (ctx && (hasFileContentMatch(ctx, 'docker-compose.yml', /grafana/i) || hasFileContentMatch(ctx, '.env', /GRAFANA_/i) || ctx.files.some(f => /grafana/.test(f)))) {
+    recommended.add('grafana-mcp');
+  }
+  if (ctx && (ctx.files.some(f => /\.circleci\/config/.test(f)) || hasFileContentMatch(ctx, '.env', /CIRCLECI_/i))) {
+    recommended.add('circleci-mcp');
+  }
+  if (ctx && (hasDependency(deps, '@anthropic-ai/sdk') || hasDependency(deps, 'anthropic') || hasFileContentMatch(ctx, '.env', /ANTHROPIC_API_KEY/i) || hasFileContentMatch(ctx, '.env.example', /ANTHROPIC_/i))) {
+    recommended.add('anthropic-mcp');
   }
 
   return MCP_PACKS

@@ -1,4 +1,6 @@
-const DOMAIN_PACKS = [
+const { buildAdditionalDomainPacks, detectAdditionalDomainPacks } = require('./domain-pack-expansion');
+
+const BASE_DOMAIN_PACKS = [
   {
     key: 'baseline-general',
     label: 'Baseline General',
@@ -129,6 +131,13 @@ const DOMAIN_PACKS = [
   },
 ];
 
+const DOMAIN_PACKS = [
+  ...BASE_DOMAIN_PACKS,
+  ...buildAdditionalDomainPacks('claude', {
+    existingKeys: new Set(BASE_DOMAIN_PACKS.map((pack) => pack.key)),
+  }),
+];
+
 function uniqueByKey(items) {
   const seen = new Set();
   const result = [];
@@ -169,8 +178,9 @@ function detectDomainPacks(ctx, stacks, assets = null) {
     ctx.files.includes('wrangler.toml') || ctx.files.includes('serverless.yml') || ctx.files.includes('serverless.yaml') ||
     ctx.files.includes('cdk.json') || ctx.hasDir('infra') || ctx.hasDir('deploy') || ctx.hasDir('helm');
   const isOss = !!ctx.fileContent('LICENSE') && pkg.private !== true;
+  const hasCi = ctx.hasDir('.github/workflows');
   const isEnterpriseGoverned = !!(assets && assets.permissions && assets.permissions.hasDenyRules) &&
-    !!(assets && assets.files && assets.files.settings) && ctx.hasDir('.github/workflows');
+    !!(assets && assets.files && assets.files.settings) && hasCi;
 
   if (hasBackend) {
     addMatch('backend-api', [
@@ -347,6 +357,19 @@ function detectDomainPacks(ctx, stacks, assets = null) {
       deps.passport ? 'Passport auth detected.' : null,
     ]);
   }
+
+  detectAdditionalDomainPacks({
+    ctx,
+    pkg,
+    deps,
+    stackKeys,
+    addMatch,
+    hasBackend,
+    hasFrontend,
+    hasInfra,
+    hasCi,
+    isEnterpriseGoverned,
+  });
 
   const deduped = uniqueByKey(matches);
   if (deduped.length === 0) {

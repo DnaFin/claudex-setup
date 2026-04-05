@@ -8,7 +8,9 @@
  * - .cursor/automations/ (event-driven triggers)
  */
 
-const CURSOR_DOMAIN_PACKS = [
+const { buildAdditionalDomainPacks, detectAdditionalDomainPacks } = require('../domain-pack-expansion');
+
+const BASE_CURSOR_DOMAIN_PACKS = [
   {
     key: 'baseline-general',
     label: 'Baseline General',
@@ -171,6 +173,13 @@ const CURSOR_DOMAIN_PACKS = [
   },
 ];
 
+const CURSOR_DOMAIN_PACKS = [
+  ...BASE_CURSOR_DOMAIN_PACKS,
+  ...buildAdditionalDomainPacks('cursor', {
+    existingKeys: new Set(BASE_CURSOR_DOMAIN_PACKS.map((pack) => pack.key)),
+  }),
+];
+
 function uniqueByKey(items) {
   const seen = new Set();
   const result = [];
@@ -327,6 +336,19 @@ function detectCursorDomainPacks(ctx, stacks = [], assets = {}) {
   if (isSecurityFocused) {
     addMatch('security-focused', ['Detected security-focused repo signals.', ctx.fileContent('SECURITY.md') ? 'SECURITY.md present.' : null]);
   }
+
+  detectAdditionalDomainPacks({
+    ctx,
+    pkg,
+    deps,
+    stackKeys,
+    addMatch,
+    hasBackend,
+    hasFrontend,
+    hasInfra,
+    hasCi,
+    isEnterpriseGoverned,
+  });
 
   if (matches.length === 0) {
     addMatch('baseline-general', [

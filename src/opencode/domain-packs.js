@@ -5,7 +5,9 @@
  * JSONC config, AGENTS.md, permission engine, and plugin system.
  */
 
-const OPENCODE_DOMAIN_PACKS = [
+const { buildAdditionalDomainPacks, detectAdditionalDomainPacks } = require('../domain-pack-expansion');
+
+const BASE_OPENCODE_DOMAIN_PACKS = [
   {
     key: 'baseline-general',
     label: 'Baseline General',
@@ -168,6 +170,13 @@ const OPENCODE_DOMAIN_PACKS = [
   },
 ];
 
+const OPENCODE_DOMAIN_PACKS = [
+  ...BASE_OPENCODE_DOMAIN_PACKS,
+  ...buildAdditionalDomainPacks('opencode', {
+    existingKeys: new Set(BASE_OPENCODE_DOMAIN_PACKS.map((pack) => pack.key)),
+  }),
+];
+
 function uniqueByKey(items) {
   const seen = new Set();
   const result = [];
@@ -230,6 +239,19 @@ function detectOpenCodeDomainPacks(ctx, stacks = []) {
   if (hasCi && hasPolicyFiles) {
     addMatch('enterprise-governed', ['Detected CI workflows and policy files.']);
   }
+
+  detectAdditionalDomainPacks({
+    ctx,
+    pkg,
+    deps,
+    stackKeys,
+    addMatch,
+    hasBackend,
+    hasFrontend,
+    hasInfra,
+    hasCi,
+    isEnterpriseGoverned: hasCi && hasPolicyFiles,
+  });
 
   return uniqueByKey(matches);
 }

@@ -379,6 +379,237 @@ const GEMINI_MCP_PACKS = [
     jsonProjection: { command: 'npx', args: ['-y', 'huggingface-mcp-server'], env: { HF_TOKEN: '${HF_TOKEN}' } },
     excludeTools: [],
   },
+  // ── 23 new packs ─────────────────────────────────────────────────────────
+  {
+    key: 'supabase-mcp', label: 'Supabase',
+    description: 'Database, auth, and storage for Supabase.',
+    useWhen: 'Repos using Supabase.',
+    adoption: 'Requires: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'],
+    serverName: 'supabase',
+    jsonProjection: { command: 'npx', args: ['-y', '@supabase/mcp-server-supabase@latest'], env: { SUPABASE_URL: '${SUPABASE_URL}', SUPABASE_SERVICE_ROLE_KEY: '${SUPABASE_SERVICE_ROLE_KEY}' } },
+    excludeTools: ['delete_project', 'drop_table'],
+  },
+  {
+    key: 'prisma-mcp', label: 'Prisma ORM',
+    description: 'Schema inspection and migrations via Prisma.',
+    useWhen: 'Repos with a Prisma schema.',
+    adoption: 'Requires: DATABASE_URL.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['DATABASE_URL'],
+    serverName: 'prisma',
+    jsonProjection: { command: 'npx', args: ['-y', 'prisma-mcp-server@latest'], env: { DATABASE_URL: '${DATABASE_URL}' } },
+    excludeTools: ['drop_database'],
+  },
+  {
+    key: 'vercel-mcp', label: 'Vercel',
+    description: 'Deployment management via Vercel.',
+    useWhen: 'Repos deployed on Vercel.',
+    adoption: 'Requires: VERCEL_TOKEN.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['VERCEL_TOKEN'],
+    serverName: 'vercel',
+    jsonProjection: { command: 'npx', args: ['-y', '@vercel/mcp-server@latest'], env: { VERCEL_TOKEN: '${VERCEL_TOKEN}' } },
+    excludeTools: ['delete_project', 'delete_deployment'],
+  },
+  {
+    key: 'cloudflare-mcp', label: 'Cloudflare',
+    description: 'Workers, KV, R2, and D1 management.',
+    useWhen: 'Repos using Cloudflare edge.',
+    adoption: 'Requires: CLOUDFLARE_API_TOKEN.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['CLOUDFLARE_API_TOKEN'],
+    serverName: 'cloudflare',
+    jsonProjection: { command: 'npx', args: ['-y', '@cloudflare/mcp-server-cloudflare@latest'], env: { CLOUDFLARE_API_TOKEN: '${CLOUDFLARE_API_TOKEN}' } },
+    excludeTools: ['delete_worker', 'purge_cache'],
+  },
+  {
+    key: 'aws-mcp', label: 'AWS',
+    description: 'S3, Lambda, DynamoDB access.',
+    useWhen: 'Repos using AWS.',
+    adoption: 'Requires: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION.',
+    trustLevel: 'low', transport: 'stdio', requiredAuth: ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_REGION'],
+    serverName: 'aws',
+    jsonProjection: { command: 'npx', args: ['-y', '@aws-samples/mcp-server-aws@latest'], env: { AWS_ACCESS_KEY_ID: '${AWS_ACCESS_KEY_ID}', AWS_SECRET_ACCESS_KEY: '${AWS_SECRET_ACCESS_KEY}', AWS_REGION: '${AWS_REGION}' } },
+    excludeTools: ['delete_stack', 'terminate_instances', 'delete_bucket'],
+  },
+  {
+    key: 'redis-mcp', label: 'Redis',
+    description: 'Cache and session management.',
+    useWhen: 'Repos using Redis.',
+    adoption: 'Requires: REDIS_URL.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['REDIS_URL'],
+    serverName: 'redis',
+    jsonProjection: { command: 'npx', args: ['-y', 'redis-mcp-server@latest'], env: { REDIS_URL: '${REDIS_URL}' } },
+    excludeTools: ['flushall', 'flushdb'],
+  },
+  {
+    key: 'mongodb-mcp', label: 'MongoDB',
+    description: 'Document database access.',
+    useWhen: 'Repos using MongoDB.',
+    adoption: 'Requires: MONGODB_URI.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['MONGODB_URI'],
+    serverName: 'mongodb',
+    jsonProjection: { command: 'npx', args: ['-y', '@mongodb-js/mongodb-mcp-server@latest'], env: { MONGODB_URI: '${MONGODB_URI}' } },
+    excludeTools: ['drop_collection', 'drop_database'],
+  },
+  {
+    key: 'twilio-mcp', label: 'Twilio',
+    description: 'SMS, voice, and messaging.',
+    useWhen: 'Repos using Twilio.',
+    adoption: 'Requires: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN.',
+    trustLevel: 'low', transport: 'stdio', requiredAuth: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN'],
+    serverName: 'twilio',
+    jsonProjection: { command: 'npx', args: ['-y', 'twilio-mcp-server@latest'], env: { TWILIO_ACCOUNT_SID: '${TWILIO_ACCOUNT_SID}', TWILIO_AUTH_TOKEN: '${TWILIO_AUTH_TOKEN}' } },
+    excludeTools: ['delete_message'],
+  },
+  {
+    key: 'sendgrid-mcp', label: 'SendGrid',
+    description: 'Transactional email delivery.',
+    useWhen: 'Repos using SendGrid.',
+    adoption: 'Requires: SENDGRID_API_KEY.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['SENDGRID_API_KEY'],
+    serverName: 'sendgrid',
+    jsonProjection: { command: 'npx', args: ['-y', 'sendgrid-mcp-server@latest'], env: { SENDGRID_API_KEY: '${SENDGRID_API_KEY}' } },
+    excludeTools: [],
+  },
+  {
+    key: 'algolia-mcp', label: 'Algolia Search',
+    description: 'Search indexing via Algolia.',
+    useWhen: 'Repos using Algolia.',
+    adoption: 'Requires: ALGOLIA_APP_ID, ALGOLIA_API_KEY.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['ALGOLIA_APP_ID', 'ALGOLIA_API_KEY'],
+    serverName: 'algolia',
+    jsonProjection: { command: 'npx', args: ['-y', 'algolia-mcp-server@latest'], env: { ALGOLIA_APP_ID: '${ALGOLIA_APP_ID}', ALGOLIA_API_KEY: '${ALGOLIA_API_KEY}' } },
+    excludeTools: ['delete_index'],
+  },
+  {
+    key: 'planetscale-mcp', label: 'PlanetScale',
+    description: 'Serverless MySQL via PlanetScale.',
+    useWhen: 'Repos on PlanetScale.',
+    adoption: 'Requires: PLANETSCALE_TOKEN.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['PLANETSCALE_TOKEN'],
+    serverName: 'planetscale',
+    jsonProjection: { command: 'npx', args: ['-y', 'planetscale-mcp-server@latest'], env: { PLANETSCALE_TOKEN: '${PLANETSCALE_TOKEN}' } },
+    excludeTools: ['delete_database'],
+  },
+  {
+    key: 'neon-mcp', label: 'Neon Serverless Postgres',
+    description: 'Serverless Postgres via Neon.',
+    useWhen: 'Repos using Neon.',
+    adoption: 'Requires: NEON_API_KEY.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['NEON_API_KEY'],
+    serverName: 'neon',
+    jsonProjection: { command: 'npx', args: ['-y', '@neondatabase/mcp-server-neon@latest'], env: { NEON_API_KEY: '${NEON_API_KEY}' } },
+    excludeTools: ['delete_project'],
+  },
+  {
+    key: 'turso-mcp', label: 'Turso Edge SQLite',
+    description: 'Edge SQLite via Turso.',
+    useWhen: 'Repos using Turso.',
+    adoption: 'Requires: TURSO_DATABASE_URL, TURSO_AUTH_TOKEN.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN'],
+    serverName: 'turso',
+    jsonProjection: { command: 'npx', args: ['-y', 'turso-mcp-server@latest'], env: { TURSO_DATABASE_URL: '${TURSO_DATABASE_URL}', TURSO_AUTH_TOKEN: '${TURSO_AUTH_TOKEN}' } },
+    excludeTools: ['destroy_database'],
+  },
+  {
+    key: 'upstash-mcp', label: 'Upstash Redis+Kafka',
+    description: 'Serverless Redis and Kafka.',
+    useWhen: 'Repos using Upstash.',
+    adoption: 'Requires: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN'],
+    serverName: 'upstash',
+    jsonProjection: { command: 'npx', args: ['-y', '@upstash/mcp-server@latest'], env: { UPSTASH_REDIS_REST_URL: '${UPSTASH_REDIS_REST_URL}', UPSTASH_REDIS_REST_TOKEN: '${UPSTASH_REDIS_REST_TOKEN}' } },
+    excludeTools: [],
+  },
+  {
+    key: 'convex-mcp', label: 'Convex',
+    description: 'Reactive backend via Convex.',
+    useWhen: 'Repos using Convex.',
+    adoption: 'Requires: CONVEX_DEPLOYMENT.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['CONVEX_DEPLOYMENT'],
+    serverName: 'convex',
+    jsonProjection: { command: 'npx', args: ['-y', '@convex-dev/mcp-server@latest'], env: { CONVEX_DEPLOYMENT: '${CONVEX_DEPLOYMENT}' } },
+    excludeTools: ['delete_deployment'],
+  },
+  {
+    key: 'clerk-mcp', label: 'Clerk Authentication',
+    description: 'User auth via Clerk.',
+    useWhen: 'Repos using Clerk.',
+    adoption: 'Requires: CLERK_SECRET_KEY.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['CLERK_SECRET_KEY'],
+    serverName: 'clerk',
+    jsonProjection: { command: 'npx', args: ['-y', '@clerk/mcp-server@latest'], env: { CLERK_SECRET_KEY: '${CLERK_SECRET_KEY}' } },
+    excludeTools: ['delete_user'],
+  },
+  {
+    key: 'resend-mcp', label: 'Resend Email',
+    description: 'Transactional email via Resend.',
+    useWhen: 'Repos using Resend.',
+    adoption: 'Requires: RESEND_API_KEY.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['RESEND_API_KEY'],
+    serverName: 'resend',
+    jsonProjection: { command: 'npx', args: ['-y', 'resend-mcp-server@latest'], env: { RESEND_API_KEY: '${RESEND_API_KEY}' } },
+    excludeTools: [],
+  },
+  {
+    key: 'temporal-mcp', label: 'Temporal Workflow',
+    description: 'Workflow orchestration via Temporal.',
+    useWhen: 'Repos using Temporal.',
+    adoption: 'Requires: TEMPORAL_ADDRESS.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['TEMPORAL_ADDRESS'],
+    serverName: 'temporal',
+    jsonProjection: { command: 'npx', args: ['-y', 'temporal-mcp-server@latest'], env: { TEMPORAL_ADDRESS: '${TEMPORAL_ADDRESS}' } },
+    excludeTools: ['terminate_workflow'],
+  },
+  {
+    key: 'launchdarkly-mcp', label: 'LaunchDarkly',
+    description: 'Feature flags via LaunchDarkly.',
+    useWhen: 'Repos using LaunchDarkly.',
+    adoption: 'Requires: LAUNCHDARKLY_ACCESS_TOKEN.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['LAUNCHDARKLY_ACCESS_TOKEN'],
+    serverName: 'launchdarkly',
+    jsonProjection: { command: 'npx', args: ['-y', 'launchdarkly-mcp-server@latest'], env: { LAUNCHDARKLY_ACCESS_TOKEN: '${LAUNCHDARKLY_ACCESS_TOKEN}' } },
+    excludeTools: ['delete_flag'],
+  },
+  {
+    key: 'datadog-mcp', label: 'Datadog',
+    description: 'Monitoring and APM via Datadog.',
+    useWhen: 'Repos using Datadog.',
+    adoption: 'Requires: DATADOG_API_KEY, DATADOG_APP_KEY.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['DATADOG_API_KEY', 'DATADOG_APP_KEY'],
+    serverName: 'datadog',
+    jsonProjection: { command: 'npx', args: ['-y', '@datadog/mcp-server@latest'], env: { DATADOG_API_KEY: '${DATADOG_API_KEY}', DATADOG_APP_KEY: '${DATADOG_APP_KEY}' } },
+    excludeTools: ['delete_monitor'],
+  },
+  {
+    key: 'grafana-mcp', label: 'Grafana',
+    description: 'Dashboards via Grafana.',
+    useWhen: 'Repos using Grafana.',
+    adoption: 'Requires: GRAFANA_URL, GRAFANA_API_KEY.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['GRAFANA_URL', 'GRAFANA_API_KEY'],
+    serverName: 'grafana',
+    jsonProjection: { command: 'npx', args: ['-y', 'grafana-mcp-server@latest'], env: { GRAFANA_URL: '${GRAFANA_URL}', GRAFANA_API_KEY: '${GRAFANA_API_KEY}' } },
+    excludeTools: ['delete_dashboard'],
+  },
+  {
+    key: 'circleci-mcp', label: 'CircleCI',
+    description: 'CI/CD via CircleCI.',
+    useWhen: 'Repos using CircleCI.',
+    adoption: 'Requires: CIRCLECI_TOKEN.',
+    trustLevel: 'medium', transport: 'stdio', requiredAuth: ['CIRCLECI_TOKEN'],
+    serverName: 'circleci',
+    jsonProjection: { command: 'npx', args: ['-y', 'circleci-mcp-server@latest'], env: { CIRCLECI_TOKEN: '${CIRCLECI_TOKEN}' } },
+    excludeTools: ['cancel_pipeline'],
+  },
+  {
+    key: 'anthropic-mcp', label: 'Anthropic Claude API',
+    description: 'Claude API for AI-powered apps.',
+    useWhen: 'Repos building on Claude API.',
+    adoption: 'Requires: ANTHROPIC_API_KEY.',
+    trustLevel: 'high', transport: 'stdio', requiredAuth: ['ANTHROPIC_API_KEY'],
+    serverName: 'anthropic',
+    jsonProjection: { command: 'npx', args: ['-y', '@anthropic-ai/mcp-server@latest'], env: { ANTHROPIC_API_KEY: '${ANTHROPIC_API_KEY}' } },
+    excludeTools: [],
+  },
 ];
 
 // --- Helpers ---
@@ -573,6 +804,32 @@ function recommendGeminiMcpPacks(stacks = [], domainPacks = [], options = {}) {
   }
 
   // Note: Gemini CLI has built-in web search, so no separate search MCP pack is needed.
+  // ── 23 new packs recommendation logic ────────────────────────────────────
+  if (ctx) {
+    if (hasDependency(deps, '@supabase/supabase-js') || hasDependency(deps, '@supabase/auth-helpers-nextjs') || hasFileContentMatch(ctx, '.env', /SUPABASE/i) || hasFileContentMatch(ctx, '.env.example', /SUPABASE/i)) recommended.add('supabase-mcp');
+    if (hasFileContentMatch(ctx, 'schema.prisma', /\S/) || hasDependency(deps, '@prisma/client') || hasDependency(deps, 'prisma')) recommended.add('prisma-mcp');
+    if (ctx.files.includes('vercel.json') || hasFileContentMatch(ctx, 'package.json', /"deploy":\s*"vercel/i) || hasFileContentMatch(ctx, '.env', /VERCEL_TOKEN/i)) recommended.add('vercel-mcp');
+    if (hasFileContentMatch(ctx, 'wrangler.toml', /\S/) || hasDependency(deps, 'wrangler') || hasFileContentMatch(ctx, '.env', /CLOUDFLARE/i)) recommended.add('cloudflare-mcp');
+    if (hasFileContentMatch(ctx, '.env', /AWS_ACCESS_KEY/i) || ctx.files.some(f => /serverless\.yml|template\.ya?ml|cdk\.json/.test(f))) recommended.add('aws-mcp');
+    if (hasDependency(deps, 'redis') || hasDependency(deps, 'ioredis') || hasDependency(deps, '@redis/client') || hasFileContentMatch(ctx, '.env', /REDIS_URL/i)) recommended.add('redis-mcp');
+    if (hasDependency(deps, 'mongoose') || hasDependency(deps, 'mongodb') || hasFileContentMatch(ctx, '.env', /MONGODB_URI/i)) recommended.add('mongodb-mcp');
+    if (hasDependency(deps, 'twilio') || hasFileContentMatch(ctx, '.env', /TWILIO_/i)) recommended.add('twilio-mcp');
+    if (hasDependency(deps, '@sendgrid/mail') || hasFileContentMatch(ctx, '.env', /SENDGRID_API_KEY/i)) recommended.add('sendgrid-mcp');
+    if (hasDependency(deps, 'algoliasearch') || hasDependency(deps, '@algolia/client-search') || hasFileContentMatch(ctx, '.env', /ALGOLIA_/i)) recommended.add('algolia-mcp');
+    if (hasFileContentMatch(ctx, '.env', /PLANETSCALE_TOKEN/i)) recommended.add('planetscale-mcp');
+    if (hasDependency(deps, '@neondatabase/serverless') || hasFileContentMatch(ctx, '.env', /NEON_/i)) recommended.add('neon-mcp');
+    if (hasDependency(deps, '@libsql/client') || hasFileContentMatch(ctx, '.env', /TURSO_/i)) recommended.add('turso-mcp');
+    if (hasDependency(deps, '@upstash/redis') || hasDependency(deps, '@upstash/kafka') || hasFileContentMatch(ctx, '.env', /UPSTASH_/i)) recommended.add('upstash-mcp');
+    if (hasDependency(deps, 'convex') || hasFileContentMatch(ctx, 'convex.json', /\S/) || hasFileContentMatch(ctx, '.env', /CONVEX_/i)) recommended.add('convex-mcp');
+    if (hasDependency(deps, '@clerk/nextjs') || hasDependency(deps, '@clerk/backend') || hasFileContentMatch(ctx, '.env', /CLERK_/i)) recommended.add('clerk-mcp');
+    if (hasDependency(deps, 'resend') || hasFileContentMatch(ctx, '.env', /RESEND_API_KEY/i)) recommended.add('resend-mcp');
+    if (hasDependency(deps, '@temporalio/client') || hasFileContentMatch(ctx, '.env', /TEMPORAL_/i)) recommended.add('temporal-mcp');
+    if (hasDependency(deps, '@launchdarkly/node-server-sdk') || hasFileContentMatch(ctx, '.env', /LAUNCHDARKLY_/i)) recommended.add('launchdarkly-mcp');
+    if (hasDependency(deps, 'dd-trace') || hasFileContentMatch(ctx, '.env', /DATADOG_/i)) recommended.add('datadog-mcp');
+    if (hasFileContentMatch(ctx, 'docker-compose.yml', /grafana/i) || hasFileContentMatch(ctx, '.env', /GRAFANA_/i)) recommended.add('grafana-mcp');
+    if (ctx.files.some(f => /\.circleci\/config/.test(f)) || hasFileContentMatch(ctx, '.env', /CIRCLECI_/i)) recommended.add('circleci-mcp');
+    if (hasDependency(deps, '@anthropic-ai/sdk') || hasDependency(deps, 'anthropic') || hasFileContentMatch(ctx, '.env', /ANTHROPIC_API_KEY/i)) recommended.add('anthropic-mcp');
+  }
 
   return GEMINI_MCP_PACKS
     .filter(pack => recommended.has(pack.key))

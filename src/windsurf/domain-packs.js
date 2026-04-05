@@ -10,7 +10,9 @@
  * - No background agents (unlike Cursor)
  */
 
-const WINDSURF_DOMAIN_PACKS = [
+const { buildAdditionalDomainPacks, detectAdditionalDomainPacks } = require('../domain-pack-expansion');
+
+const BASE_WINDSURF_DOMAIN_PACKS = [
   {
     key: 'baseline-general',
     label: 'Baseline General',
@@ -173,6 +175,13 @@ const WINDSURF_DOMAIN_PACKS = [
   },
 ];
 
+const WINDSURF_DOMAIN_PACKS = [
+  ...BASE_WINDSURF_DOMAIN_PACKS,
+  ...buildAdditionalDomainPacks('windsurf', {
+    existingKeys: new Set(BASE_WINDSURF_DOMAIN_PACKS.map((pack) => pack.key)),
+  }),
+];
+
 function uniqueByKey(items) {
   const seen = new Set();
   const result = [];
@@ -329,6 +338,19 @@ function detectWindsurfDomainPacks(ctx, stacks = [], assets = {}) {
   if (isSecurityFocused) {
     addMatch('security-focused', ['Detected security-focused repo signals.', ctx.fileContent('SECURITY.md') ? 'SECURITY.md present.' : null]);
   }
+
+  detectAdditionalDomainPacks({
+    ctx,
+    pkg,
+    deps,
+    stackKeys,
+    addMatch,
+    hasBackend,
+    hasFrontend,
+    hasInfra,
+    hasCi,
+    isEnterpriseGoverned,
+  });
 
   if (matches.length === 0) {
     addMatch('baseline-general', [

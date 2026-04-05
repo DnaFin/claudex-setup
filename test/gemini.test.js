@@ -161,8 +161,8 @@ describe('Gemini audit + setup', () => {
     expect(summary.permissionProfiles).toHaveLength(6);
     expect(summary.hookRegistry).toHaveLength(7);
     expect(summary.policyPacks).toHaveLength(5);
-    expect(summary.mcpPacks).toHaveLength(26);
-    expect(summary.domainPacks).toHaveLength(16);
+    expect(summary.mcpPacks).toHaveLength(49);
+    expect(summary.domainPacks).toHaveLength(40);
     expect(summary.platformCaveats.some(item => /yolo/i.test(item))).toBe(true);
   });
 

@@ -1,4 +1,6 @@
-const CODEX_DOMAIN_PACKS = [
+const { buildAdditionalDomainPacks, detectAdditionalDomainPacks } = require('../domain-pack-expansion');
+
+const BASE_CODEX_DOMAIN_PACKS = [
   {
     key: 'baseline-general',
     label: 'Baseline General',
@@ -160,6 +162,13 @@ const CODEX_DOMAIN_PACKS = [
     recommendedSurfaces: ['.codex/config.toml', 'codex/rules/', '.github/workflows/'],
     benchmarkFocus: ['secret protection', 'auth flow safety', 'security review coverage'],
   },
+];
+
+const CODEX_DOMAIN_PACKS = [
+  ...BASE_CODEX_DOMAIN_PACKS,
+  ...buildAdditionalDomainPacks('codex', {
+    existingKeys: new Set(BASE_CODEX_DOMAIN_PACKS.map((pack) => pack.key)),
+  }),
 ];
 
 function uniqueByKey(items) {
@@ -353,6 +362,19 @@ function detectCodexDomainPacks(ctx, stacks = [], assets = {}) {
       ctx.fileContent('SECURITY.md') ? 'SECURITY.md present.' : null,
     ]);
   }
+
+  detectAdditionalDomainPacks({
+    ctx,
+    pkg,
+    deps,
+    stackKeys,
+    addMatch,
+    hasBackend,
+    hasFrontend,
+    hasInfra,
+    hasCi,
+    isEnterpriseGoverned,
+  });
 
   if (matches.length === 0) {
     addMatch('baseline-general', [

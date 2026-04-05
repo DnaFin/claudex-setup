@@ -1,4 +1,6 @@
-const GEMINI_DOMAIN_PACKS = [
+const { buildAdditionalDomainPacks, detectAdditionalDomainPacks } = require('../domain-pack-expansion');
+
+const BASE_GEMINI_DOMAIN_PACKS = [
   {
     key: 'baseline-general',
     label: 'Baseline General',
@@ -159,6 +161,13 @@ const GEMINI_DOMAIN_PACKS = [
     recommendedSurfaces: ['.gemini/settings.json', '.gemini/agents/', '.github/workflows/'],
     benchmarkFocus: ['secret protection', 'auth flow safety', 'security review coverage'],
   },
+];
+
+const GEMINI_DOMAIN_PACKS = [
+  ...BASE_GEMINI_DOMAIN_PACKS,
+  ...buildAdditionalDomainPacks('gemini', {
+    existingKeys: new Set(BASE_GEMINI_DOMAIN_PACKS.map((pack) => pack.key)),
+  }),
 ];
 
 function uniqueByKey(items) {
@@ -352,6 +361,19 @@ function detectGeminiDomainPacks(ctx, stacks = [], assets = {}) {
       ctx.fileContent('SECURITY.md') ? 'SECURITY.md present.' : null,
     ]);
   }
+
+  detectAdditionalDomainPacks({
+    ctx,
+    pkg,
+    deps,
+    stackKeys,
+    addMatch,
+    hasBackend,
+    hasFrontend,
+    hasInfra,
+    hasCi,
+    isEnterpriseGoverned,
+  });
 
   if (matches.length === 0) {
     addMatch('baseline-general', [
