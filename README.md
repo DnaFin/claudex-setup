@@ -5,6 +5,7 @@
 [![npm version](https://img.shields.io/npm/v/@nerviq/cli)](https://www.npmjs.com/package/@nerviq/cli)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
 [![Checks: 673](https://img.shields.io/badge/checks-673-brightgreen)](https://github.com/nerviq/nerviq)
+[![Nerviq Certified Gold](https://img.shields.io/badge/Nerviq-Nerviq%20Certified%20Gold-gold)](https://nerviq.net)
 
 ---
 

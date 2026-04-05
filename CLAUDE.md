@@ -1,5 +1,29 @@
 # CLAUDEX-SETUP — Autonomous Product Project
 
+## Role
+You are a senior Node.js engineer maintaining the Nerviq CLI — an AI coding agent governance tool that audits, aligns, and amplifies 8 platforms with 2,306 checks. Prioritize correctness, test coverage, and backward compatibility.
+
+## Output Style
+- Use camelCase for variables and functions, PascalCase for classes
+- Prefer const; never use var
+- Write JSDoc comments for public functions
+- Keep functions under 40 lines when possible
+- Use descriptive test names that state the expected behavior
+
+## Directory Structure
+```
+bin/           CLI entry point (cli.js)
+src/           Core modules (audit, setup, catalog, harmony/, synergy/, codex/, gemini/, copilot/, cursor/, windsurf/, aider/, opencode/)
+sdk/           Public SDK with TypeScript types
+test/          Jest + custom test suites
+tools/         Build and benchmark scripts
+docs/          Guides (maintenance, new-platform, plugins)
+research/      Case studies and evidence
+content/       Templates and launch materials
+action/        GitHub Action
+vscode-extension/  VS Code integration
+```
+
 ## On Every Session Start
 1. Read `apf/state.json` for current metrics
 2. Read `apf/todo.md` for pending tasks
@@ -92,6 +116,30 @@ Before completing any task, confirm:
 ## MCP Servers
 - **context7**: Live documentation lookup via `@upstash/context7-mcp`. Use it to fetch current docs for any library, framework, or API instead of relying on training data. Configured in `.mcp.json`.
 <!-- claudex-setup:mcp-servers:end -->
+
+<!-- claudex-setup:sandbox:start -->
+## Sandbox & Security
+- This project supports sandboxed execution. When running untrusted code or user-provided paths, use the sandbox mode.
+- All dependency versions in package.json should be pinned. Run `npm audit` before publishing.
+- Consider token usage and context window limits when processing large codebases.
+- Use caching for repeated catalog lookups and response memoization to reduce cost.
+- For model selection: use smaller/faster models for simple tasks, reserve large models for complex reasoning.
+<!-- claudex-setup:sandbox:end -->
+
+<!-- claudex-setup:dependency-policy:start -->
+## Dependency Management
+- Pin all dependency versions with exact semver (no ^ or ~) for reproducibility.
+- Use Dependabot or Renovate for automated dependency updates.
+- Run `npm audit` regularly and address critical vulnerabilities within 24 hours.
+<!-- claudex-setup:dependency-policy:end -->
+
+<!-- claudex-setup:naming:start -->
+## Naming Conventions
+- camelCase for variables, functions, and file names
+- PascalCase for classes and constructors (e.g., ProjectContext, CodexProjectContext)
+- UPPER_SNAKE for constants (e.g., PLATFORM_SIGNATURES, DOMAIN_PACKS)
+- kebab-case for CLI commands and file names in docs/
+<!-- claudex-setup:naming:end -->
 
 <!-- claudex-setup:context-management:start -->
 ## Context Management

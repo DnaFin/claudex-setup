@@ -32,6 +32,13 @@ jobs:
       - run: npm test
       - run: npm run build
 
+      - name: Nerviq self-audit
+        run: node bin/cli.js audit --json --threshold 70
+
+      - name: Nerviq harmony-audit (informational)
+        run: node bin/cli.js harmony-audit --json
+        continue-on-error: true
+
   publish:
     name: Publish to npm (provenance)
     runs-on: ubuntu-latest

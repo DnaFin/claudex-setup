@@ -1,7 +1,54 @@
 # Changelog
 
+## [1.2.2] - 2026-04-05
+
+### Fixed
+- LICENSE updated to AGPL-3.0 full text
+- Package description updated to reflect 2,306 checks
+- CI test assertions updated for new error messages and .npmignore changes
+
+## [1.2.1] - 2026-04-05
+
+### Fixed
+- Skip API/DB/Auth/Monitoring checks on irrelevant projects to reduce false positives
+- Self-dogfood: added .mcp.json to own project
+
+## [1.2.0] - 2026-04-05
+
+### Added
+- Massive expansion: 673 to 2,306 checks (+1,633 new checks)
+- Batch 4: 25 case studies (10 single-platform + 10 harmony/synergy + 5 existing) with INDEX
+- Batch 3: +104 experiments (228 to 332) + +133 research docs (315 to 448) + 27 cross-platform
+- Python, Go, Rust, Java stack-specific checks across all 8 platforms
+
+## [1.1.1] - 2026-04-05
+
+### Added
+- Batch 2: +24 domain packs (16 to 40) across all 8 platforms
+- Batch 2: +23 MCP packs (26 to 49) across all 8 platforms
+
+## [1.1.0] - 2026-04-05
+
+### Added
+- Batch 1: +383 checks (673 to 1,056)
+- 8 new check categories across all 8 platforms
+
+## [1.0.2] - 2026-04-05
+
+### Fixed
+- Scorecard fixes: 15 dimensions improved (privacy, security, monorepo, org, integrations, telemetry, OTel, SLSA, versioning, errors, audit log, deprecation, large files, relevance decay, case studies)
+- Final technical tasks: methodology doc, FP ranking, SBOM, CI experiments, .npmignore, test:all script
+
+## [1.0.1] - 2026-04-05
+
+### Fixed
+- Mermaid diagram rendering in CLAUDE.md templates
+- macOS grep compatibility
+- Mermaid display bug in audit output
+- Version stamp alignment
+
 ## 1.0.0 — 2026-04-05
-### 🎉 First Stable Release
+### First Stable Release
 - 8 platforms: Claude Code, Codex, Gemini CLI, GitHub Copilot, Cursor, Windsurf, Aider, OpenCode
 - 673 checks with sourceUrl and confidence on every check
 - Harmony: cross-platform drift detection and alignment

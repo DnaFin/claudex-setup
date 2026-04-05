@@ -48,6 +48,31 @@ describe('HTTP server', () => {
     await new Promise((resolve) => server.close(resolve));
   });
 
+  // ─── QP-A05: Server integration tests ─────────────────────────────────
+
+  test('createServer returns object with listen method', () => {
+    const srv = createServer({ baseDir: process.cwd() });
+    expect(srv).toBeDefined();
+    expect(typeof srv.listen).toBe('function');
+  });
+
+  test('/api/health returns { status: "ok" }', async () => {
+    const response = await requestJson(port, '/api/health');
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.status).toBe('ok');
+  });
+
+  test('/api/catalog returns array', async () => {
+    const response = await requestJson(port, '/api/catalog');
+
+    expect(response.statusCode).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body.length).toBeGreaterThan(0);
+  });
+
+  // ─── Original tests ───────────────────────────────────────────────────
+
   test('/api/health reports version and full catalog count', async () => {
     const response = await requestJson(port, '/api/health');
 

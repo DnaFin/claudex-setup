@@ -52,4 +52,53 @@ describe('@nerviq/sdk', () => {
     expect(typeof result.report).toBe('string');
     expect(result.report).toContain('SYNERGY DASHBOARD');
   });
+
+  // ─── QP-A04: SDK integration tests ──────────────────────────────────────
+
+  test('audit returns valid result with score 0-100', async () => {
+    const dir = makeTempDir('audit-score');
+    fs.writeFileSync(path.join(dir, 'CLAUDE.md'), '# Claude\nTest project.\n', 'utf8');
+    const result = await sdk.audit(dir, 'claude');
+    expect(result).toHaveProperty('score');
+    expect(typeof result.score).toBe('number');
+    expect(result.score).toBeGreaterThanOrEqual(0);
+    expect(result.score).toBeLessThanOrEqual(100);
+    expect(result).toHaveProperty('platform', 'claude');
+    expect(Array.isArray(result.results)).toBe(true);
+  });
+
+  test('harmonyAudit on temp dir with CLAUDE.md + AGENTS.md detects 2 platforms', async () => {
+    const dir = makeTempDir('harmony');
+    fs.writeFileSync(path.join(dir, 'CLAUDE.md'), '# Claude\nProject instructions\n', 'utf8');
+    fs.writeFileSync(path.join(dir, 'AGENTS.md'), '# Codex\nAgent instructions\n', 'utf8');
+    const result = await sdk.harmonyAudit(dir);
+    expect(result).toHaveProperty('harmonyScore');
+    expect(typeof result.harmonyScore).toBe('number');
+    expect(result).toHaveProperty('activePlatforms');
+    expect(result.activePlatforms.length).toBe(2);
+    const platformNames = result.activePlatforms.map(p => typeof p === 'string' ? p : p.platform);
+    expect(platformNames).toContain('claude');
+    expect(platformNames).toContain('codex');
+  });
+
+  test('detectPlatforms returns array containing claude for dir with CLAUDE.md', () => {
+    const dir = makeTempDir('detect-claude');
+    fs.writeFileSync(path.join(dir, 'CLAUDE.md'), '# Claude\n', 'utf8');
+    const platforms = sdk.detectPlatforms(dir);
+    expect(Array.isArray(platforms)).toBe(true);
+    expect(platforms).toContain('claude');
+  });
+
+  test('getCatalog returns array with 2306 entries', () => {
+    const catalog = sdk.getCatalog();
+    expect(Array.isArray(catalog)).toBe(true);
+    expect(catalog).toHaveLength(2306);
+  });
+
+  test('routeTask("fix bug", ["claude","codex"]) returns claude', () => {
+    const result = sdk.routeTask('fix bug', ['claude', 'codex']);
+    expect(result).toHaveProperty('recommended');
+    expect(result.recommended).not.toBeNull();
+    expect(result.recommended.platform).toBe('claude');
+  });
 });

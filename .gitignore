@@ -9,3 +9,4 @@ node_modules/
 .claude/logs/
 .claude/settings.local.json
 coverage/
+CLAUDE.local.md
