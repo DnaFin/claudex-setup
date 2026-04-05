@@ -4757,6 +4757,635 @@ const TECHNIQUES = {
     fix: 'Configure Dependabot, Renovate, or Snyk to automatically scan and update vulnerable dependencies.',
   },
 
+  // ── MC3: Internationalization i18n ──────────────────────────────────
+
+  i18nLibrary: {
+    id: 130101,
+    name: 'i18n library in dependencies',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      if (/i18next|react-intl|vue-i18n|@angular\/localize/i.test(pkg)) return true;
+      const py = readProjectFiles(ctx, /(^|\/)pyproject\.toml$/i) + readProjectFiles(ctx, /(^|\/)requirements[^/]*\.txt$/i);
+      if (/gettext|babel|fluent/i.test(py)) return true;
+      return false;
+    },
+    impact: 'medium',
+    category: 'i18n',
+    fix: 'Add an i18n library (i18next, react-intl, vue-i18n, gettext, fluent) for internationalization support.',
+    confidence: 0.7,
+  },
+
+  localeFiles: {
+    id: 130102,
+    name: 'Locale files exist',
+    check: (ctx) => {
+      return hasProjectFile(ctx, /(^|\/)locales\//i) ||
+        hasProjectFile(ctx, /(^|\/)messages\//i) ||
+        hasProjectFile(ctx, /(^|\/)translations\//i) ||
+        hasProjectFile(ctx, /\.(po|xlf)$/i);
+    },
+    impact: 'medium',
+    category: 'i18n',
+    fix: 'Add locale files in a locales/, messages/, or translations/ directory for multi-language support.',
+    confidence: 0.7,
+  },
+
+  rtlSupport: {
+    id: 130103,
+    name: 'RTL support configured',
+    check: (ctx) => {
+      const src = readProjectFiles(ctx, /\.(jsx?|tsx?|vue|html|css|scss)$/i, 30);
+      return /dir=["']rtl["']|\brtl\b|\bbidi\b/i.test(src);
+    },
+    impact: 'low',
+    category: 'i18n',
+    fix: 'Add RTL (right-to-left) support with dir="rtl" or bidi utilities for languages like Arabic and Hebrew.',
+    confidence: 0.7,
+  },
+
+  pluralizationRules: {
+    id: 130104,
+    name: 'ICU message format or pluralization',
+    check: (ctx) => {
+      const src = readProjectFiles(ctx, /\.(jsx?|tsx?|json|properties)$/i, 30);
+      return /\{[^}]*,\s*plural\s*,/i.test(src) || /\bplural\b.*\bone\b|\bICU\b/i.test(src);
+    },
+    impact: 'low',
+    category: 'i18n',
+    fix: 'Use ICU message format or pluralization rules for correct multi-language number/gender handling.',
+    confidence: 0.7,
+  },
+
+  i18nExtraction: {
+    id: 130105,
+    name: 'i18n extraction tool configured',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      return /babel-plugin-react-intl|i18next-parser|@formatjs\/cli|react-intl-translations-manager/i.test(pkg);
+    },
+    impact: 'low',
+    category: 'i18n',
+    fix: 'Add an i18n extraction tool (i18next-parser, @formatjs/cli) to auto-extract translatable strings.',
+    confidence: 0.7,
+  },
+
+  dateTimeFormatting: {
+    id: 130106,
+    name: 'Locale-aware date/time formatting',
+    check: (ctx) => {
+      const src = readProjectFiles(ctx, /\.(jsx?|tsx?|vue)$/i, 30);
+      return /Intl\.DateTimeFormat|date-fns\/locale|dayjs\/locale|moment\/locale/i.test(src);
+    },
+    impact: 'low',
+    category: 'i18n',
+    fix: 'Use locale-aware date/time formatting (Intl.DateTimeFormat, date-fns/locale, dayjs/locale) instead of hardcoded formats.',
+    confidence: 0.7,
+  },
+
+  // ── MC5: API Versioning ─────────────────────────────────────────────
+
+  apiVersionHeader: {
+    id: 130111,
+    name: 'API versioning pattern present',
+    check: (ctx) => {
+      const src = readProjectFiles(ctx, /\.(jsx?|tsx?|py|go|java|rb)$/i, 30);
+      const config = readProjectFiles(ctx, /\.(ya?ml|json)$/i, 20);
+      return /\/v[12]\/|api-version|Accept-Version|x-api-version/i.test(src + config);
+    },
+    impact: 'medium',
+    category: 'api-versioning',
+    fix: 'Add API versioning (URL prefix /v1/, header Accept-Version) to manage breaking changes safely.',
+    confidence: 0.7,
+  },
+
+  deprecationNotices: {
+    id: 130112,
+    name: 'Deprecation notices in API code',
+    check: (ctx) => {
+      const src = readProjectFiles(ctx, /\.(jsx?|tsx?|py|go|java|rb)$/i, 30);
+      return /@deprecated|Deprecation|Sunset|x-deprecated/i.test(src);
+    },
+    impact: 'low',
+    category: 'api-versioning',
+    fix: 'Add @deprecated annotations or Deprecation/Sunset headers to signal API endpoint retirement.',
+    confidence: 0.7,
+  },
+
+  apiChangelog: {
+    id: 130113,
+    name: 'API changelog exists',
+    check: (ctx) => {
+      if (hasProjectFile(ctx, /(^|\/)api-changelog/i)) return true;
+      const changelog = ctx.fileContent('CHANGELOG.md') || '';
+      return /\bAPI\b/i.test(changelog);
+    },
+    impact: 'low',
+    category: 'api-versioning',
+    fix: 'Add an API changelog (CHANGELOG.md with API section or api-changelog file) to document breaking changes.',
+    confidence: 0.7,
+  },
+
+  backwardCompat: {
+    id: 130114,
+    name: 'Backward compatibility tests or migrations',
+    check: (ctx) => {
+      return hasProjectFile(ctx, /(^|\/)(migration|migrate)/i) ||
+        hasProjectFile(ctx, /(backward|compat).*test/i);
+    },
+    impact: 'medium',
+    category: 'api-versioning',
+    fix: 'Add backward compatibility tests or migration scripts to validate API changes don\'t break clients.',
+    confidence: 0.7,
+  },
+
+  apiDocVersioned: {
+    id: 130115,
+    name: 'Versioned API documentation',
+    check: (ctx) => {
+      const docs = readProjectFiles(ctx, /(openapi|swagger)\.(ya?ml|json)$/i);
+      return /version/i.test(docs);
+    },
+    impact: 'low',
+    category: 'api-versioning',
+    fix: 'Add versioned API documentation (OpenAPI/Swagger spec with version field) for API consumers.',
+    confidence: 0.7,
+  },
+
+  // ── MC6: Caching Strategy ───────────────────────────────────────────
+
+  cacheLayer: {
+    id: 130121,
+    name: 'Cache library in dependencies',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      if (/redis|memcached|ioredis|node-cache|lru-cache/i.test(pkg)) return true;
+      const py = readProjectFiles(ctx, /(^|\/)pyproject\.toml$/i) + readProjectFiles(ctx, /(^|\/)requirements[^/]*\.txt$/i);
+      if (/redis|memcached|django-cache|cachetools/i.test(py)) return true;
+      return false;
+    },
+    impact: 'medium',
+    category: 'caching',
+    fix: 'Add a caching layer (redis, memcached, ioredis, lru-cache) to reduce latency and database load.',
+    confidence: 0.7,
+  },
+
+  cdnConfigured: {
+    id: 130122,
+    name: 'CDN configured',
+    check: (ctx) => {
+      const config = readProjectFiles(ctx, /\.(json|ya?ml|toml|conf)$/i, 20);
+      const src = readProjectFiles(ctx, /\.(jsx?|tsx?)$/i, 20);
+      return /cloudfront|cloudflare|fastly|cdn/i.test(config + src) ||
+        (ctx.files.includes('vercel.json') && /headers/i.test(ctx.fileContent('vercel.json') || ''));
+    },
+    impact: 'medium',
+    category: 'caching',
+    fix: 'Configure a CDN (CloudFront, Cloudflare, Fastly) for static asset delivery and edge caching.',
+    confidence: 0.7,
+  },
+
+  cacheHeaders: {
+    id: 130123,
+    name: 'Cache-Control headers configured',
+    check: (ctx) => {
+      const src = readProjectFiles(ctx, /\.(jsx?|tsx?|py|go|java|rb|conf)$/i, 30);
+      return /Cache-Control|max-age|s-maxage|stale-while-revalidate/i.test(src);
+    },
+    impact: 'medium',
+    category: 'caching',
+    fix: 'Set Cache-Control headers (max-age, s-maxage, stale-while-revalidate) for HTTP response caching.',
+    confidence: 0.7,
+  },
+
+  cacheInvalidation: {
+    id: 130124,
+    name: 'Cache invalidation patterns present',
+    check: (ctx) => {
+      const src = readProjectFiles(ctx, /\.(jsx?|tsx?|py|go|java|rb)$/i, 30);
+      return /cache.*purge|cache.*bust|cache.*invalidat|\.del\(|\.flush\(/i.test(src);
+    },
+    impact: 'low',
+    category: 'caching',
+    fix: 'Implement cache invalidation patterns (purge, bust, invalidate) to prevent serving stale data.',
+    confidence: 0.7,
+  },
+
+  httpCaching: {
+    id: 130125,
+    name: 'ETag or Last-Modified caching',
+    check: (ctx) => {
+      const src = readProjectFiles(ctx, /\.(jsx?|tsx?|py|go|java|rb|conf)$/i, 30);
+      return /ETag|Last-Modified|If-None-Match|If-Modified-Since/i.test(src);
+    },
+    impact: 'low',
+    category: 'caching',
+    fix: 'Implement ETag or Last-Modified headers for conditional HTTP caching and bandwidth savings.',
+    confidence: 0.7,
+  },
+
+  // ── MC7: Rate Limiting ──────────────────────────────────────────────
+
+  rateLimitMiddleware: {
+    id: 130131,
+    name: 'Rate limiting middleware configured',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      if (/express-rate-limit|@nestjs\/throttler|rate-limiter-flexible|koa-ratelimit/i.test(pkg)) return true;
+      const py = readProjectFiles(ctx, /(^|\/)pyproject\.toml$/i) + readProjectFiles(ctx, /(^|\/)requirements[^/]*\.txt$/i);
+      if (/django-ratelimit|slowapi|flask-limiter/i.test(py)) return true;
+      return false;
+    },
+    impact: 'medium',
+    category: 'rate-limiting',
+    fix: 'Add rate limiting middleware (express-rate-limit, @nestjs/throttler, rate-limiter-flexible) to protect APIs.',
+    confidence: 0.7,
+  },
+
+  ddosProtection: {
+    id: 130132,
+    name: 'DDoS protection configured',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      const config = readProjectFiles(ctx, /\.(json|ya?ml|toml|conf)$/i, 20);
+      return /helmet|cors|cloudflare|waf|ddos/i.test(pkg + config);
+    },
+    impact: 'medium',
+    category: 'rate-limiting',
+    fix: 'Add DDoS protection (helmet, CORS, WAF, Cloudflare) to defend against abuse and volumetric attacks.',
+    confidence: 0.7,
+  },
+
+  backoffStrategy: {
+    id: 130133,
+    name: 'Retry/backoff strategy in dependencies',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      if (/exponential-backoff|p-retry|async-retry|retry|got.*retry|axios-retry/i.test(pkg)) return true;
+      const py = readProjectFiles(ctx, /(^|\/)pyproject\.toml$/i) + readProjectFiles(ctx, /(^|\/)requirements[^/]*\.txt$/i);
+      if (/tenacity|backoff|urllib3.*retry/i.test(py)) return true;
+      return false;
+    },
+    impact: 'low',
+    category: 'rate-limiting',
+    fix: 'Add a retry/backoff library (p-retry, tenacity, exponential-backoff) for resilient external calls.',
+    confidence: 0.7,
+  },
+
+  requestThrottling: {
+    id: 130134,
+    name: 'Request throttling in dependencies',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      return /bottleneck|p-throttle|p-limit|throttle/i.test(pkg);
+    },
+    impact: 'low',
+    category: 'rate-limiting',
+    fix: 'Add request throttling (bottleneck, p-throttle) to control outbound API call rates.',
+    confidence: 0.7,
+  },
+
+  rateLimitHeaders: {
+    id: 130135,
+    name: 'Rate limit headers or 429 responses',
+    check: (ctx) => {
+      const src = readProjectFiles(ctx, /\.(jsx?|tsx?|py|go|java|rb)$/i, 30);
+      return /X-RateLimit|RateLimit-|429|Too Many Requests/i.test(src);
+    },
+    impact: 'low',
+    category: 'rate-limiting',
+    fix: 'Return X-RateLimit headers and 429 status codes so clients can handle rate limiting gracefully.',
+    confidence: 0.7,
+  },
+
+  // ── MC8: Feature Flags ──────────────────────────────────────────────
+
+  featureFlagService: {
+    id: 130141,
+    name: 'Feature flag service in dependencies',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      if (/launchdarkly|unleash|flagsmith|growthbook|@split/i.test(pkg)) return true;
+      const py = readProjectFiles(ctx, /(^|\/)pyproject\.toml$/i) + readProjectFiles(ctx, /(^|\/)requirements[^/]*\.txt$/i);
+      if (/launchdarkly|unleash|flagsmith|growthbook/i.test(py)) return true;
+      return false;
+    },
+    impact: 'medium',
+    category: 'feature-flags',
+    fix: 'Add a feature flag service (LaunchDarkly, Unleash, Flagsmith, GrowthBook) for safe feature rollouts.',
+    confidence: 0.7,
+  },
+
+  featureFlagConfig: {
+    id: 130142,
+    name: 'Feature flag config files exist',
+    check: (ctx) => {
+      return hasProjectFile(ctx, /(^|\/)flags\.json$/i) ||
+        hasProjectFile(ctx, /(^|\/)features\.json$/i) ||
+        hasProjectFile(ctx, /(^|\/)feature-flags\//i);
+    },
+    impact: 'low',
+    category: 'feature-flags',
+    fix: 'Add feature flag configuration files (flags.json, features.json, or feature-flags/ directory).',
+    confidence: 0.7,
+  },
+
+  featureFlagTests: {
+    id: 130143,
+    name: 'Feature flag testing present',
+    check: (ctx) => {
+      const testFiles = readProjectFiles(ctx, /(test|spec)\.(jsx?|tsx?|py|go|java|rb)$/i, 30);
+      return /flag|feature.*toggle|variation/i.test(testFiles);
+    },
+    impact: 'low',
+    category: 'feature-flags',
+    fix: 'Add tests for feature flag variations to verify behavior under different flag states.',
+    confidence: 0.7,
+  },
+
+  flagLifecycle: {
+    id: 130144,
+    name: 'Flag lifecycle management',
+    check: (ctx) => {
+      return hasProjectFile(ctx, /flag-audit|remove-flag|flag.*cleanup/i) ||
+        /flag.*lifecycle|flag.*cleanup|stale.*flag/i.test(readProjectFiles(ctx, /\.(md|txt|json)$/i, 10));
+    },
+    impact: 'low',
+    category: 'feature-flags',
+    fix: 'Add flag lifecycle scripts or docs (flag-audit, remove-flag) to prevent stale flag accumulation.',
+    confidence: 0.7,
+  },
+
+  envBasedFlags: {
+    id: 130145,
+    name: 'Environment-based feature toggles',
+    check: (ctx) => {
+      const envFiles = readProjectFiles(ctx, /(^|\/)(\.env|\.env\.\w+)$/i);
+      const config = readProjectFiles(ctx, /\.(json|ya?ml|toml)$/i, 15);
+      return /FEATURE_|ENABLE_|FF_/i.test(envFiles + config);
+    },
+    impact: 'low',
+    category: 'feature-flags',
+    fix: 'Use environment-based feature toggles (FEATURE_, ENABLE_, FF_ prefixes) for deployment-time configuration.',
+    confidence: 0.7,
+  },
+
+  // ── MC10: Documentation Quality ─────────────────────────────────────
+
+  readmeQuality: {
+    id: 130151,
+    name: 'README has installation, usage, and contributing sections',
+    check: (ctx) => {
+      const readme = ctx.fileContent('README.md') || '';
+      if (!readme) return false;
+      return /install/i.test(readme) && /usage/i.test(readme) && /contribut/i.test(readme);
+    },
+    impact: 'medium',
+    category: 'docs-quality',
+    fix: 'Ensure README.md includes installation, usage, and contributing sections for developer onboarding.',
+    confidence: 0.7,
+  },
+
+  contributingGuide: {
+    id: 130152,
+    name: 'CONTRIBUTING.md exists',
+    check: (ctx) => ctx.files.some(f => /^contributing\.md$/i.test(f)),
+    impact: 'low',
+    category: 'docs-quality',
+    fix: 'Add CONTRIBUTING.md with contribution guidelines, code standards, and PR process.',
+    confidence: 0.7,
+  },
+
+  apiDocsGenerated: {
+    id: 130153,
+    name: 'API documentation generator configured',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      if (/typedoc|jsdoc|apidoc|compodoc/i.test(pkg)) return true;
+      const py = readProjectFiles(ctx, /(^|\/)pyproject\.toml$/i) + readProjectFiles(ctx, /(^|\/)requirements[^/]*\.txt$/i);
+      if (/sphinx|pdoc|mkdocstrings/i.test(py)) return true;
+      if (isGoProject(ctx) && hasProjectFile(ctx, /(^|\/)doc\.go$/i)) return true;
+      return false;
+    },
+    impact: 'low',
+    category: 'docs-quality',
+    fix: 'Add an API documentation generator (typedoc, jsdoc, sphinx, godoc) for auto-generated docs.',
+    confidence: 0.7,
+  },
+
+  storybookConfigured: {
+    id: 130154,
+    name: 'Storybook configured for component docs',
+    check: (ctx) => {
+      if (!hasFrontendSignals(ctx)) return null;
+      return ctx.hasDir('.storybook') || hasProjectFile(ctx, /(^|\/)\.storybook\//i);
+    },
+    impact: 'low',
+    category: 'docs-quality',
+    fix: 'Add Storybook (.storybook/) for interactive component documentation and visual testing.',
+    confidence: 0.7,
+  },
+
+  codeOfConduct: {
+    id: 130155,
+    name: 'CODE_OF_CONDUCT.md exists',
+    check: (ctx) => ctx.files.some(f => /^code.of.conduct\.md$/i.test(f)),
+    impact: 'low',
+    category: 'docs-quality',
+    fix: 'Add CODE_OF_CONDUCT.md to set community standards and expectations.',
+    confidence: 0.7,
+  },
+
+  licenseDeclared: {
+    id: 130156,
+    name: 'LICENSE file exists',
+    check: (ctx) => ctx.files.some(f => /^license/i.test(f)),
+    impact: 'low',
+    category: 'docs-quality',
+    fix: 'Add a LICENSE file to clarify usage rights and legal terms.',
+    confidence: 0.7,
+  },
+
+  // ── MC13: Monorepo Tooling ──────────────────────────────────────────
+
+  monorepoTool: {
+    id: 130161,
+    name: 'Monorepo tool configured',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      const hasMonorepo = /workspaces/i.test(pkg) || ctx.files.includes('lerna.json') ||
+        ctx.files.includes('nx.json') || ctx.files.includes('turbo.json') ||
+        hasProjectFile(ctx, /(^|\/)pnpm-workspace\.yaml$/i);
+      if (!hasMonorepo) return null;
+      return /turborepo|turbo|"nx"|lerna|rush|bazel/i.test(pkg) ||
+        ctx.files.includes('nx.json') || ctx.files.includes('turbo.json') ||
+        ctx.files.includes('lerna.json') || ctx.files.includes('rush.json');
+    },
+    impact: 'medium',
+    category: 'monorepo',
+    fix: 'Configure a monorepo orchestration tool (Turborepo, Nx, Lerna, Rush) for efficient multi-package builds.',
+    confidence: 0.7,
+  },
+
+  workspaceDeps: {
+    id: 130162,
+    name: 'Workspace dependency management configured',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      const hasMonorepo = /workspaces/i.test(pkg) || ctx.files.includes('lerna.json') ||
+        ctx.files.includes('nx.json') || ctx.files.includes('turbo.json') ||
+        hasProjectFile(ctx, /(^|\/)pnpm-workspace\.yaml$/i);
+      if (!hasMonorepo) return null;
+      return hasProjectFile(ctx, /(^|\/)pnpm-workspace\.yaml$/i) || /workspaces/i.test(pkg);
+    },
+    impact: 'medium',
+    category: 'monorepo',
+    fix: 'Configure workspace dependencies (pnpm-workspace.yaml or workspaces in package.json) for cross-package linking.',
+    confidence: 0.7,
+  },
+
+  changesetsConfigured: {
+    id: 130163,
+    name: 'Changesets or conventional commits for versioning',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      const hasMonorepo = /workspaces/i.test(pkg) || ctx.files.includes('lerna.json') ||
+        ctx.files.includes('nx.json') || ctx.files.includes('turbo.json') ||
+        hasProjectFile(ctx, /(^|\/)pnpm-workspace\.yaml$/i);
+      if (!hasMonorepo) return null;
+      return /@changesets\/cli|changeset/i.test(pkg) || ctx.hasDir('.changeset') ||
+        hasProjectFile(ctx, /(^|\/)\.changeset\//i);
+    },
+    impact: 'low',
+    category: 'monorepo',
+    fix: 'Add @changesets/cli or conventional commits for coordinated versioning across packages.',
+    confidence: 0.7,
+  },
+
+  monorepoCI: {
+    id: 130164,
+    name: 'CI uses affected/changed detection',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      const hasMonorepo = /workspaces/i.test(pkg) || ctx.files.includes('lerna.json') ||
+        ctx.files.includes('nx.json') || ctx.files.includes('turbo.json') ||
+        hasProjectFile(ctx, /(^|\/)pnpm-workspace\.yaml$/i);
+      if (!hasMonorepo) return null;
+      const ci = getWorkflowContent(ctx);
+      return /nx affected|turbo.*--filter|lerna changed|lerna run.*--since/i.test(ci);
+    },
+    impact: 'medium',
+    category: 'monorepo',
+    fix: 'Use affected/changed detection in CI (nx affected, turbo --filter) to only build what changed.',
+    confidence: 0.7,
+  },
+
+  sharedConfigs: {
+    id: 130165,
+    name: 'Shared configs across packages',
+    check: (ctx) => {
+      const pkg = ctx.fileContent('package.json') || '';
+      const hasMonorepo = /workspaces/i.test(pkg) || ctx.files.includes('lerna.json') ||
+        ctx.files.includes('nx.json') || ctx.files.includes('turbo.json') ||
+        hasProjectFile(ctx, /(^|\/)pnpm-workspace\.yaml$/i);
+      if (!hasMonorepo) return null;
+      return hasProjectFile(ctx, /(^|\/)packages\/.*eslint/i) ||
+        hasProjectFile(ctx, /(^|\/)packages\/.*tsconfig/i) ||
+        hasProjectFile(ctx, /shared.*config/i);
+    },
+    impact: 'low',
+    category: 'monorepo',
+    fix: 'Create shared config packages (eslint, tsconfig) referenced across monorepo packages for consistency.',
+    confidence: 0.7,
+  },
+
+  // ── MC14: Performance Budget ────────────────────────────────────────
+
+  lighthouseCI: {
+    id: 130171,
+    name: 'Lighthouse CI configured',
+    check: (ctx) => {
+      if (!hasFrontendSignals(ctx)) return null;
+      return hasProjectFile(ctx, /(^|\/)\.?lighthouserc\.(js|json|ya?ml)$/i) ||
+        /lighthouse/i.test(getWorkflowContent(ctx));
+    },
+    impact: 'medium',
+    category: 'performance-budget',
+    fix: 'Add Lighthouse CI (lighthouserc.js) to enforce performance budgets in your CI pipeline.',
+    confidence: 0.7,
+  },
+
+  bundleSizeLimit: {
+    id: 130172,
+    name: 'Bundle size check configured',
+    check: (ctx) => {
+      if (!hasFrontendSignals(ctx)) return null;
+      const pkg = ctx.fileContent('package.json') || '';
+      return /size-limit|bundlewatch|@next\/bundle-analyzer|webpack-bundle-analyzer/i.test(pkg);
+    },
+    impact: 'medium',
+    category: 'performance-budget',
+    fix: 'Add bundle size checks (size-limit, bundlewatch, @next/bundle-analyzer) to prevent bundle bloat.',
+    confidence: 0.7,
+  },
+
+  webVitals: {
+    id: 130173,
+    name: 'Core Web Vitals tracking configured',
+    check: (ctx) => {
+      if (!hasFrontendSignals(ctx)) return null;
+      const pkg = ctx.fileContent('package.json') || '';
+      const src = readProjectFiles(ctx, /\.(jsx?|tsx?)$/i, 20);
+      return /web-vitals|next\/web-vitals|@vercel\/speed-insights/i.test(pkg + src);
+    },
+    impact: 'medium',
+    category: 'performance-budget',
+    fix: 'Add Core Web Vitals tracking (web-vitals, next/web-vitals) for real user performance monitoring.',
+    confidence: 0.7,
+  },
+
+  performanceRegression: {
+    id: 130174,
+    name: 'Performance regression testing in CI',
+    check: (ctx) => {
+      if (!hasFrontendSignals(ctx)) return null;
+      const ci = getWorkflowContent(ctx);
+      const pkg = ctx.fileContent('package.json') || '';
+      return /benchmark|bench|perf.*test|lighthouse.*assert/i.test(ci + pkg);
+    },
+    impact: 'low',
+    category: 'performance-budget',
+    fix: 'Add performance regression testing in CI (benchmark, lighthouse assert) to catch regressions early.',
+    confidence: 0.7,
+  },
+
+  imageOptimization: {
+    id: 130175,
+    name: 'Image optimization configured',
+    check: (ctx) => {
+      if (!hasFrontendSignals(ctx)) return null;
+      const pkg = ctx.fileContent('package.json') || '';
+      return /sharp|imagemin|next\/image|responsive-loader|@squoosh/i.test(pkg);
+    },
+    impact: 'low',
+    category: 'performance-budget',
+    fix: 'Add image optimization (sharp, imagemin, next/image) to reduce page weight and improve loading.',
+    confidence: 0.7,
+  },
+
+  lazyLoading: {
+    id: 130176,
+    name: 'Code splitting and lazy loading',
+    check: (ctx) => {
+      if (!hasFrontendSignals(ctx)) return null;
+      const src = readProjectFiles(ctx, /\.(jsx?|tsx?)$/i, 30);
+      return /React\.lazy|import\s*\(|loadable|dynamic\s*\(\s*\(\)\s*=>/i.test(src);
+    },
+    impact: 'low',
+    category: 'performance-budget',
+    fix: 'Use code splitting and lazy loading (React.lazy, dynamic import, loadable) to reduce initial bundle size.',
+    confidence: 0.7,
+  },
+
 
 };
 
