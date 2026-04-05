@@ -33,6 +33,8 @@ const SOURCE_URLS = {
       'cost-optimization': 'https://code.claude.com/docs/en/memory',
       python: 'https://code.claude.com/docs/en/common-workflows',
       go: 'https://code.claude.com/docs/en/common-workflows',
+      rust: 'https://code.claude.com/docs/en/common-workflows',
+      java: 'https://code.claude.com/docs/en/common-workflows',
     },
     byKey: {
       customCommands: 'https://code.claude.com/docs/en/commands',
@@ -78,6 +80,8 @@ const SOURCE_URLS = {
       'cost-optimization': 'https://developers.openai.com/codex/guides/agents-md',
       python: 'https://developers.openai.com/codex/cli',
       go: 'https://developers.openai.com/codex/cli',
+      rust: 'https://developers.openai.com/codex/cli',
+      java: 'https://developers.openai.com/codex/cli',
     },
     byKey: {
       codexAutomationManuallyTested: 'https://developers.openai.com/codex/app/automations',
@@ -122,6 +126,8 @@ const SOURCE_URLS = {
       'cost-optimization': 'https://geminicli.com/docs/get-started/',
       python: 'https://geminicli.com/docs/get-started/',
       go: 'https://geminicli.com/docs/get-started/',
+      rust: 'https://geminicli.com/docs/get-started/',
+      java: 'https://geminicli.com/docs/get-started/',
     },
   },
   copilot: {
@@ -151,6 +157,8 @@ const SOURCE_URLS = {
       'cost-optimization': 'https://docs.github.com/en/copilot',
       python: 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
       go: 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+      rust: 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+      java: 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
     },
   },
   cursor: {
@@ -180,6 +188,8 @@ const SOURCE_URLS = {
       'cost-optimization': 'https://docs.cursor.com/account',
       python: 'https://docs.cursor.com/guides/working-with-context',
       go: 'https://docs.cursor.com/guides/working-with-context',
+      rust: 'https://docs.cursor.com/guides/working-with-context',
+      java: 'https://docs.cursor.com/guides/working-with-context',
     },
   },
   windsurf: {
@@ -209,6 +219,8 @@ const SOURCE_URLS = {
       'cost-optimization': 'https://docs.windsurf.com/windsurf/cascade/cascade',
       python: 'https://docs.windsurf.com/windsurf/cascade/cascade',
       go: 'https://docs.windsurf.com/windsurf/cascade/cascade',
+      rust: 'https://docs.windsurf.com/windsurf/cascade/cascade',
+      java: 'https://docs.windsurf.com/windsurf/cascade/cascade',
     },
   },
   aider: {
@@ -236,6 +248,8 @@ const SOURCE_URLS = {
       'cost-optimization': 'https://aider.chat/docs/',
       python: 'https://aider.chat/docs/',
       go: 'https://aider.chat/docs/',
+      rust: 'https://aider.chat/docs/',
+      java: 'https://aider.chat/docs/',
     },
   },
   opencode: {
@@ -267,6 +281,8 @@ const SOURCE_URLS = {
       'cost-optimization': 'https://github.com/sst/opencode',
       python: 'https://github.com/sst/opencode',
       go: 'https://github.com/sst/opencode',
+      rust: 'https://github.com/sst/opencode',
+      java: 'https://github.com/sst/opencode',
     },
   },
 };

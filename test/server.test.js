@@ -54,7 +54,7 @@ describe('HTTP server', () => {
     expect(response.statusCode).toBe(200);
     expect(response.body.status).toBe('ok');
     expect(response.body.version).toBe(version);
-    expect(response.body.checks).toBe(1416);
+    expect(response.body.checks).toBe(1736);
   });
 
   test('/api/catalog returns the full catalog payload', async () => {
@@ -62,7 +62,7 @@ describe('HTTP server', () => {
 
     expect(response.statusCode).toBe(200);
     expect(Array.isArray(response.body)).toBe(true);
-    expect(response.body).toHaveLength(1416);
+    expect(response.body).toHaveLength(1736);
   });
 
   test('/api/audit returns structured audit JSON', async () => {

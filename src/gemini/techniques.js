@@ -2745,6 +2745,454 @@ const GEMINI_TECHNIQUES = {
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
+  // ============================================================
+  // === RUST STACK CHECKS (category: 'rust') ===================
+  // ============================================================
+
+  geminiRustCargoTomlExists: {
+    id: 'GM-RS01',
+    name: 'Cargo.toml exists with edition field',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; return /edition\s*=/.test(cargo); },
+    impact: 'high',
+    category: 'rust',
+    fix: 'Ensure Cargo.toml exists and specifies the edition field (e.g., edition = "2021").',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustCargoLockCommitted: {
+    id: 'GM-RS02',
+    name: 'Cargo.lock committed (for binary crates)',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; return ctx.files.some(f => /Cargo\.lock$/.test(f)); },
+    impact: 'high',
+    category: 'rust',
+    fix: 'Commit Cargo.lock for binary crates to ensure reproducible builds.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustClippyConfigured: {
+    id: 'GM-RS03',
+    name: 'Clippy configured (CI or .cargo/config.toml)',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const ci = ctx.fileContent('.github/workflows/ci.yml') || ctx.fileContent('.github/workflows/rust.yml') || ''; const cargoConfig = ctx.fileContent('.cargo/config.toml') || ''; return /clippy/i.test(ci + cargoConfig); },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Configure clippy in CI or .cargo/config.toml for lint enforcement.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustFmtConfigured: {
+    id: 'GM-RS04',
+    name: 'rustfmt configured (rustfmt.toml or .rustfmt.toml)',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; return ctx.files.some(f => /rustfmt\.toml$|\.rustfmt\.toml$/.test(f)); },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Create rustfmt.toml or .rustfmt.toml to configure code formatting.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustCargoTestDocumented: {
+    id: 'GM-RS05',
+    name: 'cargo test documented in instructions',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /cargo test/i.test(docs); },
+    impact: 'high',
+    category: 'rust',
+    fix: 'Document cargo test command in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustCargoBuildDocumented: {
+    id: 'GM-RS06',
+    name: 'cargo build/check documented in instructions',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /cargo (?:build|check)/i.test(docs); },
+    impact: 'high',
+    category: 'rust',
+    fix: 'Document cargo build or cargo check command in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustUnsafePolicyDocumented: {
+    id: 'GM-RS07',
+    name: 'Unsafe code policy documented',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /unsafe|#!?\[forbid\(unsafe|#!?\[deny\(unsafe/i.test(docs); },
+    impact: 'high',
+    category: 'rust',
+    fix: 'Document unsafe code policy (forbidden, minimized, or where allowed).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustErrorHandlingStrategy: {
+    id: 'GM-RS08',
+    name: 'Error handling strategy (anyhow/thiserror in deps)',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; return /anyhow|thiserror|eyre|color-eyre/i.test(cargo); },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Use anyhow (applications) or thiserror (libraries) for structured error handling.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustFeatureFlagsDocumented: {
+    id: 'GM-RS09',
+    name: 'Feature flags documented (Cargo.toml [features])',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; if (!/\[features\]/i.test(cargo)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /feature|--features|--all-features/i.test(docs); },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Document feature flags and their purpose in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustWorkspaceConfig: {
+    id: 'GM-RS10',
+    name: 'Workspace config if multi-crate (Cargo.toml [workspace])',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; if (ctx.files.filter(f => /Cargo\.toml$/.test(f)).length <= 1) return null; return /\[workspace\]/i.test(cargo); },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Configure [workspace] in root Cargo.toml for multi-crate projects.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustMsrvSpecified: {
+    id: 'GM-RS11',
+    name: 'MSRV specified (rust-version field)',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; return /rust-version\s*=/.test(cargo); },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Specify rust-version (MSRV) in Cargo.toml for compatibility guarantees.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustDocCommentsEncouraged: {
+    id: 'GM-RS12',
+    name: 'Doc comments (///) encouraged in instructions',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /doc comment|\/{3}|rustdoc|cargo doc/i.test(docs); },
+    impact: 'low',
+    category: 'rust',
+    fix: 'Encourage /// doc comments and cargo doc in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustBenchmarksConfigured: {
+    id: 'GM-RS13',
+    name: 'Criterion benchmarks mentioned (benches/ dir)',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; return ctx.files.some(f => /benches[/]/.test(f)) || /criterion/i.test(ctx.fileContent('Cargo.toml') || ''); },
+    impact: 'low',
+    category: 'rust',
+    fix: 'Set up criterion benchmarks in benches/ directory.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustCrossCompilationDocumented: {
+    id: 'GM-RS14',
+    name: 'Cross-compilation documented',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /cross.?compil|--target|rustup target|cargo build.*--target/i.test(docs); },
+    impact: 'low',
+    category: 'rust',
+    fix: 'Document cross-compilation targets and setup instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustMemorySafetyDocumented: {
+    id: 'GM-RS15',
+    name: 'Memory safety patterns documented',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /ownership|borrow|lifetime|memory.?safe|Arc|Rc|RefCell/i.test(docs); },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Document memory safety patterns (ownership, borrowing, lifetime conventions).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustAsyncRuntimeDocumented: {
+    id: 'GM-RS16',
+    name: 'Async runtime documented (tokio/async-std in deps)',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; if (!/tokio|async-std|smol/i.test(cargo)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /tokio|async-std|async|await|runtime/i.test(docs); },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Document async runtime choice and patterns (tokio, async-std).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustSerdeDocumented: {
+    id: 'GM-RS17',
+    name: 'Serde patterns documented',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; if (!/serde/i.test(cargo)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /serde|Serialize|Deserialize|serde_json|serde_yaml/i.test(docs); },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Document serde serialization/deserialization patterns and conventions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustCargoAuditConfigured: {
+    id: 'GM-RS18',
+    name: 'cargo-audit configured in CI',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const ci = ctx.fileContent('.github/workflows/ci.yml') || ctx.fileContent('.github/workflows/rust.yml') || ctx.fileContent('.github/workflows/audit.yml') || ''; return /cargo.?audit|advisory/i.test(ci); },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Configure cargo-audit in CI for vulnerability scanning.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustWasmTargetDocumented: {
+    id: 'GM-RS19',
+    name: 'WASM target documented if applicable',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const cargo = ctx.fileContent('Cargo.toml') || ''; if (!/wasm|wasm-bindgen|wasm-pack/i.test(cargo)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /wasm|WebAssembly|wasm-pack|wasm-bindgen/i.test(docs); },
+    impact: 'low',
+    category: 'rust',
+    fix: 'Document WASM target configuration and build process.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiRustGitignore: {
+    id: 'GM-RS20',
+    name: 'Rust .gitignore includes target/',
+    check: (ctx) => { if (!ctx.files.some(f => /Cargo\.toml$/.test(f))) return null; const gi = ctx.fileContent('.gitignore') || ''; return /target[/]|[/]target/i.test(gi); },
+    impact: 'medium',
+    category: 'rust',
+    fix: 'Add target/ to .gitignore for Rust build artifacts.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  // ============================================================
+  // === JAVA/SPRING STACK CHECKS (category: 'java') ============
+  // ============================================================
+
+  geminiJavaBuildFileExists: {
+    id: 'GM-JV01',
+    name: 'pom.xml or build.gradle exists',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return true; },
+    impact: 'high',
+    category: 'java',
+    fix: 'Ensure pom.xml or build.gradle exists for Java projects.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaVersionSpecified: {
+    id: 'GM-JV02',
+    name: 'Java version specified',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const pom = ctx.fileContent('pom.xml') || ''; const gradle = ctx.fileContent('build.gradle') || ctx.fileContent('build.gradle.kts') || ''; return /java\.version|maven\.compiler\.source|sourceCompatibility|JavaVersion/i.test(pom + gradle) || ctx.files.some(f => /\.java-version$/.test(f)); },
+    impact: 'high',
+    category: 'java',
+    fix: 'Specify Java version in pom.xml properties, build.gradle, or .java-version file.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaWrapperCommitted: {
+    id: 'GM-JV03',
+    name: 'Maven/Gradle wrapper committed (mvnw or gradlew)',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return ctx.files.some(f => /mvnw$|gradlew$/.test(f)); },
+    impact: 'high',
+    category: 'java',
+    fix: 'Commit mvnw (Maven) or gradlew (Gradle) wrapper for reproducible builds.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaSpringBootVersion: {
+    id: 'GM-JV04',
+    name: 'Spring Boot version documented if Spring project',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const pom = ctx.fileContent('pom.xml') || ''; const gradle = ctx.fileContent('build.gradle') || ctx.fileContent('build.gradle.kts') || ''; if (!/spring-boot/i.test(pom + gradle)) return null; return /spring-boot.*\d+\.\d+/i.test(pom + gradle); },
+    impact: 'high',
+    category: 'java',
+    fix: 'Document Spring Boot version in build configuration.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaApplicationConfig: {
+    id: 'GM-JV05',
+    name: 'application.yml or application.properties exists',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return ctx.files.some(f => /application\.ya?ml$|application\.properties$/.test(f)); },
+    impact: 'medium',
+    category: 'java',
+    fix: 'Create application.yml or application.properties for Spring configuration.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaTestFramework: {
+    id: 'GM-JV06',
+    name: 'Test framework configured (JUnit/TestNG in deps)',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const pom = ctx.fileContent('pom.xml') || ''; const gradle = ctx.fileContent('build.gradle') || ctx.fileContent('build.gradle.kts') || ''; return /junit|testng|spring-boot-starter-test/i.test(pom + gradle); },
+    impact: 'high',
+    category: 'java',
+    fix: 'Configure JUnit or TestNG test framework in project dependencies.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaCodeStyleConfigured: {
+    id: 'GM-JV07',
+    name: 'Code style configured (checkstyle.xml, spotbugs)',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return ctx.files.some(f => /checkstyle\.xml$|spotbugs.*\.xml$/.test(f)) || /checkstyle|spotbugs|google-java-format/i.test((ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || '')); },
+    impact: 'medium',
+    category: 'java',
+    fix: 'Configure checkstyle or spotbugs for code quality enforcement.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaSpringProfilesDocumented: {
+    id: 'GM-JV08',
+    name: 'Spring profiles documented',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); if (!/spring/i.test(deps)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /spring[.]profiles|@Profile|SPRING_PROFILES_ACTIVE/i.test(docs); },
+    impact: 'medium',
+    category: 'java',
+    fix: 'Document Spring profiles and their configuration in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaDatabaseMigration: {
+    id: 'GM-JV09',
+    name: 'Database migration configured (flyway/liquibase)',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); return /flyway|liquibase/i.test(deps) || ctx.files.some(f => /db[/]migration|flyway|liquibase/i.test(f)); },
+    impact: 'medium',
+    category: 'java',
+    fix: 'Configure database migration tool (Flyway or Liquibase) for schema management.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaLombokDocumented: {
+    id: 'GM-JV10',
+    name: 'Lombok/MapStruct documented if used',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); if (!/lombok|mapstruct/i.test(deps)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /lombok|mapstruct/i.test(docs); },
+    impact: 'low',
+    category: 'java',
+    fix: 'Document Lombok/MapStruct usage and IDE setup requirements.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaApiDocsConfigured: {
+    id: 'GM-JV11',
+    name: 'API docs configured (springdoc/swagger deps)',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); return /springdoc|swagger|openapi/i.test(deps); },
+    impact: 'medium',
+    category: 'java',
+    fix: 'Configure API documentation with springdoc-openapi or Swagger.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaSecurityConfigured: {
+    id: 'GM-JV12',
+    name: 'Security configuration documented',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); if (!/spring-security|spring-boot-starter-security/i.test(deps)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /security|authentication|authorization|SecurityConfig|@EnableWebSecurity/i.test(docs); },
+    impact: 'high',
+    category: 'java',
+    fix: 'Document Spring Security configuration and authentication setup.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaActuatorConfigured: {
+    id: 'GM-JV13',
+    name: 'Actuator/health checks configured',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); return /actuator|spring-boot-starter-actuator/i.test(deps); },
+    impact: 'medium',
+    category: 'java',
+    fix: 'Configure Spring Boot Actuator for health checks and monitoring.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaLoggingConfigured: {
+    id: 'GM-JV14',
+    name: 'Logging configured (logback.xml or log4j2.xml)',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return ctx.files.some(f => /logback.*\.xml$|log4j2?.*\.xml$|logging\.properties$/.test(f)); },
+    impact: 'medium',
+    category: 'java',
+    fix: 'Configure logging with logback.xml or log4j2.xml.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaMultiModuleProject: {
+    id: 'GM-JV15',
+    name: 'Multi-module project configured if applicable',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const buildFiles = ctx.files.filter(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f)); if (buildFiles.length <= 1) return null; const rootPom = ctx.fileContent('pom.xml') || ''; const rootGradle = ctx.fileContent('settings.gradle') || ctx.fileContent('settings.gradle.kts') || ''; return /<modules>|include\s/i.test(rootPom + rootGradle); },
+    impact: 'medium',
+    category: 'java',
+    fix: 'Configure multi-module project structure in root build file.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaDockerConfigured: {
+    id: 'GM-JV16',
+    name: 'Docker build configured (Dockerfile or Jib plugin)',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const df = ctx.fileContent('Dockerfile') || ''; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); return /FROM.*(?:openjdk|eclipse-temurin|amazoncorretto)/i.test(df) || /jib/i.test(deps); },
+    impact: 'medium',
+    category: 'java',
+    fix: 'Configure Docker build with Dockerfile or Jib plugin.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaEnvConfigsSeparated: {
+    id: 'GM-JV17',
+    name: 'Environment-specific configs separated',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return ctx.files.some(f => /application-(?:dev|prod|staging|test|local)\.(?:ya?ml|properties)$/.test(f)); },
+    impact: 'medium',
+    category: 'java',
+    fix: 'Separate environment configs (application-dev.yml, application-prod.yml, etc.).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaNoSecretsInConfig: {
+    id: 'GM-JV18',
+    name: 'No secrets in application.yml/properties',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const appYml = ctx.files.filter(f => /application.*\.ya?ml$|application.*\.properties$/.test(f)).map(f => ctx.fileContent(f) || '').join(''); if (!appYml) return null; return !/password\s*[:=]\s*[^$\{\s][^\s]{8,}|secret\s*[:=]\s*[^$\{\s][^\s]{8,}/i.test(appYml); },
+    impact: 'critical',
+    category: 'java',
+    fix: 'Move secrets to environment variables or external secret management, not application config files.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaIntegrationTestsSeparate: {
+    id: 'GM-JV19',
+    name: 'Integration tests separate from unit tests',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return ctx.files.some(f => /src[/](?:integration-?test|it)[/]|IT\.java$|Integration(?:Test)?\.java$/.test(f)) || /failsafe|integration-test/i.test((ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || '')); },
+    impact: 'medium',
+    category: 'java',
+    fix: 'Separate integration tests from unit tests using Maven Failsafe or dedicated source set.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  geminiJavaBuildCommandDocumented: {
+    id: 'GM-JV20',
+    name: 'Build command documented in instructions',
+    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /mvn|gradle|mvnw|gradlew|maven|./i.test(docs) && /build|compile|package|install/i.test(docs); },
+    impact: 'high',
+    category: 'java',
+    fix: 'Document build command (mvnw package, gradlew build) in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
 
 };
 

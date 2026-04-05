@@ -45,8 +45,8 @@ describe('Codex TOML parser', () => {
 });
 
 describe('Codex audit + setup', () => {
-  test('codex v1.3 exposes the full 187-check catalog after adding 48 supplemental + 25 Python + 20 Go stack checks', () => {
-    expect(Object.keys(CODEX_TECHNIQUES)).toHaveLength(187);
+  test('codex v1.3 exposes the full 227-check catalog after adding 48 supplemental + 25 Python + 20 Go + 20 Rust + 20 Java stack checks', () => {
+    expect(Object.keys(CODEX_TECHNIQUES)).toHaveLength(227);
   });
 
   test('codex audit identifies missing AGENTS and config', async () => {

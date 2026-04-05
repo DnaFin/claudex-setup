@@ -102,7 +102,7 @@ describe('E2E - CLI audit --json (claude)', () => {
       expect(output).toHaveProperty('results');
       expect(Array.isArray(output.results)).toBe(true);
       expect(output.results.length).toBeGreaterThanOrEqual(5);
-      expect(output.results.length).toBeLessThanOrEqual(200);
+      expect(output.results.length).toBeLessThanOrEqual(240);
     } finally { cleanFixture(dir); }
   });
 
