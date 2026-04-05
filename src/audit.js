@@ -26,6 +26,7 @@ const { getBadgeMarkdown } = require('./badge');
 const { sendInsights, getLocalInsights } = require('./insights');
 const { getRecommendationOutcomeSummary, getRecommendationAdjustment } = require('./activity');
 const { formatSarif } = require('./formatters/sarif');
+const { loadPlugins, mergePluginChecks } = require('./plugins');
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -728,8 +729,14 @@ async function audit(options) {
   const results = [];
   const outcomeSummary = getRecommendationOutcomeSummary(options.dir);
 
+  // Load and merge plugin checks
+  const plugins = loadPlugins(options.dir);
+  const techniques = plugins.length > 0
+    ? mergePluginChecks(spec.techniques, plugins)
+    : spec.techniques;
+
   // Run all technique checks
-  for (const [key, technique] of Object.entries(spec.techniques)) {
+  for (const [key, technique] of Object.entries(techniques)) {
     const passed = technique.check(ctx);
     const file = typeof technique.file === 'function' ? (technique.file(ctx) ?? null) : (technique.file ?? null);
     const line = typeof technique.line === 'function' ? (technique.line(ctx) ?? null) : (technique.line ?? null);

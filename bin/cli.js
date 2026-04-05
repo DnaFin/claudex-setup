@@ -8,6 +8,7 @@ const { getGovernanceSummary, printGovernanceSummary, ensureWritableProfile, ren
 const { runBenchmark, printBenchmark, writeBenchmarkReport } = require('../src/benchmark');
 const { writeSnapshotArtifact, recordRecommendationOutcome, formatRecommendationOutcomeSummary, getRecommendationOutcomeSummary } = require('../src/activity');
 const { collectFeedback } = require('../src/feedback');
+const { startServer } = require('../src/server');
 const { version } = require('../package.json');
 
 const args = process.argv.slice(2);
@@ -21,7 +22,7 @@ const COMMAND_ALIASES = {
   gov: 'governance',
   outcome: 'feedback',
 };
-const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'serve', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -72,6 +73,7 @@ function parseArgs(rawArgs) {
   let feedbackScoreDelta = null;
   let platform = 'claude';
   let format = null;
+  let port = null;
   let commandSet = false;
   let extraArgs = [];
   let convertFrom = null;
@@ -82,7 +84,7 @@ function parseArgs(rawArgs) {
   for (let i = 0; i < rawArgs.length; i++) {
     const arg = rawArgs[i];
 
-    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack' || arg === '--require' || arg === '--key' || arg === '--status' || arg === '--effect' || arg === '--notes' || arg === '--source' || arg === '--score-delta' || arg === '--platform' || arg === '--format' || arg === '--from' || arg === '--to') {
+    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack' || arg === '--require' || arg === '--key' || arg === '--status' || arg === '--effect' || arg === '--notes' || arg === '--source' || arg === '--score-delta' || arg === '--platform' || arg === '--format' || arg === '--from' || arg === '--to' || arg === '--port') {
       const value = rawArgs[i + 1];
       if (!value || value.startsWith('--')) {
         throw new Error(`${arg} requires a value`);
@@ -104,6 +106,7 @@ function parseArgs(rawArgs) {
       if (arg === '--format') format = value.trim().toLowerCase();
       if (arg === '--from') { convertFrom = value.trim(); migrateFrom = value.trim(); }
       if (arg === '--to') { convertTo = value.trim(); migrateTo = value.trim(); }
+      if (arg === '--port') port = value.trim();
       i++;
       continue;
     }
@@ -183,6 +186,11 @@ function parseArgs(rawArgs) {
       continue;
     }
 
+    if (arg.startsWith('--port=')) {
+      port = arg.split('=').slice(1).join('=').trim();
+      continue;
+    }
+
     if (arg.startsWith('--')) {
       flags.push(arg);
       continue;
@@ -198,7 +206,7 @@ function parseArgs(rawArgs) {
 
   const normalizedCommand = COMMAND_ALIASES[command] || command;
 
-  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks, feedbackKey, feedbackStatus, feedbackEffect, feedbackNotes, feedbackSource, feedbackScoreDelta, platform, format, extraArgs, convertFrom, convertTo, migrateFrom, migrateTo };
+  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks, feedbackKey, feedbackStatus, feedbackEffect, feedbackNotes, feedbackSource, feedbackScoreDelta, platform, format, port, extraArgs, convertFrom, convertTo, migrateFrom, migrateTo };
 }
 
 const HELP = `
@@ -234,6 +242,7 @@ const HELP = `
     npx nerviq deep-review      AI-powered config review (opt-in, uses API)
     npx nerviq interactive      Step-by-step guided wizard
     npx nerviq watch            Live monitoring on config changes with cross-platform watch fallback
+    npx nerviq serve --port 3000 Start the local Nerviq HTTP API
     npx nerviq badge            Generate shields.io badge markdown
     npx nerviq feedback         Record recommendation outcomes or show local outcome summary
 
@@ -263,6 +272,7 @@ const HELP = `
     --score-delta N Optional observed score delta tied to the outcome
     --platform NAME Choose platform surface (claude default, codex advisory/build preview)
     --format NAME   Output format for audit results (json, sarif)
+    --port N        Port for \`serve\` (default: 3000)
     --feedback      After audit output, prompt "Was this helpful? (y/n)" for each displayed top action and save answers locally
     --snapshot      Save a normalized snapshot artifact under .claude/nerviq/snapshots/
     --lite          Show a short top-3 quick scan with one clear next command
@@ -298,6 +308,7 @@ const HELP = `
     npx nerviq benchmark --out benchmark.md
     npx nerviq feedback
     npx nerviq feedback --key permissionDeny --status accepted --effect positive --score-delta 12
+    npx nerviq serve --port 3000
     npx nerviq --json --threshold 60
     npx nerviq setup --auto
     npx nerviq interactive
@@ -345,6 +356,7 @@ async function main() {
     require: parsed.requireChecks,
     platform: parsed.platform || 'claude',
     format: parsed.format || null,
+    port: parsed.port !== null ? Number(parsed.port) : null,
     dir: process.cwd()
   };
 
@@ -355,6 +367,11 @@ async function main() {
 
   if (options.format !== null && !['json', 'sarif'].includes(options.format)) {
     console.error(`\n  Error: Unsupported format '${options.format}'. Use 'json' or 'sarif'.\n`);
+    process.exit(1);
+  }
+
+  if (options.port !== null && (!Number.isInteger(options.port) || options.port < 0 || options.port > 65535)) {
+    console.error('\n  Error: --port must be an integer between 0 and 65535.\n');
     process.exit(1);
   }
 
@@ -396,7 +413,7 @@ async function main() {
     const FULL_COMMAND_SET = new Set([
       'audit', 'scan', 'badge', 'augment', 'suggest-only', 'setup', 'plan', 'apply',
       'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'insights',
-      'history', 'compare', 'trend', 'feedback', 'catalog', 'help', 'version',
+      'history', 'compare', 'trend', 'feedback', 'catalog', 'serve', 'help', 'version',
       // Harmony + Synergy (cross-platform)
       'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise',
       'harmony-watch', 'harmony-governance', 'synergy-report',
@@ -751,6 +768,25 @@ async function main() {
         }
       }
       process.exit(0);
+    } else if (normalizedCommand === 'serve') {
+      const server = await startServer({
+        port: options.port == null ? 3000 : options.port,
+        baseDir: options.dir,
+      });
+      const address = server.address();
+      const resolvedPort = address && typeof address === 'object' ? address.port : options.port;
+      console.log('');
+      console.log(`  nerviq API listening on http://127.0.0.1:${resolvedPort}`);
+      console.log('  Endpoints: /api/health, /api/catalog, /api/audit, /api/harmony');
+      console.log('');
+
+      const closeServer = () => {
+        server.close(() => process.exit(0));
+      };
+
+      process.on('SIGINT', closeServer);
+      process.on('SIGTERM', closeServer);
+      return;
     } else if (normalizedCommand === 'doctor') {
       const { runDoctor } = require('../src/doctor');
       const output = await runDoctor({ dir: options.dir, json: options.json, verbose: options.verbose });
