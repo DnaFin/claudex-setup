@@ -9,10 +9,10 @@ function makeTempDir(name) {
 }
 
 describe('@nerviq/sdk', () => {
-  test('getCatalog returns the full 673-check catalog', () => {
+  test('getCatalog returns the full 1056-check catalog', () => {
     const catalog = sdk.getCatalog();
     expect(Array.isArray(catalog)).toBe(true);
-    expect(catalog).toHaveLength(673);
+    expect(catalog).toHaveLength(1056);
   });
 
   test('detectPlatforms identifies all supported platform markers', () => {

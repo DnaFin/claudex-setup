@@ -1,12 +1,13 @@
 /**
  * Copilot techniques module — CHECK CATALOG
  *
- * 86 checks across 17 categories:
+ * 134 checks across 25 categories:
  *   v0.1 (38): A. Instructions(8), B. Config(6), C. Trust & Safety(9), D. MCP(5), E. Cloud Agent(5), F. Organization(5)
  *   v0.5 (54): G. Prompt Files(4), H. Agents & Skills(4), I. VS Code IDE(4), J. CLI(4)
  *   v1.0 (70): K. Cross-Surface(5), L. Enterprise(5), M. Quality Deep(6)
  *   CP-08 (82): N. Advisory(4), O. Pack(4), P. Repeat(3)
  *   v1.1 (87): Q. Experiment-Verified CLI Fixes (CLI ingests AGENTS.md/CLAUDE.md, mcpServers key, VS Code settings not CLI-relevant, org policy MCP blocks, BYOK MCP caveat)
+ *   v1.2 (134): T. Engineering Foundations (testing, quality, API, database, auth, monitoring, dependencies, cost)
  *
  * Each check: { id, name, check(ctx), impact, rating, category, fix, template, file(), line() }
  */
@@ -16,7 +17,19 @@ const path = require('path');
 const { CopilotProjectContext } = require('./context');
 const { EMBEDDED_SECRET_PATTERNS, containsEmbeddedSecret } = require('../secret-patterns');
 const { attachSourceUrls } = require('../source-urls');
+const { buildSupplementalChecks } = require('../supplemental-checks');
 const { extractFrontmatter, validateInstructionFrontmatter, validatePromptFrontmatter } = require('./config-parser');
+
+const COPILOT_SUPPLEMENTAL_SOURCE_URLS = {
+  'testing-strategy': 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+  'code-quality': 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+  'api-design': 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+  database: 'https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-coding-agent',
+  authentication: 'https://docs.github.com/en/copilot/responsible-use-of-github-copilot-features/github-copilot-data-handling',
+  monitoring: 'https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/customize-the-agent-environment',
+  'dependency-management': 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+  'cost-optimization': 'https://docs.github.com/en/copilot',
+};
 
 // ─── Shared helpers ─────────────────────────────────────────────────────────
 
@@ -1928,6 +1941,17 @@ const COPILOT_TECHNIQUES = {
     line: () => null,
   },
 };
+
+Object.assign(COPILOT_TECHNIQUES, buildSupplementalChecks({
+  idPrefix: 'CP-T',
+  urlMap: COPILOT_SUPPLEMENTAL_SOURCE_URLS,
+  docs: (ctx) => [
+    copilotInstructions(ctx),
+    ctx.fileContent('AGENTS.md') || '',
+    ctx.fileContent('CLAUDE.md') || '',
+    ctx.fileContent('README.md') || '',
+  ].filter(Boolean).join('\n'),
+}));
 
 attachSourceUrls('copilot', COPILOT_TECHNIQUES);
 

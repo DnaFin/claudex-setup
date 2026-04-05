@@ -30,7 +30,7 @@ const PLATFORM_URL_RULES = {
 };
 
 describe('Official source URLs and confidence', () => {
-  test('all 673 techniques across 8 platforms expose sourceUrl, confidence, and lastVerified', () => {
+  test('all 1056 techniques across 8 platforms expose sourceUrl, confidence, and lastVerified', () => {
     let total = 0;
 
     for (const [platform, techniques] of Object.entries(PLATFORM_TECHNIQUES)) {
@@ -46,6 +46,6 @@ describe('Official source URLs and confidence', () => {
       }
     }
 
-    expect(total).toBe(673);
+    expect(total).toBe(1056);
   });
 });

@@ -23,6 +23,14 @@ const SOURCE_URLS = {
       prompting: 'https://code.claude.com/docs/en/best-practices',
       features: 'https://code.claude.com/docs/en/commands',
       'quality-deep': 'https://code.claude.com/docs/en/best-practices',
+      'testing-strategy': 'https://code.claude.com/docs/en/common-workflows',
+      'code-quality': 'https://code.claude.com/docs/en/best-practices',
+      'api-design': 'https://code.claude.com/docs/en/best-practices',
+      database: 'https://code.claude.com/docs/en/common-workflows',
+      authentication: 'https://code.claude.com/docs/en/permissions',
+      monitoring: 'https://code.claude.com/docs/en/common-workflows',
+      'dependency-management': 'https://code.claude.com/docs/en/best-practices',
+      'cost-optimization': 'https://code.claude.com/docs/en/memory',
     },
     byKey: {
       customCommands: 'https://code.claude.com/docs/en/commands',
@@ -58,6 +66,14 @@ const SOURCE_URLS = {
       'pack-posture': 'https://developers.openai.com/codex/mcp',
       'repeat-usage': 'https://developers.openai.com/codex/cli',
       'release-freshness': 'https://developers.openai.com/codex/changelog',
+      'testing-strategy': 'https://developers.openai.com/codex/cli',
+      'code-quality': 'https://developers.openai.com/codex/rules',
+      'api-design': 'https://developers.openai.com/codex/guides/agents-md',
+      database: 'https://developers.openai.com/codex/cli',
+      authentication: 'https://developers.openai.com/codex/agent-approvals-security',
+      monitoring: 'https://developers.openai.com/codex/feature-maturity',
+      'dependency-management': 'https://developers.openai.com/codex/config-reference',
+      'cost-optimization': 'https://developers.openai.com/codex/guides/agents-md',
     },
     byKey: {
       codexAutomationManuallyTested: 'https://developers.openai.com/codex/app/automations',
@@ -92,6 +108,14 @@ const SOURCE_URLS = {
       'pack-posture': 'https://geminicli.com/docs/tools/mcp-server/',
       'repeat-usage': 'https://geminicli.com/docs/cli/session-management/',
       'release-freshness': 'https://geminicli.com/docs/changelogs/latest/',
+      'testing-strategy': 'https://geminicli.com/docs/get-started/',
+      'code-quality': 'https://geminicli.com/docs/cli/gemini-md/',
+      'api-design': 'https://geminicli.com/docs/cli/gemini-md/',
+      database: 'https://geminicli.com/docs/get-started/',
+      authentication: 'https://geminicli.com/docs/cli/trusted-folders/',
+      monitoring: 'https://geminicli.com/docs/get-started/',
+      'dependency-management': 'https://geminicli.com/docs/reference/configuration/',
+      'cost-optimization': 'https://geminicli.com/docs/get-started/',
     },
   },
   copilot: {
@@ -111,6 +135,14 @@ const SOURCE_URLS = {
       'quality-deep': 'https://docs.github.com/en/copilot',
       advisory: 'https://docs.github.com/en/copilot',
       freshness: 'https://docs.github.com/en/copilot',
+      'testing-strategy': 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+      'code-quality': 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+      'api-design': 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+      database: 'https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-coding-agent',
+      authentication: 'https://docs.github.com/en/copilot/responsible-use-of-github-copilot-features/github-copilot-data-handling',
+      monitoring: 'https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/customize-the-agent-environment',
+      'dependency-management': 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+      'cost-optimization': 'https://docs.github.com/en/copilot',
     },
   },
   cursor: {
@@ -130,6 +162,14 @@ const SOURCE_URLS = {
       'quality-deep': 'https://docs.cursor.com/guides/working-with-context',
       advisory: 'https://docs.cursor.com/',
       freshness: 'https://docs.cursor.com/',
+      'testing-strategy': 'https://docs.cursor.com/guides/working-with-context',
+      'code-quality': 'https://docs.cursor.com/context/rules',
+      'api-design': 'https://docs.cursor.com/guides/working-with-context',
+      database: 'https://docs.cursor.com/guides/working-with-context',
+      authentication: 'https://docs.cursor.com/enterprise/privacy-and-data-governance',
+      monitoring: 'https://docs.cursor.com/guides/working-with-context',
+      'dependency-management': 'https://docs.cursor.com/guides/working-with-context',
+      'cost-optimization': 'https://docs.cursor.com/account',
     },
   },
   windsurf: {
@@ -149,6 +189,14 @@ const SOURCE_URLS = {
       'quality-deep': 'https://docs.windsurf.com/windsurf/cascade/cascade',
       advisory: 'https://docs.windsurf.com/windsurf/cascade/cascade',
       freshness: 'https://docs.windsurf.com/windsurf/cascade/cascade',
+      'testing-strategy': 'https://docs.windsurf.com/windsurf/cascade/cascade',
+      'code-quality': 'https://docs.windsurf.com/windsurf/cascade/cascade',
+      'api-design': 'https://docs.windsurf.com/windsurf/cascade/cascade',
+      database: 'https://docs.windsurf.com/windsurf/cascade/cascade',
+      authentication: 'https://docs.windsurf.com/windsurf/cascade/cascade',
+      monitoring: 'https://docs.windsurf.com/windsurf/cascade/cascade',
+      'dependency-management': 'https://docs.windsurf.com/windsurf/cascade/cascade',
+      'cost-optimization': 'https://docs.windsurf.com/windsurf/cascade/cascade',
     },
   },
   aider: {
@@ -166,6 +214,14 @@ const SOURCE_URLS = {
       'workflow-patterns': 'https://aider.chat/docs/usage/modes.html',
       'editor-integration': 'https://aider.chat/docs/config.html',
       'release-readiness': 'https://aider.chat/docs/',
+      'testing-strategy': 'https://aider.chat/docs/',
+      'code-quality': 'https://aider.chat/docs/',
+      'api-design': 'https://aider.chat/docs/',
+      database: 'https://aider.chat/docs/',
+      authentication: 'https://aider.chat/docs/',
+      monitoring: 'https://aider.chat/docs/',
+      'dependency-management': 'https://aider.chat/docs/',
+      'cost-optimization': 'https://aider.chat/docs/',
     },
   },
   opencode: {
@@ -187,6 +243,14 @@ const SOURCE_URLS = {
       'release-freshness': 'https://github.com/sst/opencode/releases',
       'mixed-agent': 'https://github.com/sst/opencode/blob/dev/AGENTS.md',
       propagation: 'https://github.com/sst/opencode/tree/dev/.opencode',
+      'testing-strategy': 'https://github.com/sst/opencode',
+      'code-quality': 'https://github.com/sst/opencode',
+      'api-design': 'https://github.com/sst/opencode',
+      database: 'https://github.com/sst/opencode',
+      authentication: 'https://github.com/sst/opencode',
+      monitoring: 'https://github.com/sst/opencode',
+      'dependency-management': 'https://github.com/sst/opencode',
+      'cost-optimization': 'https://github.com/sst/opencode',
     },
   },
 };
@@ -251,8 +315,8 @@ function attachSourceUrls(platform, techniques) {
       throw new Error(`No sourceUrl mapping found for ${platform}:${key}`);
     }
 
-    technique.sourceUrl = resolved;
-    technique.confidence = resolveConfidence(platform, technique);
+    technique.sourceUrl = technique.sourceUrl || resolved;
+    technique.confidence = technique.confidence ?? resolveConfidence(platform, technique);
     technique.lastVerified = technique.lastVerified || LAST_VERIFIED[platform] || LAST_VERIFIED.default;
   }
 

@@ -12,6 +12,18 @@ function hasFrontendSignals(ctx) {
 
 const { containsEmbeddedSecret } = require('./secret-patterns');
 const { attachSourceUrls } = require('./source-urls');
+const { buildSupplementalChecks } = require('./supplemental-checks');
+
+const CLAUDE_SUPPLEMENTAL_SOURCE_URLS = {
+  'testing-strategy': 'https://code.claude.com/docs/en/common-workflows',
+  'code-quality': 'https://code.claude.com/docs/en/best-practices',
+  'api-design': 'https://code.claude.com/docs/en/best-practices',
+  database: 'https://code.claude.com/docs/en/common-workflows',
+  authentication: 'https://code.claude.com/docs/en/permissions',
+  monitoring: 'https://code.claude.com/docs/en/common-workflows',
+  'dependency-management': 'https://code.claude.com/docs/en/best-practices',
+  'cost-optimization': 'https://code.claude.com/docs/en/memory',
+};
 
 const TECHNIQUES = {
   // ============================================================
@@ -1409,6 +1421,15 @@ const TECHNIQUES = {
   },
 
 };
+
+Object.assign(TECHNIQUES, buildSupplementalChecks({
+  idPrefix: 'CL-T',
+  urlMap: CLAUDE_SUPPLEMENTAL_SOURCE_URLS,
+  docs: (ctx) => [
+    ctx.claudeMdContent ? ctx.claudeMdContent() : (ctx.fileContent('CLAUDE.md') || ctx.fileContent('.claude/CLAUDE.md') || ''),
+    ctx.fileContent('README.md') || '',
+  ].filter(Boolean).join('\n'),
+}));
 
 // Stack detection
 const STACKS = {

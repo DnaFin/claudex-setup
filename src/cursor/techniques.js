@@ -1860,6 +1860,362 @@ const CURSOR_TECHNIQUES = {
     file: () => '.cursor/rules/',
     line: () => null,
   },
+
+  // =============================================
+  // T. Cross-Cutting Engineering (48 checks) — CU-T01..CU-T48
+  // =============================================
+
+  // ── Testing Strategy (CU-T01..T06) ──
+  cursorTestFrameworkDetected: {
+    id: 'CU-T01', name: 'Test framework detected in project',
+    check: (ctx) => { const p = ctx.fileContent('package.json'); if (!p) return null; return /jest|vitest|mocha|jasmine|ava|tap\b/i.test(p) || ctx.files.some(f => /pytest|spec_helper|test_helper/i.test(f)); },
+    impact: 'high', rating: 4, category: 'testing-strategy',
+    fix: 'Add a test framework (Jest, Vitest, Mocha) to package.json devDependencies.',
+    template: null, file: () => 'package.json', line: () => null,
+  },
+  cursorCoverageConfigExists: {
+    id: 'CU-T02', name: 'Coverage configuration exists',
+    check: (ctx) => ctx.files.some(f => /\.nycrc|\.c8rc|jest\.config|vitest\.config|\.coveragerc/i.test(f)) || /coverage/i.test(ctx.fileContent('package.json') || ''),
+    impact: 'medium', rating: 3, category: 'testing-strategy',
+    fix: 'Add a coverage configuration (jest --coverage, .nycrc, vitest coverage) to track test coverage.',
+    template: null, file: () => 'package.json', line: () => null,
+  },
+  cursorE2eSetupPresent: {
+    id: 'CU-T03', name: 'E2E test setup present',
+    check: (ctx) => ctx.files.some(f => /cypress\.config|playwright\.config|e2e\.(test|spec)\.(ts|js)|nightwatch\.conf/i.test(f)),
+    impact: 'medium', rating: 3, category: 'testing-strategy',
+    fix: 'Set up E2E tests with Playwright or Cypress for integration coverage.',
+    template: null, file: () => null, line: () => null,
+  },
+  cursorSnapshotTestsMentioned: {
+    id: 'CU-T04', name: 'Snapshot testing strategy documented',
+    check: (ctx) => { const docs = [ctx.fileContent('CLAUDE.md'), ctx.fileContent('README.md'), allRulesContent(ctx)].filter(Boolean).join('\n'); if (!docs.trim()) return null; return /snapshot|inline snapshot/i.test(docs); },
+    impact: 'low', rating: 2, category: 'testing-strategy',
+    fix: 'Document snapshot testing strategy in CLAUDE.md so agents know when to update or create snapshots.',
+    template: null, file: () => 'CLAUDE.md', line: () => null,
+  },
+  cursorTestCommandDocumented: {
+    id: 'CU-T05', name: 'Test command documented for agents',
+    check: (ctx) => { const docs = [allRulesContent(ctx), ctx.fileContent('CLAUDE.md')].filter(Boolean).join('\n'); if (!docs.trim()) return null; return /npm test|yarn test|pnpm test|vitest|jest\b/i.test(docs); },
+    impact: 'high', rating: 4, category: 'testing-strategy',
+    fix: 'Add the exact test command to your Cursor rules so agents can verify their changes.',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+  cursorCiRunsTests: {
+    id: 'CU-T06', name: 'CI workflow runs tests',
+    check: (ctx) => { const wfs = ctx.files.filter(f => /\.github\/workflows\/.*\.ya?ml$/i.test(f)); if (!wfs.length) return null; return wfs.some(f => /\btest\b|\bvitest\b|\bjest\b|\bpytest\b/i.test(ctx.fileContent(f) || '')); },
+    impact: 'high', rating: 5, category: 'testing-strategy',
+    fix: 'Add a test step to your CI workflow to catch regressions in agent-generated code.',
+    template: null, file: () => '.github/workflows/', line: () => null,
+  },
+
+  // ── Code Quality (CU-T07..T12) ──
+  cursorLinterConfigured: {
+    id: 'CU-T07', name: 'Linter configured',
+    check: (ctx) => ctx.files.some(f => /\.eslintrc|eslint\.config|\.pylintrc|\.ruff\.toml|\.flake8|golangci\.yml/i.test(f)) || /eslint|ruff|pylint|golangci/i.test(ctx.fileContent('package.json') || ''),
+    impact: 'high', rating: 4, category: 'code-quality',
+    fix: 'Configure a linter (ESLint, Ruff, golangci-lint) and add it to your Cursor rules as the lint command.',
+    template: null, file: () => null, line: () => null,
+  },
+  cursorFormatterConfigured: {
+    id: 'CU-T08', name: 'Code formatter configured',
+    check: (ctx) => ctx.files.some(f => /\.prettierrc|\.prettier\.config|biome\.json|\.editorconfig/i.test(f)) || /prettier|biome/i.test(ctx.fileContent('package.json') || ''),
+    impact: 'medium', rating: 3, category: 'code-quality',
+    fix: 'Configure a formatter (Prettier, Biome) so agent output is auto-formatted consistently.',
+    template: null, file: () => null, line: () => null,
+  },
+  cursorDeadCodeDetection: {
+    id: 'CU-T09', name: 'Dead code detection awareness documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /dead.?code|unused.?(import|var|export)|knip|ts-prune/i.test(docs); },
+    impact: 'low', rating: 2, category: 'code-quality',
+    fix: 'Document dead code detection in rules (knip, ts-prune, ESLint no-unused-vars).',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+  cursorComplexityAwareness: {
+    id: 'CU-T10', name: 'Code complexity awareness documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /complex|cyclomatic|cognitive|function.{0,20}length|file.{0,20}length|line.{0,20}limit/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'code-quality',
+    fix: 'Add complexity constraints to rules (max function length, cyclomatic complexity limits).',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+  cursorConsistentNamingDocumented: {
+    id: 'CU-T11', name: 'Naming conventions documented for agents',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /camelCase|snake_case|PascalCase|kebab.?case|naming.{0,30}convention/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'code-quality',
+    fix: 'Document naming conventions (camelCase, snake_case, PascalCase) in Cursor rules.',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+  cursorCodeReviewProcessMentioned: {
+    id: 'CU-T12', name: 'Code review process documented',
+    check: (ctx) => { const docs = [ctx.fileContent('CONTRIBUTING.md'), ctx.fileContent('CLAUDE.md'), allRulesContent(ctx)].filter(Boolean).join('\n'); if (!docs.trim()) return null; return /code.?review|PR|pull.?request|review.{0,20}process/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'code-quality',
+    fix: 'Document your code review process in CONTRIBUTING.md or Cursor rules.',
+    template: null, file: () => 'CONTRIBUTING.md', line: () => null,
+  },
+
+  // ── API Design (CU-T13..T18) ──
+  cursorEndpointDocumentation: {
+    id: 'CU-T13', name: 'API endpoint documentation present',
+    check: (ctx) => ctx.files.some(f => /openapi|swagger|api\.ya?ml|api\.json/i.test(f)) || /openapi|swagger/i.test(ctx.fileContent('package.json') || ''),
+    impact: 'medium', rating: 3, category: 'api-design',
+    fix: 'Add an OpenAPI/Swagger spec so agents understand your API surface.',
+    template: null, file: () => null, line: () => null,
+  },
+  cursorApiVersioningMentioned: {
+    id: 'CU-T14', name: 'API versioning strategy documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '') + (ctx.fileContent('README.md') || ''); if (!docs.trim()) return null; return /api.{0,10}version|\/v\d|versioning/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'api-design',
+    fix: 'Document API versioning strategy (URL versioning, header versioning) in CLAUDE.md.',
+    template: null, file: () => 'CLAUDE.md', line: () => null,
+  },
+  cursorErrorHandlingPatterns: {
+    id: 'CU-T15', name: 'Error handling patterns documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /error.{0,15}handl|exception|try.?catch|Result\s*<|error.{0,10}pattern/i.test(docs); },
+    impact: 'high', rating: 4, category: 'api-design',
+    fix: 'Document error handling patterns in Cursor rules so agents use consistent error responses.',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+  cursorRateLimitingAwareness: {
+    id: 'CU-T16', name: 'Rate limiting awareness documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '') + (ctx.fileContent('README.md') || ''); if (!docs.trim()) return null; return /rate.?limit|throttl|429/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'api-design',
+    fix: 'Document rate limiting in CLAUDE.md so agents handle 429 responses and add retry logic.',
+    template: null, file: () => 'CLAUDE.md', line: () => null,
+  },
+  cursorRequestValidation: {
+    id: 'CU-T17', name: 'Request validation strategy documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /validat|zod|yup|joi\b|schema.{0,15}validat/i.test(docs); },
+    impact: 'high', rating: 4, category: 'api-design',
+    fix: 'Document request validation library (Zod, Yup, Joi) in Cursor rules.',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+  cursorResponseFormatConsistent: {
+    id: 'CU-T18', name: 'Response format consistency documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /response.{0,20}format|json.{0,10}response|api.{0,15}response|envelope/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'api-design',
+    fix: 'Document standard response format in Cursor rules so agents produce consistent API responses.',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+
+  // ── Database (CU-T19..T24) ──
+  cursorMigrationStrategyDocumented: {
+    id: 'CU-T19', name: 'Database migration strategy documented',
+    check: (ctx) => ctx.files.some(f => /migrations?\//i.test(f)) || /migration|prisma migrate|alembic|flyway|knex.{0,10}migrate/i.test(allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '')),
+    impact: 'high', rating: 4, category: 'database',
+    fix: 'Document database migration strategy in CLAUDE.md (Prisma, Alembic, Flyway).',
+    template: null, file: () => 'CLAUDE.md', line: () => null,
+  },
+  cursorQueryOptimizationMentioned: {
+    id: 'CU-T20', name: 'Query optimization guidance documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /n\+1|query.{0,15}optim|index|explain.{0,10}query|eager.{0,10}load/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'database',
+    fix: 'Document N+1 prevention and query optimization patterns in Cursor rules.',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+  cursorConnectionPoolingConfigured: {
+    id: 'CU-T21', name: 'Connection pooling documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '') + (ctx.fileContent('README.md') || ''); if (!docs.trim()) return null; return /connection.{0,15}pool|pool.{0,15}size|pgbouncer|prisma.*pool/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'database',
+    fix: 'Document connection pooling configuration in CLAUDE.md to prevent connection exhaustion.',
+    template: null, file: () => 'CLAUDE.md', line: () => null,
+  },
+  cursorBackupStrategyDocumented: {
+    id: 'CU-T22', name: 'Database backup strategy documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '') + (ctx.fileContent('README.md') || ''); if (!docs.trim()) return null; return /backup|restore|point.?in.?time|snapshot.{0,15}db/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'database',
+    fix: 'Document database backup and restore procedures in README.md.',
+    template: null, file: () => 'README.md', line: () => null,
+  },
+  cursorSchemaDocumentation: {
+    id: 'CU-T23', name: 'Database schema documentation present',
+    check: (ctx) => ctx.files.some(f => /schema\.(prisma|sql|graphql)|erd|dbml|entity.{0,15}diagram/i.test(f)) || ctx.files.some(f => /schema\.md/i.test(f)),
+    impact: 'medium', rating: 3, category: 'database',
+    fix: 'Add schema documentation (schema.prisma, ERD, DBML) so agents understand the data model.',
+    template: null, file: () => null, line: () => null,
+  },
+  cursorSeedDataMentioned: {
+    id: 'CU-T24', name: 'Seed data strategy documented',
+    check: (ctx) => ctx.files.some(f => /seed\.(ts|js|sql|py)|fixtures\//i.test(f)) || /seed.{0,10}data|seed.{0,10}script|prisma.*seed/i.test(allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '')),
+    impact: 'low', rating: 2, category: 'database',
+    fix: 'Add seed scripts and document how to populate a local database for development.',
+    template: null, file: () => null, line: () => null,
+  },
+
+  // ── Authentication (CU-T25..T30) ──
+  cursorAuthFlowDocumented: {
+    id: 'CU-T25', name: 'Authentication flow documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '') + (ctx.fileContent('README.md') || ''); if (!docs.trim()) return null; return /auth.{0,15}flow|login.{0,15}flow|sign.?in|authenticate/i.test(docs); },
+    impact: 'high', rating: 4, category: 'authentication',
+    fix: 'Document the authentication flow in CLAUDE.md so agents implement auth correctly.',
+    template: null, file: () => 'CLAUDE.md', line: () => null,
+  },
+  cursorTokenHandlingGuidance: {
+    id: 'CU-T26', name: 'Token handling guidance documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /jwt|token.{0,15}refresh|access.{0,10}token|bearer|token.{0,15}storage/i.test(docs); },
+    impact: 'high', rating: 4, category: 'authentication',
+    fix: 'Document JWT/token handling patterns in Cursor rules (storage, refresh, expiration).',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+  cursorSessionManagementDocumented: {
+    id: 'CU-T27', name: 'Session management documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /session.{0,15}manag|cookie.{0,15}session|next.?auth|lucia|auth\.js/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'authentication',
+    fix: 'Document session management approach in CLAUDE.md (cookies, server-side sessions, JWT).',
+    template: null, file: () => 'CLAUDE.md', line: () => null,
+  },
+  cursorRbacPermissionsReferenced: {
+    id: 'CU-T28', name: 'RBAC / permissions model referenced',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /rbac|role.?based|permission|authorization|can\('|ability/i.test(docs); },
+    impact: 'high', rating: 4, category: 'authentication',
+    fix: 'Document the permissions/RBAC model in Cursor rules so agents respect access controls.',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+  cursorOauthSsoMentioned: {
+    id: 'CU-T29', name: 'OAuth/SSO configuration documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '') + (ctx.fileContent('README.md') || ''); if (!docs.trim()) return null; return /oauth|sso|saml|oidc|google.{0,10}auth|github.{0,10}auth/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'authentication',
+    fix: 'Document OAuth/SSO provider configuration in README.md.',
+    template: null, file: () => 'README.md', line: () => null,
+  },
+  cursorCredentialRotationDocumented: {
+    id: 'CU-T30', name: 'Credential rotation policy documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /rotat.{0,10}secret|rotat.{0,10}key|credential.{0,10}rotat|secret.{0,10}expir/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'authentication',
+    fix: 'Document credential rotation policy in Cursor rules (how often, automated or manual).',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+
+  // ── Monitoring (CU-T31..T36) ──
+  cursorLoggingConfigured: {
+    id: 'CU-T31', name: 'Logging framework configured',
+    check: (ctx) => { const pkg = ctx.fileContent('package.json') || ''; return /winston|pino|bunyan|log4js|morgan|loglevel|structlog|loguru/i.test(pkg) || ctx.files.some(f => /log(ger|ging)\.config/i.test(f)); },
+    impact: 'high', rating: 4, category: 'monitoring',
+    fix: 'Add a structured logging framework (Pino, Winston) and document log levels in Cursor rules.',
+    template: null, file: () => 'package.json', line: () => null,
+  },
+  cursorErrorTrackingSetup: {
+    id: 'CU-T32', name: 'Error tracking service configured',
+    check: (ctx) => { const pkg = ctx.fileContent('package.json') || ''; return /sentry|bugsnag|rollbar|honeybadger|raygun|airnav/i.test(pkg) || ctx.files.some(f => /sentry\.client|sentry\.server/i.test(f)); },
+    impact: 'high', rating: 4, category: 'monitoring',
+    fix: 'Set up error tracking (Sentry, Bugsnag) to catch runtime errors in production.',
+    template: null, file: () => null, line: () => null,
+  },
+  cursorApmMetricsMentioned: {
+    id: 'CU-T33', name: 'APM / metrics platform documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '') + (ctx.fileContent('README.md') || ''); if (!docs.trim()) return null; return /datadog|newrelic|prometheus|grafana|opentelemetry|apm|metrics/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'monitoring',
+    fix: 'Document APM/metrics platform in README.md (Datadog, Prometheus, OpenTelemetry).',
+    template: null, file: () => 'README.md', line: () => null,
+  },
+  cursorHealthCheckEndpoint: {
+    id: 'CU-T34', name: 'Health check endpoint documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '') + (ctx.fileContent('README.md') || ''); if (!docs.trim()) return null; return /health.?check|\/health|\/ping|\/status|liveness|readiness/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'monitoring',
+    fix: 'Document health check endpoint in README.md (/health, /ping) for load balancer integration.',
+    template: null, file: () => 'README.md', line: () => null,
+  },
+  cursorAlertingReferenced: {
+    id: 'CU-T35', name: 'Alerting strategy referenced',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '') + (ctx.fileContent('README.md') || ''); if (!docs.trim()) return null; return /alert|pagerduty|opsgenie|oncall|on.?call|incident/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'monitoring',
+    fix: 'Document alerting strategy in README.md (PagerDuty, OpsGenie, on-call rotation).',
+    template: null, file: () => 'README.md', line: () => null,
+  },
+  cursorLogRotationMentioned: {
+    id: 'CU-T36', name: 'Log rotation / retention documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '') + (ctx.fileContent('README.md') || ''); if (!docs.trim()) return null; return /log.{0,15}rotat|log.{0,15}retent|logrotate|retention.{0,15}polic/i.test(docs); },
+    impact: 'low', rating: 2, category: 'monitoring',
+    fix: 'Document log rotation/retention policy in README.md.',
+    template: null, file: () => 'README.md', line: () => null,
+  },
+
+  // ── Dependency Management (CU-T37..T42) ──
+  cursorLockfilePresent: {
+    id: 'CU-T37', name: 'Dependency lockfile present',
+    check: (ctx) => ctx.files.some(f => /package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|Pipfile\.lock|cargo\.lock/i.test(f)),
+    impact: 'critical', rating: 5, category: 'dependency-management',
+    fix: 'Commit your lockfile (package-lock.json, yarn.lock, poetry.lock) for reproducible builds.',
+    template: null, file: () => null, line: () => null,
+  },
+  cursorOutdatedDepsAwareness: {
+    id: 'CU-T38', name: 'Outdated dependency awareness documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); const wfs = ctx.files.filter(f => /\.github\/workflows/i.test(f)); return /outdated|renovate|dependabot|npm.{0,10}update|upgrade.{0,10}dep/i.test(docs) || wfs.some(f => /dependabot|renovate/i.test(ctx.fileContent(f) || '')); },
+    impact: 'medium', rating: 3, category: 'dependency-management',
+    fix: 'Enable Dependabot or Renovate for automated dependency updates.',
+    template: null, file: () => '.github/', line: () => null,
+  },
+  cursorLicenseCompliance: {
+    id: 'CU-T39', name: 'License compliance awareness configured',
+    check: (ctx) => { const pkg = ctx.fileContent('package.json') || ''; const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); return /license-checker|licensee|fossa|snyk/i.test(pkg) || /license.{0,15}comply|license.{0,15}check|approved.{0,15}license/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'dependency-management',
+    fix: 'Add license compliance checking (license-checker, FOSSA) and document approved licenses.',
+    template: null, file: () => null, line: () => null,
+  },
+  cursorNpmAuditConfigured: {
+    id: 'CU-T40', name: 'Security audit configured in CI',
+    check: (ctx) => { const wfs = ctx.files.filter(f => /\.github\/workflows\/.*\.ya?ml$/i.test(f)); return wfs.some(f => /npm audit|yarn audit|pnpm audit|snyk|trivy/i.test(ctx.fileContent(f) || '')); },
+    impact: 'high', rating: 4, category: 'dependency-management',
+    fix: 'Add `npm audit` or Snyk to CI to catch vulnerable dependencies in agent-generated code.',
+    template: null, file: () => '.github/workflows/', line: () => null,
+  },
+  cursorPinnedVersionsUsed: {
+    id: 'CU-T41', name: 'Critical dependency versions pinned',
+    check: (ctx) => { const pkg = ctx.jsonFile ? ctx.jsonFile('package.json') : null; if (!pkg) return null; const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) }; const entries = Object.values(deps); if (!entries.length) return null; const pinned = entries.filter(v => /^\d|^=\d/.test(String(v))).length; return pinned / entries.length >= 0.1; },
+    impact: 'medium', rating: 3, category: 'dependency-management',
+    fix: 'Pin at least critical dependencies to exact versions to ensure reproducible agent environments.',
+    template: null, file: () => 'package.json', line: () => null,
+  },
+  cursorAutoUpdatePolicy: {
+    id: 'CU-T42', name: 'Dependency auto-update policy documented',
+    check: (ctx) => ctx.files.some(f => /\.github\/dependabot\.yml|renovate\.json|\.renovaterc/i.test(f)) || /auto.?update|dependabot|renovate/i.test(allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '')),
+    impact: 'medium', rating: 3, category: 'dependency-management',
+    fix: 'Configure Dependabot (.github/dependabot.yml) or Renovate to automate dependency updates.',
+    template: null, file: () => '.github/dependabot.yml', line: () => null,
+  },
+
+  // ── Cost Optimization (CU-T43..T48) ──
+  cursorTokenUsageAwareness: {
+    id: 'CU-T43', name: 'Token usage awareness documented for agents',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /token.{0,15}usage|token.{0,15}budget|context.{0,15}window|token.{0,15}cost/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'cost-optimization',
+    fix: 'Document token budget awareness in Cursor rules so agents keep changes focused and token-efficient.',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+  cursorModelSelectionGuidance: {
+    id: 'CU-T44', name: 'Model selection guidance in rules',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /model.{0,20}select|gpt-4|claude-3|claude-4|opus|sonnet|haiku|flash/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'cost-optimization',
+    fix: 'Document model selection guidance in Cursor rules (e.g., use Flash for simple tasks, Opus for complex).',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+  cursorCachingToReduceApiCalls: {
+    id: 'CU-T45', name: 'Caching strategy documented to reduce API costs',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /cach.{0,15}api|redis|memcache|cdn.{0,10}cach|cache-control|stale-while-revalidate/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'cost-optimization',
+    fix: 'Document caching strategies in Cursor rules to minimize redundant API calls.',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+  cursorBatchProcessingMentioned: {
+    id: 'CU-T46', name: 'Batch processing patterns documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || ''); if (!docs.trim()) return null; return /batch.{0,15}process|bulk.{0,15}operat|queue|job.{0,15}schedul|background.{0,15}job/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'cost-optimization',
+    fix: 'Document batch processing patterns in Cursor rules to avoid N+1 API calls.',
+    template: null, file: () => '.cursor/rules/', line: () => null,
+  },
+  cursorPromptCachingEnabled: {
+    id: 'CU-T47', name: 'Prompt caching configured in MCP / agent config',
+    check: (ctx) => { const mcpRaw = ctx.fileContent('.cursor/mcp.json') || ''; const docs = allRulesContent(ctx); return /cache.?prompt|prompt.?cach/i.test(mcpRaw) || /cache.?prompt|prompt.?cach/i.test(docs); },
+    impact: 'medium', rating: 3, category: 'cost-optimization',
+    fix: 'Enable prompt caching in MCP configuration or document caching strategy for repeated prompts.',
+    template: null, file: () => '.cursor/mcp.json', line: () => null,
+  },
+  cursorCostBudgetDefined: {
+    id: 'CU-T48', name: 'AI cost budget or usage limits documented',
+    check: (ctx) => { const docs = allRulesContent(ctx) + (ctx.fileContent('CLAUDE.md') || '') + (ctx.fileContent('README.md') || ''); if (!docs.trim()) return null; return /cost.{0,15}budget|spending.{0,15}limit|usage.{0,15}limit|monthly.{0,15}budget/i.test(docs); },
+    impact: 'low', rating: 2, category: 'cost-optimization',
+    fix: 'Document AI cost budget in README.md or Cursor rules to maintain spend awareness.',
+    template: null, file: () => 'README.md', line: () => null,
+  },
 };
 
 attachSourceUrls('cursor', CURSOR_TECHNIQUES);

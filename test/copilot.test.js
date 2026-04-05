@@ -25,8 +25,8 @@ function mkFixture(name) {
 }
 
 describe('Copilot audit + setup', () => {
-  test('copilot v1.1 exposes the full 86-check catalog', () => {
-    expect(Object.keys(COPILOT_TECHNIQUES)).toHaveLength(86);
+  test('copilot v1.2 exposes the full 134-check catalog', () => {
+    expect(Object.keys(COPILOT_TECHNIQUES)).toHaveLength(134);
   });
 
   test('copilot audit identifies missing instructions and settings on empty repo', async () => {
@@ -47,7 +47,7 @@ describe('Copilot audit + setup', () => {
     try {
       const result = await audit({ dir: scenario.dir, platform: 'copilot', silent: true });
       expect(result.platform).toBe('copilot');
-      expect(result.score).toBeGreaterThan(60);
+      expect(result.score).toBeGreaterThan(40);
       const passedKeys = result.results.filter(item => item.passed === true).map(item => item.key);
       expect(passedKeys).toContain('copilotInstructionsExists');
       expect(passedKeys).toContain('copilotVscodeSettingsExists');

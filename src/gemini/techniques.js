@@ -1,11 +1,12 @@
 /**
  * Gemini CLI techniques module — CHECK CATALOG
  *
- * 87 checks across 17 categories:
+ * 135 checks across 25 categories:
  *   v0.1 (40): A. Instructions, B. Config, C. Trust & Safety, D. Hooks, E. MCP, F. Sandbox & Policy
  *   v0.5 (54): G. Skills & Agents, H. CI & Automation, I. Extensions
  *   v1.0 (68): J. Review & Workflow, K. Quality Deep, L. Commands
  *   v1.1 (73): Q. Experiment-Verified Fixes (v0.36.0 findings: --json→-o json, model object format, --yolo in approval, plan mode, --allowed-tools deprecated, eager loading)
+ *   v1.2 (135): T. Engineering Foundations (testing, quality, API, database, auth, monitoring, dependencies, cost)
  *
  * Each check: { id, name, check(ctx), impact, rating, category, fix, template, file(), line() }
  */
@@ -15,6 +16,18 @@ const path = require('path');
 const { GeminiProjectContext } = require('./context');
 const { EMBEDDED_SECRET_PATTERNS, containsEmbeddedSecret } = require('../secret-patterns');
 const { attachSourceUrls } = require('../source-urls');
+const { buildSupplementalChecks } = require('../supplemental-checks');
+
+const GEMINI_SUPPLEMENTAL_SOURCE_URLS = {
+  'testing-strategy': 'https://geminicli.com/docs/get-started/',
+  'code-quality': 'https://geminicli.com/docs/cli/gemini-md/',
+  'api-design': 'https://geminicli.com/docs/cli/gemini-md/',
+  database: 'https://geminicli.com/docs/get-started/',
+  authentication: 'https://geminicli.com/docs/cli/trusted-folders/',
+  monitoring: 'https://geminicli.com/docs/get-started/',
+  'dependency-management': 'https://geminicli.com/docs/reference/configuration/',
+  'cost-optimization': 'https://geminicli.com/docs/get-started/',
+};
 
 // ─── Shared helpers ─────────────────────────────────────────────────────────
 
@@ -2230,6 +2243,16 @@ const GEMINI_TECHNIQUES = {
     line: (ctx) => ctx.lineNumber('.gemini/settings.json', /"model"/),
   },
 };
+
+Object.assign(GEMINI_TECHNIQUES, buildSupplementalChecks({
+  idPrefix: 'GM-T',
+  urlMap: GEMINI_SUPPLEMENTAL_SOURCE_URLS,
+  docs: (ctx) => [
+    geminiMd(ctx),
+    ctx.fileContent('README.md') || '',
+    ctx.fileContent('AGENTS.md') || '',
+  ].filter(Boolean).join('\n'),
+}));
 
 attachSourceUrls('gemini', GEMINI_TECHNIQUES);
 

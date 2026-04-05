@@ -2,6 +2,18 @@ const os = require('os');
 const path = require('path');
 const { EMBEDDED_SECRET_PATTERNS, containsEmbeddedSecret } = require('../secret-patterns');
 const { attachSourceUrls } = require('../source-urls');
+const { buildSupplementalChecks } = require('../supplemental-checks');
+
+const CODEX_SUPPLEMENTAL_SOURCE_URLS = {
+  'testing-strategy': 'https://developers.openai.com/codex/cli',
+  'code-quality': 'https://developers.openai.com/codex/rules',
+  'api-design': 'https://developers.openai.com/codex/guides/agents-md',
+  database: 'https://developers.openai.com/codex/cli',
+  authentication: 'https://developers.openai.com/codex/agent-approvals-security',
+  monitoring: 'https://developers.openai.com/codex/feature-maturity',
+  'dependency-management': 'https://developers.openai.com/codex/config-reference',
+  'cost-optimization': 'https://developers.openai.com/codex/guides/agents-md',
+};
 
 const DEFAULT_PROJECT_DOC_MAX_BYTES = 32768;
 const SUPPORTED_HOOK_EVENTS = new Set(['SessionStart', 'PreToolUse', 'PostToolUse', 'UserPromptSubmit', 'Stop']);
@@ -3249,6 +3261,16 @@ const CODEX_TECHNIQUES = {
     },
   },
 };
+
+Object.assign(CODEX_TECHNIQUES, buildSupplementalChecks({
+  idPrefix: 'CX-T',
+  urlMap: CODEX_SUPPLEMENTAL_SOURCE_URLS,
+  docs: (ctx) => [
+    agentsContent(ctx),
+    ctx.fileContent('README.md') || '',
+    ctx.fileContent('CLAUDE.md') || '',
+  ].filter(Boolean).join('\n'),
+}));
 
 attachSourceUrls('codex', CODEX_TECHNIQUES);
 
