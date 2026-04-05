@@ -1,11 +1,12 @@
 /**
  * Copilot techniques module — CHECK CATALOG
  *
- * 82 checks across 16 categories:
+ * 86 checks across 17 categories:
  *   v0.1 (38): A. Instructions(8), B. Config(6), C. Trust & Safety(9), D. MCP(5), E. Cloud Agent(5), F. Organization(5)
  *   v0.5 (54): G. Prompt Files(4), H. Agents & Skills(4), I. VS Code IDE(4), J. CLI(4)
  *   v1.0 (70): K. Cross-Surface(5), L. Enterprise(5), M. Quality Deep(6)
- *   CP-08 (82): N. Advisory(4), O. Pack(4), P. Repeat(3), Q. Freshness(3)
+ *   CP-08 (82): N. Advisory(4), O. Pack(4), P. Repeat(3)
+ *   v1.1 (87): Q. Experiment-Verified CLI Fixes (CLI ingests AGENTS.md/CLAUDE.md, mcpServers key, VS Code settings not CLI-relevant, org policy MCP blocks, BYOK MCP caveat)
  *
  * Each check: { id, name, check(ctx), impact, rating, category, fix, template, file(), line() }
  */
@@ -313,18 +314,19 @@ const COPILOT_TECHNIQUES = {
 
   copilotVscodeSettingsExists: {
     id: 'CP-B01',
-    name: '.vscode/settings.json has Copilot agent settings',
+    name: '.vscode/settings.json has Copilot agent settings (VS Code-only)',
     check: (ctx) => {
       const data = vscodeSettingsData(ctx);
       if (!data) return false;
       // Check for any Copilot or chat-related key
+      // NOTE: These settings affect VS Code only. Copilot CLI ignores them.
       const raw = vscodeSettingsRaw(ctx);
       return /github\.copilot|chat\./.test(raw);
     },
     impact: 'medium',
     rating: 4,
     category: 'config',
-    fix: 'Add Copilot agent settings to .vscode/settings.json.',
+    fix: 'Add Copilot agent settings to .vscode/settings.json. NOTE: These are VS Code-only — Copilot CLI has its own configuration surface.',
     template: 'copilot-vscode-settings',
     file: () => '.vscode/settings.json',
     line: () => 1,
@@ -491,19 +493,20 @@ const COPILOT_TECHNIQUES = {
 
   copilotTerminalSandboxEnabled: {
     id: 'CP-C03',
-    name: 'Terminal sandbox enabled (VS Code agent)',
+    name: 'Terminal sandbox enabled (VS Code-only — does NOT affect CLI)',
     check: (ctx) => {
       const data = vscodeSettingsData(ctx);
       if (!data) return false;
       const raw = vscodeSettingsRaw(ctx);
       // Check for chat.tools.terminal.sandbox.enabled = true
+      // NOTE: This setting is VS Code-specific. Copilot CLI ignores it entirely.
       if (raw.includes('terminal.sandbox') && raw.includes('true')) return true;
       return getCopilotSetting(ctx, 'chat.tools.terminal.sandbox.enabled') === true;
     },
     impact: 'high',
     rating: 5,
     category: 'trust',
-    fix: 'Add "chat.tools.terminal.sandbox.enabled": true to .vscode/settings.json.',
+    fix: 'Add "chat.tools.terminal.sandbox.enabled": true to .vscode/settings.json. NOTE: This is VS Code-only — Copilot CLI uses its own permission flags, not VS Code settings.',
     template: 'copilot-vscode-settings',
     file: () => '.vscode/settings.json',
     line: (ctx) => {
@@ -533,12 +536,14 @@ const COPILOT_TECHNIQUES = {
 
   copilotAutoApprovalSpecific: {
     id: 'CP-C05',
-    name: 'Auto-approval rules are specific (not wildcard)',
+    name: 'Auto-approval rules are specific (VS Code-only — CLI uses permission flags)',
     check: (ctx) => {
       const data = vscodeSettingsData(ctx);
       if (!data) return null;
       const raw = vscodeSettingsRaw(ctx);
       // Check for auto-approval patterns
+      // NOTE: autoApproval.terminalCommands is VS Code-specific.
+      // Copilot CLI uses its own --permission flags, not this setting.
       const autoApproval = getCopilotSetting(ctx, 'chat.agent.autoApproval.terminalCommands');
       if (!autoApproval || !Array.isArray(autoApproval)) return null;
       // Fail if any wildcard patterns
@@ -547,7 +552,7 @@ const COPILOT_TECHNIQUES = {
     impact: 'high',
     rating: 5,
     category: 'trust',
-    fix: 'Replace wildcard auto-approval patterns with specific command patterns (e.g., "npm test", "npm run lint").',
+    fix: 'Replace wildcard auto-approval patterns with specific command patterns (e.g., "npm test", "npm run lint"). NOTE: This setting only affects VS Code — Copilot CLI approval is controlled by CLI permission flags.',
     template: null,
     file: () => '.vscode/settings.json',
     line: (ctx) => {
@@ -1051,11 +1056,13 @@ const COPILOT_TECHNIQUES = {
 
   copilotAgentsMdEnabled: {
     id: 'CP-H01',
-    name: 'If AGENTS.md exists, verify it is enabled in VS Code settings',
+    name: 'If AGENTS.md exists, verify it is enabled in VS Code (CLI reads it automatically)',
     check: (ctx) => {
       const agentsMd = ctx.fileContent('AGENTS.md');
       if (!agentsMd) return null; // N/A
-      // AGENTS.md support needs explicit enabling
+      // AGENTS.md support needs explicit enabling in VS Code
+      // WARNING: Copilot CLI reads AGENTS.md (and CLAUDE.md) automatically without any setting!
+      // Use --no-custom-instructions in CLI to prevent this
       const data = vscodeSettingsData(ctx);
       if (!data) return false;
       const raw = vscodeSettingsRaw(ctx);
@@ -1064,7 +1071,7 @@ const COPILOT_TECHNIQUES = {
     impact: 'critical',
     rating: 5,
     category: 'skills-agents',
-    fix: 'Enable AGENTS.md support in VS Code settings. It is off by default and silently ignored.',
+    fix: 'Enable AGENTS.md in VS Code settings (off by default). WARNING: Copilot CLI reads AGENTS.md and CLAUDE.md automatically — use --no-custom-instructions to prevent cross-platform instruction leakage.',
     template: 'copilot-vscode-settings',
     file: () => '.vscode/settings.json',
     line: (ctx) => {
@@ -1813,6 +1820,110 @@ const COPILOT_TECHNIQUES = {
     fix: 'Use `npx nerviq --platform copilot feedback` to rate recommendations.',
     template: null,
     file: () => null,
+    line: () => null,
+  },
+
+  // =============================================
+  // Q. Experiment-Verified CLI Fixes (5 checks) — CP-Q01..CP-Q05
+  // Added from runtime experiment findings (2026-04-05)
+  // =============================================
+
+  copilotCliIngestsNonCopilotFiles: {
+    id: 'CP-Q01',
+    name: 'Aware that Copilot CLI ingests AGENTS.md and CLAUDE.md',
+    check: (ctx) => {
+      const agentsMd = ctx.fileContent('AGENTS.md');
+      const claudeMd = ctx.fileContent('CLAUDE.md');
+      if (!agentsMd && !claudeMd) return null; // No cross-platform files
+      const instr = copilotInstructions(ctx) || '';
+      // If non-Copilot instruction files exist, check that instructions acknowledge this
+      return /copilot cli|--no-custom-instructions|cross.platform|AGENTS\.md|CLAUDE\.md/i.test(instr);
+    },
+    impact: 'high',
+    rating: 4,
+    category: 'quality-deep',
+    fix: 'WARNING: Copilot CLI ingests AGENTS.md and CLAUDE.md alongside copilot-instructions.md. Document this or use --no-custom-instructions for clean runs.',
+    template: null,
+    file: () => '.github/copilot-instructions.md',
+    line: () => null,
+  },
+
+  copilotCliMcpUsesServerKey: {
+    id: 'CP-Q02',
+    name: 'CLI MCP config uses mcpServers key (not servers)',
+    check: (ctx) => {
+      const mcpData = mcpJsonData(ctx);
+      if (!mcpData) return null;
+      // CLI expects mcpServers, not servers
+      if (mcpData.servers && !mcpData.mcpServers) return false;
+      return true;
+    },
+    impact: 'high',
+    rating: 4,
+    category: 'ci-automation',
+    fix: 'Copilot CLI MCP config expects the "mcpServers" key. "servers" alone may not work in CLI context.',
+    template: null,
+    file: () => '.vscode/mcp.json',
+    line: () => 1,
+  },
+
+  copilotVscodeSettingsNotCliRelevant: {
+    id: 'CP-Q03',
+    name: 'VS Code-specific settings not assumed to affect CLI',
+    check: (ctx) => {
+      const instr = copilotInstructions(ctx) || '';
+      if (!instr) return null;
+      // If instructions reference VS Code settings as if they affect CLI, flag it
+      const mentionsCli = /copilot cli|gh copilot/i.test(instr);
+      const mentionsVscodeForCli = /chat\.tools.*cli|terminal\.sandbox.*cli|autoApproval.*cli/i.test(instr);
+      if (mentionsCli && mentionsVscodeForCli) return false;
+      return true;
+    },
+    impact: 'medium',
+    rating: 3,
+    category: 'quality-deep',
+    fix: 'VS Code settings (sandbox, autoApproval, instructionsFilesLocations) do not affect Copilot CLI. Document CLI-specific configuration separately.',
+    template: null,
+    file: () => '.github/copilot-instructions.md',
+    line: () => null,
+  },
+
+  copilotOrgPolicyBlocksMcp: {
+    id: 'CP-Q04',
+    name: 'Org policy MCP restrictions documented if applicable',
+    check: (ctx) => {
+      const instr = copilotInstructions(ctx) || '';
+      const mcpData = mcpJsonData(ctx);
+      if (!mcpData) return null;
+      const servers = mcpData.servers || mcpData.mcpServers || {};
+      if (Object.keys(servers).length === 0) return null;
+      // If MCP servers are configured, check that org policy restrictions are documented
+      return /org.policy|policy.block|third.party.*mcp|mcp.*restrict|Access denied/i.test(instr);
+    },
+    impact: 'medium',
+    rating: 3,
+    category: 'quality-deep',
+    fix: 'Document that org policies can block third-party MCP servers even in local CLI sessions. Error: "Access denied by policy settings".',
+    template: null,
+    file: () => '.github/copilot-instructions.md',
+    line: () => null,
+  },
+
+  copilotByokMcpCaveat: {
+    id: 'CP-Q05',
+    name: 'BYOK mode MCP limitations documented',
+    check: (ctx) => {
+      const instr = copilotInstructions(ctx) || '';
+      // Only relevant if BYOK is mentioned
+      if (!/byok|bring your own key|openai.*key|COPILOT_.*KEY/i.test(instr)) return null;
+      return /byok.*mcp|mcp.*byok|oauth.*broken|built.in.*github.*mcp/i.test(instr);
+    },
+    impact: 'medium',
+    rating: 3,
+    category: 'quality-deep',
+    fix: 'Document that BYOK mode breaks built-in GitHub MCP server (OAuth auth unavailable). Third-party MCP may also be restricted by org policy.',
+    template: null,
+    file: () => '.github/copilot-instructions.md',
     line: () => null,
   },
 };

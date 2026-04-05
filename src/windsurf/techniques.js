@@ -1,33 +1,34 @@
 /**
  * Windsurf techniques module — CHECK CATALOG
  *
- * 82 checks across 16 categories:
+ * 84 checks across 16 categories:
  *   v0.1 (40): A. Rules(9), B. Config(7), C. Trust & Safety(9), D. Cascade Agent(5), E. MCP(5), F. Instructions Quality(5)
  *   v0.5 (55): G. Workflows & Steps(5), H. Memories(5), I. Enterprise(5)
  *   v1.0 (70): J. Cascadeignore & Review(4), K. Cross-Surface(4), L. Quality Deep(7)
- *   CP-08 (82): M. Advisory(4), N. Pack(4), O. Repeat(3), P. Freshness(3)
+ *   CP-08 (84): M. Advisory(4), N. Pack(4), O. Repeat(3), P. Freshness(3)
  *
  * Each check: { id, name, check(ctx), impact, rating, category, fix, template, file(), line() }
  *
  * Windsurf key differences from Cursor:
  * - Instructions: .windsurf/rules/*.md (Markdown + YAML frontmatter, NOT MDC)
  * - Legacy: .windsurfrules (like .cursorrules)
- * - 4 activation modes: Always, Auto, Agent-Requested, Manual
+ * - 4 activation modes: always_on, glob, model_decision, manual
  * - Agent: Cascade (autonomous agent)
- * - Memories system (team-syncable)
+ * - Memories system (workspace-scoped, local to the current workspace)
  * - Workflows -> Slash commands
- * - 10K char rule limit
+ * - 12K char limit for modern rules/workflows; 6K for legacy/global rules
  * - MCP with team whitelist
  * - cascadeignore (gitignore for Cascade)
- * - No background agents
+ * - No background agents or supported CLI/headless mode
  * - Check ID prefix: WS-
  */
 
+const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { WindsurfProjectContext } = require('./context');
 const { EMBEDDED_SECRET_PATTERNS, containsEmbeddedSecret } = require('../secret-patterns');
-const { validateWindsurfFrontmatter, validateMcpEnvVars } = require('./config-parser');
+const { tryParseJson, validateMcpEnvVars } = require('./config-parser');
 
 // ─── Shared helpers ─────────────────────────────────────────────────────────
 
@@ -87,12 +88,71 @@ function coreRulesContent(ctx) {
 }
 
 function mcpJsonRaw(ctx) {
-  return ctx.fileContent('.windsurf/mcp.json') || '';
+  const configPath = windsurfMcpConfigPath();
+  try {
+    return fs.readFileSync(configPath, 'utf8');
+  } catch {
+    return '';
+  }
 }
 
 function mcpJsonData(ctx) {
-  const result = ctx.mcpConfig();
-  return result && result.ok ? result.data : null;
+  const raw = mcpJsonRaw(ctx);
+  if (!raw) return null;
+  const result = tryParseJson(raw);
+  return result.ok ? result.data : null;
+}
+
+function windsurfMcpConfigPath() {
+  return path.join(os.homedir(), '.codeium', 'windsurf', 'mcp_config.json');
+}
+
+function normalizeWindsurfTrigger(frontmatter) {
+  if (!frontmatter) return 'always_on';
+
+  const trigger = String(frontmatter.trigger || '').trim().toLowerCase();
+  if (trigger === 'always_on' || trigger === 'always') return 'always_on';
+  if (trigger === 'glob' || trigger === 'auto' || trigger === 'auto_attached') return 'glob';
+  if (trigger === 'model_decision' || trigger === 'agent_requested' || trigger === 'agent-requested') return 'model_decision';
+  if (trigger === 'manual') return 'manual';
+
+  const hasGlob = Boolean(frontmatter.glob) ||
+    (Array.isArray(frontmatter.globs) ? frontmatter.globs.length > 0 : Boolean(frontmatter.globs));
+  const hasDescription = Boolean(frontmatter.description && String(frontmatter.description).trim());
+
+  if (hasGlob) return 'glob';
+  if (hasDescription) return 'model_decision';
+  return 'always_on';
+}
+
+function isValidWindsurfFrontmatter(frontmatter) {
+  if (!frontmatter || typeof frontmatter !== 'object') return false;
+
+  const validFields = new Set(['trigger', 'description', 'glob', 'globs', 'name']);
+  const validTriggers = new Set([
+    'always_on', 'always',
+    'glob', 'auto', 'auto_attached',
+    'model_decision', 'agent_requested', 'agent-requested',
+    'manual',
+  ]);
+
+  for (const key of Object.keys(frontmatter)) {
+    if (!validFields.has(key)) return false;
+  }
+
+  if (frontmatter.trigger && !validTriggers.has(String(frontmatter.trigger).trim().toLowerCase())) {
+    return false;
+  }
+
+  if (frontmatter.globs !== undefined && !Array.isArray(frontmatter.globs) && typeof frontmatter.globs !== 'string') {
+    return false;
+  }
+
+  if (frontmatter.glob !== undefined && typeof frontmatter.glob !== 'string') {
+    return false;
+  }
+
+  return true;
 }
 
 function docsBundle(ctx) {
@@ -154,9 +214,31 @@ function workflowContents(ctx) {
   return files.map(f => ctx.fileContent(f) || '').join('\n');
 }
 
+function ciWorkflowContents(ctx) {
+  const files = ctx.ciWorkflowFiles ? ctx.ciWorkflowFiles() : [];
+  return files.map(f => ctx.fileContent(f) || '').join('\n');
+}
+
 function wordCount(text) {
   if (!text) return 0;
   return text.split(/\s+/).filter(Boolean).length;
+}
+
+function repoFilesOverLineThreshold(ctx, threshold = 300) {
+  const oversized = [];
+
+  for (const filePath of ctx.files || []) {
+    if (/^(node_modules|dist|build|coverage|\.git|\.next|vendor|out)\//i.test(filePath)) continue;
+    if (/\.(png|jpg|jpeg|gif|webp|ico|pdf|zip|gz|lock|woff2?)$/i.test(filePath)) continue;
+
+    const content = ctx.fileContent(filePath);
+    if (!content) continue;
+
+    const lineCount = content.split(/\r?\n/).length;
+    if (lineCount > threshold) oversized.push({ filePath, lineCount });
+  }
+
+  return oversized.sort((a, b) => b.lineCount - a.lineCount);
 }
 
 // ─── WINDSURF_TECHNIQUES ──────────────────────────────────────────────────────
@@ -201,16 +283,16 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfAlwaysRuleExists: {
     id: 'WS-A03',
-    name: 'At least one rule has trigger: always for Cascade',
+    name: 'At least one rule is always_on for Cascade',
     check: (ctx) => {
       const rules = ctx.windsurfRules ? ctx.windsurfRules() : [];
       if (rules.length === 0) return null;
-      return rules.some(r => r.ruleType === 'always');
+      return rules.some((rule) => normalizeWindsurfTrigger(rule.frontmatter) === 'always_on');
     },
     impact: 'high',
     rating: 5,
     category: 'rules',
-    fix: 'Add trigger: always to your core rule file so Cascade always sees instructions.',
+    fix: 'Add a focused `trigger: always_on` rule for core guidance. Files without frontmatter also default to always_on, so make that choice explicit.',
     template: 'windsurf-rules',
     file: () => '.windsurf/rules/',
     line: () => null,
@@ -222,16 +304,12 @@ const WINDSURF_TECHNIQUES = {
     check: (ctx) => {
       const rules = ctx.windsurfRules ? ctx.windsurfRules() : [];
       if (rules.length === 0) return null;
-      return rules.every(r => {
-        if (!r.frontmatter) return false;
-        const validation = validateWindsurfFrontmatter(r.frontmatter);
-        return validation.valid;
-      });
+      return rules.every((rule) => isValidWindsurfFrontmatter(rule.frontmatter));
     },
     impact: 'high',
     rating: 4,
     category: 'rules',
-    fix: 'Fix YAML frontmatter in rule .md files. Use: trigger, description, globs, name fields.',
+    fix: 'Fix YAML frontmatter in rule files. Use current Windsurf triggers (`always_on`, `glob`, `model_decision`, `manual`) plus `glob`/`globs`, `description`, and `name` as needed.',
     template: null,
     file: () => '.windsurf/rules/',
     line: () => 1,
@@ -239,16 +317,16 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfRulesUnder10kChars: {
     id: 'WS-A05',
-    name: 'Rules under 10K character limit per file',
+    name: 'Modern rule files stay under the 12K character limit',
     check: (ctx) => {
       const rules = ctx.windsurfRules ? ctx.windsurfRules() : [];
       if (rules.length === 0) return null;
-      return rules.every(r => !r.overLimit);
+      return rules.every((rule) => (rule.charCount || 0) <= 12000);
     },
     impact: 'high',
     rating: 4,
     category: 'rules',
-    fix: 'Split rules over 10K characters into multiple focused files. Windsurf enforces a 10K char limit per rule.',
+    fix: 'Split rule files before they approach 12,000 characters. Windsurf silently truncates modern rules after 12K with no warning.',
     template: null,
     file: () => '.windsurf/rules/',
     line: () => null,
@@ -313,11 +391,12 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfAgentRequestedDescriptions: {
     id: 'WS-A09',
-    name: 'Agent-Requested rules have precise descriptions',
+    name: 'model_decision rules have precise descriptions',
     check: (ctx) => {
-      const agentRules = ctx.agentRequestedRules ? ctx.agentRequestedRules() : [];
-      if (agentRules.length === 0) return null;
-      return agentRules.every(r => {
+      const rules = ctx.windsurfRules ? ctx.windsurfRules() : [];
+      const modelDecisionRules = rules.filter((rule) => normalizeWindsurfTrigger(rule.frontmatter) === 'model_decision');
+      if (modelDecisionRules.length === 0) return null;
+      return modelDecisionRules.every((r) => {
         const desc = r.frontmatter && r.frontmatter.description;
         return desc && String(desc).trim().length >= 15;
       });
@@ -325,7 +404,7 @@ const WINDSURF_TECHNIQUES = {
     impact: 'medium',
     rating: 3,
     category: 'rules',
-    fix: 'Add clear, specific descriptions (15+ chars) to Agent-Requested rules so Cascade can judge relevance.',
+    fix: 'Add clear, specific descriptions (15+ chars) to `trigger: model_decision` rules so Windsurf can judge when to load the full rule body.',
     template: null,
     file: () => '.windsurf/rules/',
     line: () => null,
@@ -337,20 +416,20 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfMcpJsonExists: {
     id: 'WS-B01',
-    name: '.windsurf/mcp.json exists if MCP is used',
+    name: 'Global Windsurf MCP config exists when MCP is used',
     check: (ctx) => {
-      const result = ctx.mcpConfig();
-      if (result.ok) return true;
-      const globalResult = ctx.globalMcpConfig ? ctx.globalMcpConfig() : { ok: false };
-      if (!globalResult.ok) return null;
+      const raw = mcpJsonRaw(ctx);
+      if (raw) return true;
+      const docs = docsBundle(ctx);
+      if (!/\bmcp\b/i.test(docs)) return null;
       return false;
     },
     impact: 'high',
     rating: 4,
     category: 'config',
-    fix: 'Create .windsurf/mcp.json with project-level MCP server configuration.',
+    fix: 'Create `%USERPROFILE%/.codeium/windsurf/mcp_config.json` for MCP. Windsurf MCP is global-only in current runtime; project `.windsurf/mcp.json` is not the validated surface.',
     template: 'windsurf-mcp',
-    file: () => '.windsurf/mcp.json',
+    file: () => windsurfMcpConfigPath(),
     line: () => null,
   },
 
@@ -371,7 +450,7 @@ const WINDSURF_TECHNIQUES = {
     category: 'config',
     fix: 'Document MCP server team whitelist. Windsurf supports team-level MCP whitelisting.',
     template: null,
-    file: () => '.windsurf/mcp.json',
+    file: () => windsurfMcpConfigPath(),
     line: () => null,
   },
 
@@ -421,7 +500,7 @@ const WINDSURF_TECHNIQUES = {
     impact: 'medium',
     rating: 3,
     category: 'config',
-    fix: 'Create .windsurf/memories/ files for team-syncable persistent context.',
+    fix: 'Create `.windsurf/memories/` only for workspace-local persistent context. Do not rely on memories for cross-project or team-shared behavior.',
     template: 'windsurf-memories',
     file: () => '.windsurf/memories/',
     line: () => null,
@@ -433,17 +512,17 @@ const WINDSURF_TECHNIQUES = {
     check: (ctx) => {
       const raw = mcpJsonRaw(ctx);
       if (!raw) return null;
-      const result = ctx.mcpConfig();
+      const result = tryParseJson(raw);
       return result && result.ok;
     },
     impact: 'critical',
     rating: 5,
     category: 'config',
-    fix: 'Fix malformed JSON in .windsurf/mcp.json.',
+    fix: 'Fix malformed JSON in `%USERPROFILE%/.codeium/windsurf/mcp_config.json`.',
     template: null,
-    file: () => '.windsurf/mcp.json',
+    file: () => windsurfMcpConfigPath(),
     line: (ctx) => {
-      const result = ctx.mcpConfig();
+      const result = tryParseJson(mcpJsonRaw(ctx));
       if (result && result.ok) return null;
       if (result && result.error) {
         const match = result.error.match(/position (\d+)/i);
@@ -482,19 +561,20 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfCascadeignoreSensitive: {
     id: 'WS-C01',
-    name: 'Cascadeignore covers sensitive directories and files',
+    name: 'ZDR guidance does not overclaim local-only processing',
     check: (ctx) => {
-      const content = ctx.cascadeignoreContent ? ctx.cascadeignoreContent() : ctx.fileContent('.cascadeignore');
-      if (!content) return null;
-      // Check for common sensitive patterns
-      return /\.env|secrets|credentials|\.aws|\.ssh|private/i.test(content);
+      const docs = docsBundle(ctx);
+      if (!/\bzdr\b|zero.?data.?retention|privacy|retention/i.test(docs)) return null;
+      const claimsNoSend = /\b(no|never|without)\b.{0,40}\b(send|transmit|leave)\b.{0,40}\b(code|data)\b/i.test(docs);
+      const explainsTransmission = /\btransmi|sent to windsurf|server.?side processing|retention\b/i.test(docs);
+      return !claimsNoSend && explainsTransmission;
     },
     impact: 'high',
     rating: 5,
     category: 'trust',
-    fix: 'Add sensitive file patterns (.env, secrets/, credentials, .aws/, .ssh/) to .cascadeignore.',
+    fix: 'Document ZDR accurately: it affects retention/training, not whether code is sent to Windsurf for processing. Keep `.cascadeignore` for local exclusion, but do not describe ZDR as a no-transmission mode.',
     template: null,
-    file: () => '.cascadeignore',
+    file: () => '.windsurf/rules/',
     line: () => null,
   },
 
@@ -533,7 +613,7 @@ const WINDSURF_TECHNIQUES = {
     category: 'trust',
     fix: 'Verify MCP servers are from trusted sources. Check for known MCP CVEs.',
     template: null,
-    file: () => '.windsurf/mcp.json',
+    file: () => windsurfMcpConfigPath(),
     line: () => null,
   },
 
@@ -553,7 +633,7 @@ const WINDSURF_TECHNIQUES = {
     category: 'trust',
     fix: 'Use ${env:VAR_NAME} syntax for MCP environment variables instead of hardcoded values.',
     template: null,
-    file: () => '.windsurf/mcp.json',
+    file: () => windsurfMcpConfigPath(),
     line: () => null,
   },
 
@@ -577,7 +657,7 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfMemoriesNoSecrets: {
     id: 'WS-C06',
-    name: 'No secrets in memory files (team-synced!)',
+    name: 'No secrets in workspace-local memory files',
     check: (ctx) => {
       const content = memoryContents(ctx);
       if (!content.trim()) return null;
@@ -586,7 +666,7 @@ const WINDSURF_TECHNIQUES = {
     impact: 'critical',
     rating: 5,
     category: 'trust',
-    fix: 'Remove secrets from .windsurf/memories/ — these files sync across team members!',
+    fix: 'Remove secrets from `.windsurf/memories/`. Memories persist inside the current workspace and can resurface in later sessions even though they are not cross-project or team-shared.',
     template: null,
     file: () => '.windsurf/memories/',
     line: () => null,
@@ -613,16 +693,18 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfTeamSyncAware: {
     id: 'WS-C08',
-    name: 'Team sync implications documented',
+    name: 'Memory scope limitations are documented accurately',
     check: (ctx) => {
       const docs = docsBundle(ctx);
-      if (!/team|org/i.test(docs)) return null;
-      return /team.*sync|shared.*memor|team.*whitelist|sync.*across/i.test(docs);
+      if (!/\bmemories?\b/i.test(docs)) return null;
+      const mentionsWorkspaceScope = /\bworkspace\b|\blocal only\b|\bnot cross-project\b|\bcurrent repo\b/i.test(docs);
+      const overclaimsSharing = /\bteam.?sync\b|\bshared across projects\b|\bcross-project memory\b/i.test(docs);
+      return mentionsWorkspaceScope && !overclaimsSharing;
     },
     impact: 'medium',
     rating: 4,
     category: 'trust',
-    fix: 'Document team sync implications for memories and MCP whitelist.',
+    fix: 'Document memories as workspace-scoped and local to the current workspace. Do not rely on cross-project recall or team sync when writing guidance.',
     template: null,
     file: () => '.windsurf/rules/',
     line: () => null,
@@ -742,36 +824,35 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfMcpPerSurface: {
     id: 'WS-E01',
-    name: 'MCP servers configured per surface (project + global)',
+    name: 'MCP uses the validated global Windsurf config surface',
     check: (ctx) => {
-      const project = ctx.mcpConfig();
-      if (!project.ok) return null;
-      return true;
+      const raw = mcpJsonRaw(ctx);
+      if (!raw) return null;
+      return !Boolean(ctx.fileContent('.windsurf/mcp.json'));
     },
     impact: 'medium',
     rating: 3,
     category: 'mcp',
-    fix: 'Configure project-level MCP in .windsurf/mcp.json. Global config at ~/.windsurf/mcp.json.',
+    fix: 'Use `%USERPROFILE%/.codeium/windsurf/mcp_config.json` as the current MCP surface. Do not rely on project `.windsurf/mcp.json` or the old `~/.windsurf/mcp.json` path.',
     template: 'windsurf-mcp',
-    file: () => '.windsurf/mcp.json',
+    file: () => windsurfMcpConfigPath(),
     line: () => null,
   },
 
   windsurfMcpProjectOverride: {
     id: 'WS-E02',
-    name: 'Project mcp.json overrides global correctly',
+    name: 'Windsurf MCP guidance does not assume project-level overrides',
     check: (ctx) => {
-      const project = ctx.mcpConfig();
-      const global = ctx.globalMcpConfig ? ctx.globalMcpConfig() : { ok: false };
-      if (!project.ok || !global.ok) return null;
-      return true;
+      const docs = docsBundle(ctx);
+      if (!/\bmcp\b/i.test(docs)) return null;
+      return !/\.windsurf\/mcp\.json|~\/\.windsurf\/mcp\.json|project-level mcp/i.test(docs);
     },
     impact: 'medium',
     rating: 3,
     category: 'mcp',
-    fix: 'Ensure project .windsurf/mcp.json and global ~/.windsurf/mcp.json are both valid JSON.',
+    fix: 'Remove docs that describe project-level MCP override behavior. Current Windsurf MCP runtime is validated only through the global `%USERPROFILE%/.codeium/windsurf/mcp_config.json` file.',
     template: null,
-    file: () => '.windsurf/mcp.json',
+    file: () => '.windsurf/rules/',
     line: () => null,
   },
 
@@ -791,7 +872,7 @@ const WINDSURF_TECHNIQUES = {
     category: 'mcp',
     fix: 'Use ${env:VAR_NAME} syntax for MCP environment variables instead of hardcoded values.',
     template: null,
-    file: () => '.windsurf/mcp.json',
+    file: () => windsurfMcpConfigPath(),
     line: () => null,
   },
 
@@ -809,7 +890,7 @@ const WINDSURF_TECHNIQUES = {
     category: 'mcp',
     fix: 'Use @latest for MCP packages or regularly update pinned versions.',
     template: null,
-    file: () => '.windsurf/mcp.json',
+    file: () => windsurfMcpConfigPath(),
     line: () => null,
   },
 
@@ -828,7 +909,7 @@ const WINDSURF_TECHNIQUES = {
     category: 'mcp',
     fix: 'Enable MCP team whitelist for controlled environments.',
     template: null,
-    file: () => '.windsurf/mcp.json',
+    file: () => windsurfMcpConfigPath(),
     line: () => null,
   },
 
@@ -1051,7 +1132,7 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfMemoriesTeamSafe: {
     id: 'WS-H02',
-    name: 'Memories are safe for team sync (no personal data)',
+    name: 'Memories are safe for workspace-local persistence (no personal data)',
     check: (ctx) => {
       const content = memoryContents(ctx);
       if (!content.trim()) return null;
@@ -1061,7 +1142,7 @@ const WINDSURF_TECHNIQUES = {
     impact: 'high',
     rating: 5,
     category: 'memories',
-    fix: 'Remove personal data and secrets from memories. These sync across team members.',
+    fix: 'Remove personal data and secrets from memories. They are workspace-local, but they still persist and can influence future sessions in this repo.',
     template: null,
     file: () => '.windsurf/memories/',
     line: () => null,
@@ -1148,16 +1229,16 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfEnterpriseTeamSync: {
     id: 'WS-I02',
-    name: 'Team sync policies configured',
+    name: 'Enterprise deployment model is documented',
     check: (ctx) => {
       const docs = docsBundle(ctx);
       if (!/enterprise/i.test(docs)) return null;
-      return /team.*sync|sync.*policy|shared.*config|team.*memor/i.test(docs);
+      return /self-host|self host|hybrid|cloud deployment|on-prem|on prem/i.test(docs);
     },
     impact: 'medium',
     rating: 3,
     category: 'enterprise',
-    fix: 'Configure team sync policies for memories and MCP whitelist.',
+    fix: 'Document the actual Enterprise deployment posture (cloud, hybrid, or self-hosted). Do not describe memories as team-synced when runtime evidence shows they are workspace-scoped.',
     template: null,
     file: () => '.windsurf/rules/',
     line: () => null,
@@ -1182,16 +1263,20 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfEnterpriseSecurityPolicy: {
     id: 'WS-I04',
-    name: 'Security policy documented',
+    name: 'Security policy documents retention and transmission accurately',
     check: (ctx) => {
       const docs = docsBundle(ctx);
       if (!/enterprise/i.test(docs)) return null;
-      return /security.*policy|data.*retention|compliance|privacy/i.test(docs);
+      const hasPolicy = /security.*policy|data.*retention|compliance|privacy/i.test(docs);
+      const mentionsZdr = /\bzdr\b|zero.?data.?retention/i.test(docs);
+      if (!hasPolicy) return false;
+      if (!mentionsZdr) return true;
+      return /\btransmi|sent to windsurf|processing\b/i.test(docs);
     },
     impact: 'high',
     rating: 4,
     category: 'enterprise',
-    fix: 'Document security and data retention policies for Enterprise deployments.',
+    fix: 'Document security and data handling accurately. If you mention ZDR, also state that it controls retention/training posture, not whether code is transmitted for processing.',
     template: null,
     file: () => '.windsurf/rules/',
     line: () => null,
@@ -1318,18 +1403,18 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfMcpConsistentSurfaces: {
     id: 'WS-K02',
-    name: 'MCP config consistent across project and global',
+    name: 'MCP guidance matches the current global-only config surface',
     check: (ctx) => {
-      const project = ctx.mcpConfig();
-      if (!project.ok) return null;
-      return true;
+      const raw = mcpJsonRaw(ctx);
+      if (!raw) return null;
+      return !Boolean(ctx.fileContent('.windsurf/mcp.json'));
     },
     impact: 'medium',
     rating: 3,
     category: 'cross-surface',
-    fix: 'Document which MCP servers are project-level vs global.',
+    fix: 'Document Windsurf MCP as global-only in current runtime. Remove stale references to project `.windsurf/mcp.json` overrides.',
     template: null,
-    file: () => '.windsurf/mcp.json',
+    file: () => windsurfMcpConfigPath(),
     line: () => null,
   },
 
@@ -1448,16 +1533,16 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfRuleCharLimitAware: {
     id: 'WS-L05',
-    name: 'All rules within 10K char limit',
+    name: 'All modern rules stay within the 12K char limit',
     check: (ctx) => {
       const rules = ctx.windsurfRules ? ctx.windsurfRules() : [];
       if (rules.length === 0) return null;
-      return rules.every(r => r.charCount <= 10000);
+      return rules.every((rule) => (rule.charCount || 0) <= 12000);
     },
     impact: 'high',
     rating: 4,
     category: 'quality-deep',
-    fix: 'Ensure all rule files are under 10,000 characters. Windsurf enforces this limit.',
+    fix: 'Keep modern rule files under 12,000 characters. Windsurf silently truncates content beyond 12K, and legacy/global rule surfaces still have a stricter 6K ceiling.',
     template: null,
     file: () => '.windsurf/rules/',
     line: () => null,
@@ -1503,51 +1588,36 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfAdvisoryInstructionQuality: {
     id: 'WS-M01',
-    name: 'Instruction quality score meets advisory threshold',
+    name: 'No high-risk large files beyond Windsurf’s ~300-line accuracy threshold',
     check: (ctx) => {
-      const content = coreRulesContent(ctx) || allRulesContent(ctx);
-      if (!content.trim()) return null;
-      const lines = content.split(/\r?\n/).filter(l => l.trim()).length;
-      const sections = countSections(content);
-      const hasArch = hasArchitecture(content);
-      const hasVerify = /\bverif|\btest|\blint|\bbuild/i.test(content);
-      const score = (lines >= 30 ? 2 : lines >= 15 ? 1 : 0) +
-                    (sections >= 4 ? 2 : sections >= 2 ? 1 : 0) +
-                    (hasArch ? 1 : 0) +
-                    (hasVerify ? 1 : 0);
-      return score >= 4;
+      return repoFilesOverLineThreshold(ctx, 300).length === 0;
     },
-    impact: 'medium',
+    impact: 'high',
     rating: 4,
     category: 'advisory',
-    fix: 'Improve rule quality: add more sections, architecture diagram, and verification commands.',
-    template: 'windsurf-rules',
-    file: () => '.windsurf/rules/',
+    fix: 'Break files down before they exceed roughly 300 lines. Windsurf accuracy degrades in the 300-500 line range and becomes noticeably unreliable on 500+ line edits.',
+    template: null,
+    file: (ctx) => {
+      const oversized = repoFilesOverLineThreshold(ctx, 300);
+      return oversized[0] ? oversized[0].filePath : null;
+    },
     line: () => null,
   },
 
   windsurfAdvisorySecurityPosture: {
     id: 'WS-M02',
-    name: 'Security posture meets advisory threshold',
+    name: 'Long-running Cascade tasks are scoped to mitigate stall risk',
     check: (ctx) => {
-      let score = 0;
       const docs = docsBundle(ctx);
-      if (ctx.hasCascadeignore && ctx.hasCascadeignore()) score++;
-      if (!ctx.hasLegacyRules || !ctx.hasLegacyRules()) score++;
-      const mcpResult = ctx.mcpConfig();
-      if (mcpResult.ok) {
-        const validation = validateMcpEnvVars(mcpResult.data);
-        if (validation.valid) score++;
-      } else {
-        score++;
-      }
-      if (/security|secret|credential/i.test(docs)) score++;
-      return score >= 2;
+      const hasLargeFiles = repoFilesOverLineThreshold(ctx, 300).length > 0;
+      const hasAutomation = (ctx.workflowFiles ? ctx.workflowFiles() : []).length > 0;
+      if (!hasLargeFiles && !hasAutomation) return null;
+      return /small.*task|chunk|restart.*session|new session|retry|focused task/i.test(docs);
     },
-    impact: 'high',
-    rating: 5,
+    impact: 'medium',
+    rating: 4,
     category: 'advisory',
-    fix: 'Improve security posture: add .cascadeignore, migrate .windsurfrules, secure MCP config.',
+    fix: 'Document that long autonomous tasks can stall without auto-recovery. Prefer smaller, restartable chunks and tell users when to start a new session.',
     template: null,
     file: () => '.windsurf/rules/',
     line: () => null,
@@ -1555,36 +1625,38 @@ const WINDSURF_TECHNIQUES = {
 
   windsurfAdvisorySurfaceCoverage: {
     id: 'WS-M03',
-    name: 'Surface coverage meets advisory threshold',
+    name: 'Repo does not assume an unsupported Windsurf CLI/headless surface',
     check: (ctx) => {
-      const surfaces = ctx.detectSurfaces ? ctx.detectSurfaces() : {};
-      return surfaces.foreground === true;
+      const combined = `${docsBundle(ctx)}\n${ciWorkflowContents(ctx)}`;
+      if (!combined.trim()) return null;
+      const unsupportedAutomation = /\bwindsurf\b[\s\S]{0,80}\b(cli|headless|ci|pipeline|github action|automation|run)\b/i.test(combined) ||
+        /\bcascade\b[\s\S]{0,80}\b(headless|ci|pipeline|automation)\b/i.test(combined);
+      return !unsupportedAutomation;
     },
-    impact: 'medium',
+    impact: 'high',
     rating: 4,
     category: 'advisory',
-    fix: 'Configure at least the foreground surface with .windsurf/rules/*.md files.',
-    template: 'windsurf-rules',
-    file: () => '.windsurf/rules/',
+    fix: 'Do not rely on Windsurf for CI/CD or headless automation. Windsurf currently has no supported CLI/headless mode, so automation lanes should use another platform.',
+    template: null,
+    file: () => '.github/workflows/',
     line: () => null,
   },
 
   windsurfAdvisoryMcpHealth: {
     id: 'WS-M04',
-    name: 'MCP configuration health meets advisory threshold',
+    name: 'Windows/WSL usage includes a Windsurf stability caveat',
     check: (ctx) => {
-      const servers = ctx.mcpServers ? ctx.mcpServers() : {};
-      const count = Object.keys(servers).length;
-      if (count === 0) return null;
-      const mcpResult = ctx.mcpConfig();
-      return mcpResult && mcpResult.ok;
+      const docs = docsBundle(ctx);
+      const relevant = os.platform() === 'win32' || /\bwsl\b|\bwindows\b/i.test(docs);
+      if (!relevant) return null;
+      return /\bwsl\b.{0,40}\b(crash|unstable|avoid|native windows)\b|\bnative windows\b|\bavoid wsl\b/i.test(docs);
     },
     impact: 'medium',
     rating: 3,
     category: 'advisory',
-    fix: 'Ensure MCP configuration is valid and servers are properly configured.',
+    fix: 'Add a Windows note that Windsurf has known WSL crashes/path-resolution issues and is more stable in native Windows or native Linux than under WSL.',
     template: null,
-    file: () => '.windsurf/mcp.json',
+    file: () => '.windsurf/rules/',
     line: () => null,
   },
 
@@ -1612,15 +1684,16 @@ const WINDSURF_TECHNIQUES = {
     id: 'WS-N02',
     name: 'MCP packs recommended based on project signals',
     check: (ctx) => {
-      const servers = ctx.mcpServers ? ctx.mcpServers() : {};
+      const mcp = mcpJsonData(ctx);
+      const servers = mcp && mcp.mcpServers ? mcp.mcpServers : {};
       return Object.keys(servers).length > 0;
     },
     impact: 'low',
     rating: 2,
     category: 'advisory',
-    fix: 'Add recommended MCP packs to .windsurf/mcp.json based on project domain.',
+    fix: 'Add recommended MCP servers to `%USERPROFILE%/.codeium/windsurf/mcp_config.json` based on the project domain.',
     template: 'windsurf-mcp',
-    file: () => '.windsurf/mcp.json',
+    file: () => windsurfMcpConfigPath(),
     line: () => null,
   },
 

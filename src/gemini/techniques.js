@@ -1,10 +1,11 @@
 /**
  * Gemini CLI techniques module — CHECK CATALOG
  *
- * 68 checks across 12 categories:
+ * 87 checks across 17 categories:
  *   v0.1 (40): A. Instructions, B. Config, C. Trust & Safety, D. Hooks, E. MCP, F. Sandbox & Policy
  *   v0.5 (54): G. Skills & Agents, H. CI & Automation, I. Extensions
  *   v1.0 (68): J. Review & Workflow, K. Quality Deep, L. Commands
+ *   v1.1 (73): Q. Experiment-Verified Fixes (v0.36.0 findings: --json→-o json, model object format, --yolo in approval, plan mode, --allowed-tools deprecated, eager loading)
  *
  * Each check: { id, name, check(ctx), impact, rating, category, fix, template, file(), line() }
  */
@@ -357,7 +358,7 @@ const GEMINI_TECHNIQUES = {
     impact: 'critical',
     rating: 5,
     category: 'config',
-    fix: 'Fix malformed JSON in .gemini/settings.json so Gemini CLI does not silently ignore settings.',
+    fix: 'Fix malformed JSON in .gemini/settings.json. Invalid JSON causes exit code 52 — Gemini CLI will not start.',
     template: null,
     file: () => '.gemini/settings.json',
     line: (ctx) => {
@@ -376,16 +377,21 @@ const GEMINI_TECHNIQUES = {
 
   geminiModelExplicit: {
     id: 'GM-B03',
-    name: 'Model is set explicitly (not relying on default/free tier)',
+    name: 'Model is set explicitly in object format (v0.36.0+)',
     check: (ctx) => {
       const data = settingsData(ctx);
       if (!data) return null;
-      return Boolean(data.model);
+      if (!data.model) return false;
+      // v0.36.0: model field MUST be an object { name: "..." }, not a string
+      // String format causes exit code 41: "Expected object, received string"
+      if (typeof data.model === 'string') return false;
+      if (typeof data.model === 'object' && data.model.name) return true;
+      return false;
     },
-    impact: 'medium',
-    rating: 4,
+    impact: 'critical',
+    rating: 5,
     category: 'config',
-    fix: 'Set "model" explicitly in settings.json so the team knows which Gemini model is used (Flash vs Pro).',
+    fix: 'CRITICAL: In v0.36.0+, model must be an object: {"model": {"name": "gemini-2.5-flash"}}. String format ({"model": "gemini-2.5-flash"}) causes exit code 41. Default model is now gemini-3-flash-preview.',
     template: 'gemini-settings',
     file: () => '.gemini/settings.json',
     line: (ctx) => ctx.lineNumber('.gemini/settings.json', /"model"/),
@@ -483,13 +489,17 @@ const GEMINI_TECHNIQUES = {
 
   geminiNoYolo: {
     id: 'GM-C01',
-    name: 'No --yolo in project settings or scripts',
+    name: 'No --yolo in project settings, scripts, or approval field',
     check: (ctx) => {
       const raw = settingsRaw(ctx);
       const gmd = geminiMd(ctx) || '';
       const combined = `${raw}\n${gmd}`;
       // Check settings and scripts for --yolo
       if (/--yolo\b|\byolo\b.*:\s*true/i.test(raw)) return false;
+      // CRITICAL: v0.36.0 silently accepts "--yolo" as an approval value in settings.json
+      // {"approval": "--yolo"} passes validation without warning
+      const data = settingsData(ctx);
+      if (data && data.approval && /yolo/i.test(String(data.approval))) return false;
       // Check package.json scripts
       const pkg = ctx.jsonFile ? ctx.jsonFile('package.json') : null;
       if (pkg && pkg.scripts) {
@@ -501,7 +511,7 @@ const GEMINI_TECHNIQUES = {
     impact: 'critical',
     rating: 5,
     category: 'trust',
-    fix: 'Remove --yolo from project settings and scripts. It bypasses all safety controls and is never safe for shared repos.',
+    fix: 'Remove --yolo from project settings and scripts. WARNING: v0.36.0 silently accepts "--yolo" in the approval field without any validation error — this is a security risk.',
     template: null,
     file: () => '.gemini/settings.json',
     line: (ctx) => {
@@ -1429,32 +1439,34 @@ const GEMINI_TECHNIQUES = {
 
   geminiCiJsonOutput: {
     id: 'GM-H04',
-    name: 'Headless output is --json for machine parsing',
+    name: 'Headless output uses -o json (not deprecated --json)',
     check: (ctx) => {
       for (const wf of workflowArtifacts(ctx)) {
         if (!/\bgemini\b/i.test(wf.content)) continue;
-        // If gemini is used in CI with -p (prompt), check for --json
+        // If gemini is used in CI with -p (prompt), check for -o json (correct) and flag --json (removed in v0.36.0)
         if (/gemini\s+.*-p\b/i.test(wf.content)) {
-          return /--json\b/i.test(wf.content);
+          // CRITICAL: --json was removed in v0.36.0. Correct flag is -o json or --output-format json
+          if (/--json\b/i.test(wf.content)) return false; // Using deprecated flag
+          return /-o\s+json\b|--output-format\s+json\b/i.test(wf.content);
         }
       }
       return null; // Not relevant if no headless usage
     },
-    impact: 'low',
-    rating: 2,
+    impact: 'critical',
+    rating: 5,
     category: 'automation',
-    fix: 'Use --json flag when running gemini -p in CI for reliable machine-parseable output.',
+    fix: 'CRITICAL: --json flag was removed in v0.36.0. Use `-o json` or `--output-format json` instead. Three formats available: text, json, stream-json.',
     template: null,
     file: (ctx) => {
       for (const wf of workflowArtifacts(ctx)) {
-        if (/gemini\s+.*-p\b/i.test(wf.content) && !/--json\b/i.test(wf.content)) return wf.filePath;
+        if (/gemini\s+.*-p\b/i.test(wf.content) && (/--json\b/i.test(wf.content) || !/-o\s+json\b|--output-format\s+json\b/i.test(wf.content))) return wf.filePath;
       }
       return null;
     },
     line: (ctx) => {
       for (const wf of workflowArtifacts(ctx)) {
         const line = firstLineMatching(wf.content, /gemini\s+.*-p\b/i);
-        if (line && !/--json\b/i.test(wf.content)) return line;
+        if (line && (/--json\b/i.test(wf.content) || !/-o\s+json\b|--output-format\s+json\b/i.test(wf.content))) return line;
       }
       return null;
     },
@@ -1772,7 +1784,7 @@ const GEMINI_TECHNIQUES = {
     impact: 'low',
     rating: 2,
     category: 'quality-deep',
-    fix: 'For monorepos, add component-level GEMINI.md files in package subdirectories for JIT loading.',
+    fix: 'For monorepos, add component-level GEMINI.md files in package subdirectories. NOTE: v0.36.0 loads ALL subdirectory GEMINI.md files eagerly at startup (not JIT) — watch for token bloat in large monorepos.',
     template: null,
     file: () => 'GEMINI.md',
     line: () => 1,
@@ -1785,7 +1797,9 @@ const GEMINI_TECHNIQUES = {
       const gmd = geminiMd(ctx) || '';
       const data = settingsData(ctx);
       if (!data || !data.model) return null;
-      const model = String(data.model).toLowerCase();
+      // v0.36.0: model is an object { name: "..." } or could be a legacy string
+      const modelName = (typeof data.model === 'object' && data.model.name) ? data.model.name : String(data.model);
+      const model = modelName.toLowerCase();
       // If using a specific model, check that implications are documented
       if (/flash|pro/i.test(model)) {
         return /\bflash\b|\bpro\b|\bmodel\b.*\b(fast|cheap|accurate|expensive|quality)\b/i.test(gmd);
@@ -2064,10 +2078,17 @@ const GEMINI_TECHNIQUES = {
     template: 'gemini-md', file: () => 'GEMINI.md', line: () => 1,
   },
   geminiSourceFreshness: {
-    id: 'GM-P02', name: 'Config references current Gemini features',
-    check: (ctx) => { const s = ctx.settingsJson(); if (!s) return null; const content = JSON.stringify(s); return !/chat_model|notepads|old_format/i.test(content); },
-    impact: 'medium', rating: 3, category: 'release-freshness',
-    fix: 'Update deprecated config keys to current equivalents.',
+    id: 'GM-P02', name: 'Config and docs reference current Gemini features (no deprecated flags)',
+    check: (ctx) => {
+      const s = ctx.settingsJson();
+      const g = ctx.geminiMdContent() || '';
+      const combined = (s ? JSON.stringify(s) : '') + '\n' + g;
+      if (!s && !g) return null;
+      // Deprecated: chat_model, notepads, old_format, --json (use -o json), --allowed-tools (use policy.toml)
+      return !/chat_model|notepads|old_format/i.test(combined) && !/--json\b/i.test(combined) && !/--allowed-tools\b/i.test(combined);
+    },
+    impact: 'high', rating: 4, category: 'release-freshness',
+    fix: 'Update deprecated references: --json → -o json (v0.36.0), --allowed-tools → policy.toml, chat_model/notepads → removed.',
     template: 'gemini-settings', file: () => '.gemini/settings.json', line: () => 1,
   },
   geminiPropagationCompleteness: {
@@ -2076,6 +2097,136 @@ const GEMINI_TECHNIQUES = {
     impact: 'high', rating: 4, category: 'release-freshness',
     fix: 'Ensure all surfaces mentioned in GEMINI.md have corresponding definition files.',
     template: 'gemini-md', file: () => 'GEMINI.md', line: () => 1,
+  },
+
+  // =============================================
+  // Q. Experiment-Verified Fixes (5 checks) — GM-Q01..GM-Q05
+  // Added from v0.36.0 experiment findings (2026-04-05)
+  // =============================================
+
+  geminiApprovalFieldValidation: {
+    id: 'GM-Q01',
+    name: 'Approval field in settings.json has valid value (not --yolo)',
+    check: (ctx) => {
+      const data = settingsData(ctx);
+      if (!data || !data.approval) return null;
+      const approval = String(data.approval).toLowerCase();
+      // v0.36.0: "--yolo" is silently accepted in approval field without validation
+      // Valid values: suggest, auto_fix, auto_edit, plan
+      const validValues = ['suggest', 'auto_fix', 'auto_edit', 'plan'];
+      if (/yolo/i.test(approval)) return false;
+      return validValues.includes(approval);
+    },
+    impact: 'critical',
+    rating: 5,
+    category: 'trust',
+    fix: 'SECURITY: v0.36.0 silently accepts "--yolo" in the approval field. Use valid values: suggest, auto_fix, auto_edit, or plan (read-only mode).',
+    template: 'gemini-settings',
+    file: () => '.gemini/settings.json',
+    line: (ctx) => ctx.lineNumber('.gemini/settings.json', /"approval"/),
+  },
+
+  geminiPlanModeDocumented: {
+    id: 'GM-Q02',
+    name: 'Plan mode (read-only 4th approval mode) documented if used',
+    check: (ctx) => {
+      const data = settingsData(ctx);
+      if (!data) return null;
+      const approval = data.approval || data.approvalMode || data.approval_mode;
+      if (!approval || String(approval).toLowerCase() !== 'plan') return null;
+      // If plan mode is active, check it's documented
+      const gmd = geminiMd(ctx) || '';
+      return /\bplan\s*mode\b|\bread.only\b|\bplan\b.*approval/i.test(gmd);
+    },
+    impact: 'medium',
+    rating: 3,
+    category: 'config',
+    fix: 'Document that plan mode is a read-only approval mode (undocumented 4th mode in v0.36.0) that prevents all file modifications.',
+    template: 'gemini-md',
+    file: () => 'GEMINI.md',
+    line: () => 1,
+  },
+
+  geminiNoAllowedToolsDeprecated: {
+    id: 'GM-Q03',
+    name: 'No deprecated --allowed-tools flag (use policy.toml)',
+    check: (ctx) => {
+      const gmd = geminiMd(ctx) || '';
+      const raw = settingsRaw(ctx);
+      // Check workflow files
+      for (const wf of workflowArtifacts(ctx)) {
+        if (/--allowed-tools\b/i.test(wf.content)) return false;
+      }
+      // Check docs and settings
+      if (/--allowed-tools\b/i.test(gmd)) return false;
+      if (/--allowed-tools\b|allowedTools/i.test(raw)) return false;
+      // Check package.json scripts
+      const pkg = ctx.jsonFile ? ctx.jsonFile('package.json') : null;
+      if (pkg && pkg.scripts) {
+        const scriptValues = Object.values(pkg.scripts).join('\n');
+        if (/--allowed-tools\b/i.test(scriptValues)) return false;
+      }
+      return true;
+    },
+    impact: 'high',
+    rating: 4,
+    category: 'release-freshness',
+    fix: '--allowed-tools is DEPRECATED in v0.36.0. Migrate to the Policy Engine with policy.toml files under .gemini/policy/.',
+    template: null,
+    file: (ctx) => {
+      for (const wf of workflowArtifacts(ctx)) {
+        if (/--allowed-tools\b/i.test(wf.content)) return wf.filePath;
+      }
+      const gmd = geminiMd(ctx) || '';
+      if (/--allowed-tools\b/i.test(gmd)) return 'GEMINI.md';
+      return '.gemini/settings.json';
+    },
+    line: (ctx) => {
+      const gmd = geminiMd(ctx) || '';
+      return firstLineMatching(gmd, /--allowed-tools/i) || firstLineMatching(settingsRaw(ctx), /allowed.?tools/i);
+    },
+  },
+
+  geminiEagerLoadingAwareness: {
+    id: 'GM-Q04',
+    name: 'GEMINI.md hierarchy loading behavior is correctly documented',
+    check: (ctx) => {
+      const gmd = geminiMd(ctx) || '';
+      if (!gmd) return null;
+      // Flag if docs mention JIT/lazy loading — this is falsified in v0.36.0
+      if (/\bjit\b|\blazy.load|\bload.*on.demand|\bdynamic.*load/i.test(gmd)) return false;
+      return true;
+    },
+    impact: 'medium',
+    rating: 3,
+    category: 'instructions',
+    fix: 'Remove JIT/lazy-loading claims from GEMINI.md. v0.36.0 loads ALL subdirectory GEMINI.md files eagerly at startup — be mindful of token budget in monorepos.',
+    template: 'gemini-md',
+    file: () => 'GEMINI.md',
+    line: (ctx) => {
+      const gmd = geminiMd(ctx) || '';
+      return firstLineMatching(gmd, /jit|lazy.load|on.demand/i);
+    },
+  },
+
+  geminiModelStringNotObject: {
+    id: 'GM-Q05',
+    name: 'Model field is not a bare string (v0.36.0 requires object)',
+    check: (ctx) => {
+      const raw = settingsRaw(ctx);
+      if (!raw) return null;
+      // Quick check: if "model" key exists and its value is a string, fail
+      const match = raw.match(/"model"\s*:\s*"([^"]+)"/);
+      if (match) return false; // String format detected — will cause exit code 41
+      return true;
+    },
+    impact: 'critical',
+    rating: 5,
+    category: 'config',
+    fix: 'BREAKING: v0.36.0 requires model as object: {"model": {"name": "gemini-2.5-flash"}}. String format causes exit code 41.',
+    template: 'gemini-settings',
+    file: () => '.gemini/settings.json',
+    line: (ctx) => ctx.lineNumber('.gemini/settings.json', /"model"/),
   },
 };
 

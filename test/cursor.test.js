@@ -23,8 +23,8 @@ function mkFixture(name) {
 }
 
 describe('Cursor audit + setup', () => {
-  test('cursor v1.0 exposes the full 84-check catalog', () => {
-    expect(Object.keys(CURSOR_TECHNIQUES)).toHaveLength(84);
+  test('cursor v1.0 exposes the full 88-check catalog', () => {
+    expect(Object.keys(CURSOR_TECHNIQUES)).toHaveLength(88);
   });
 
   test('cursor audit identifies missing rules and config on empty repo', async () => {

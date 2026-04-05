@@ -25,8 +25,8 @@ function mkFixture(name) {
 }
 
 describe('Gemini audit + setup', () => {
-  test('gemini v1.0 exposes the full 82-check catalog', () => {
-    expect(Object.keys(GEMINI_TECHNIQUES)).toHaveLength(82);
+  test('gemini v1.1 exposes the full 87-check catalog', () => {
+    expect(Object.keys(GEMINI_TECHNIQUES)).toHaveLength(87);
   });
 
   test('gemini audit identifies missing GEMINI.md and settings', async () => {

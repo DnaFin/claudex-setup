@@ -1,11 +1,12 @@
 /**
  * Cursor techniques module — CHECK CATALOG
  *
- * 82 checks across 16 categories:
- *   v0.1 (40): A. Rules(9), B. Config(7), C. Trust & Safety(9), D. Agent Mode(5), E. MCP(5), F. Instructions Quality(5)
- *   v0.5 (55): G. Background Agents(5), H. Automations(5), I. Enterprise(5)
+ * 88 checks across 16 categories:
+ *   v0.1 (40): A. Rules(9), B. Config(8), C. Trust & Safety(11), D. Agent Mode(5), E. MCP(5), F. Instructions Quality(5)
+ *   v0.5 (55): G. Background Agents(5), H. Automations(6), I. Enterprise(5)
  *   v1.0 (70): J. BugBot & Code Review(4), K. Cross-Surface(4), L. Quality Deep(7)
  *   CP-08 (82): M. Advisory(4), N. Pack(4), O. Repeat(3), P. Freshness(3)
+ *   Exp-fixes (88): +4 new checks from experiment findings
  *
  * Each check: { id, name, check(ctx), impact, rating, category, fix, template, file(), line() }
  */
@@ -180,7 +181,7 @@ const CURSOR_TECHNIQUES = {
     impact: 'critical',
     rating: 5,
     category: 'rules',
-    fix: 'Migrate .cursorrules to .cursor/rules/*.mdc with proper frontmatter. AGENT MODE IGNORES .cursorrules completely!',
+    fix: 'Migrate .cursorrules to .cursor/rules/*.mdc with alwaysApply: true. AGENT MODE COMPLETELY IGNORES .cursorrules (confirmed by direct observation). 82% of projects have broken rules because of this — cursor-doctor audit.',
     template: 'cursor-legacy-migration',
     file: () => '.cursorrules',
     line: () => 1,
@@ -215,10 +216,10 @@ const CURSOR_TECHNIQUES = {
         return validation.valid;
       });
     },
-    impact: 'high',
-    rating: 4,
+    impact: 'critical',
+    rating: 5,
     category: 'rules',
-    fix: 'Fix YAML frontmatter in .mdc files. Use only: description, globs, alwaysApply fields.',
+    fix: 'Fix YAML frontmatter in .mdc files. Invalid YAML silently skips the entire rule file — no error, no warning. Only 3 fields recognized: description, globs, alwaysApply. 82% of audited projects have broken rules from this issue.',
     template: null,
     file: () => '.cursor/rules/',
     line: () => 1,
@@ -476,8 +477,28 @@ const CURSOR_TECHNIQUES = {
     line: () => null,
   },
 
+  cursorMcpServersRootKey: {
+    id: 'CU-B08',
+    name: 'MCP config has required mcpServers root key',
+    check: (ctx) => {
+      const raw = mcpJsonRaw(ctx);
+      if (!raw) return null;
+      const data = mcpJsonData(ctx);
+      if (!data) return null;
+      // Must have mcpServers key at root — any other key causes silent failure
+      return Object.prototype.hasOwnProperty.call(data, 'mcpServers');
+    },
+    impact: 'critical',
+    rating: 5,
+    category: 'config',
+    fix: 'Ensure .cursor/mcp.json has the "mcpServers" root key. Using "servers" or any other key causes silent failure — zero tools load with no error shown (confirmed by experiment).',
+    template: null,
+    file: () => '.cursor/mcp.json',
+    line: () => 1,
+  },
+
   // =============================================
-  // C. Trust & Safety (9 checks) — CU-C01..CU-C09
+  // C. Trust & Safety (11 checks) — CU-C01..CU-C11
   // =============================================
 
   cursorPrivacyMode: {
@@ -489,10 +510,10 @@ const CURSOR_TECHNIQUES = {
       const docs = docsBundle(ctx);
       return /privacy mode|zero.?retention|data retention|privacy.*enabled/i.test(docs);
     },
-    impact: 'high',
+    impact: 'critical',
     rating: 5,
     category: 'trust',
-    fix: 'Enable Privacy Mode in Cursor Settings for zero data retention, or document why it is disabled.',
+    fix: 'Privacy Mode is OFF by default — code is sent to all third-party providers (OpenAI, Anthropic, etc.) unless explicitly enabled. Enable in Cursor Settings → Privacy → Privacy Mode, or document the deliberate decision to keep it off.',
     template: null,
     file: () => '.cursor/rules/',
     line: () => null,
@@ -653,6 +674,44 @@ const CURSOR_TECHNIQUES = {
     fix: 'Replace wildcard automation triggers with specific branch/event patterns.',
     template: null,
     file: () => '.cursor/automations/',
+    line: () => null,
+  },
+
+  cursorBackgroundAgentHomeDir: {
+    id: 'CU-C10',
+    name: 'Background agent home directory exposure documented',
+    check: (ctx) => {
+      const env = envJsonData(ctx);
+      if (!env) return null;
+      // If background agents are configured, check that the security risk is documented
+      const docs = docsBundle(ctx);
+      return /home.?dir|npmrc|aws.?credentials|ssh.*key|credential.*exposure|home.*access/i.test(docs);
+    },
+    impact: 'critical',
+    rating: 5,
+    category: 'trust',
+    fix: 'Background agents have FULL READ access to ~/.npmrc, ~/.aws/credentials, ~/.ssh/ (open security issue since Nov 2025). Document this risk and remove sensitive credentials from home directory before using background agents, or use environment variable references instead.',
+    template: null,
+    file: () => '.cursor/environment.json',
+    line: () => null,
+  },
+
+  cursorCursorignoreShellBypass: {
+    id: 'CU-C11',
+    name: '.cursorignore does not protect against shell command access',
+    check: (ctx) => {
+      const hasIgnore = Boolean(ctx.fileContent('.cursorignore'));
+      if (!hasIgnore) return null;
+      // If .cursorignore exists, check that docs acknowledge shell bypass gap
+      const docs = docsBundle(ctx);
+      return /cursorignore.*shell|shell.*bypass|terminal.*ignore|ignore.*terminal/i.test(docs);
+    },
+    impact: 'high',
+    rating: 4,
+    category: 'trust',
+    fix: '.cursorignore only protects files from @Codebase direct reads — agents can still access ignored files via terminal commands (cat, head, etc.). Do not rely on .cursorignore for security. Use proper OS-level file permissions for truly sensitive files.',
+    template: null,
+    file: () => '.cursorignore',
     line: () => null,
   },
 
@@ -1135,6 +1194,27 @@ const CURSOR_TECHNIQUES = {
     rating: 4,
     category: 'automations',
     fix: 'Define scoped permissions and sandbox config for each automation agent.',
+    template: null,
+    file: () => '.cursor/automations/',
+    line: () => null,
+  },
+
+  cursorAutomationFileSaveDebounce: {
+    id: 'CU-H06',
+    name: 'file_save automation triggers have debounce_ms set',
+    check: (ctx) => {
+      const configs = ctx.automationsConfig ? ctx.automationsConfig() : [];
+      if (configs.length === 0) return null;
+      const combined = configs.map(c => c.content).join('\n');
+      // Only relevant if file_save trigger is used
+      if (!/type:\s*file_save|file[_-]save/i.test(combined)) return null;
+      // Must have debounce_ms set to avoid infinite loop
+      return /debounce_ms|debounce-ms/i.test(combined);
+    },
+    impact: 'critical',
+    rating: 5,
+    category: 'automations',
+    fix: 'Add debounce_ms: 30000 (minimum) to all file_save automation triggers. Without debounce, the automation saves a file → triggers itself → infinite loop that consumes your entire automation quota.',
     template: null,
     file: () => '.cursor/automations/',
     line: () => null,

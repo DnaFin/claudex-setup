@@ -1,5 +1,5 @@
 /**
- * OpenCode Techniques — 68+ checks (OC-A01 through OC-P03)
+ * OpenCode Techniques — 73 checks (OC-A01 through OC-P03)
  *
  * Categories:
  *   A. Instructions (7 checks)
@@ -62,18 +62,14 @@ const VALID_PLUGIN_EVENTS = new Set([
   'error', 'warning',
 ]);
 
-const DEPRECATED_CONFIG_KEYS = [
-  { key: 'mode', replacement: 'agent', note: 'Use `agent` field instead of deprecated `mode`.' },
-];
-
 // --- Helpers ---
 
 function agentsPath(ctx) {
-  return ctx.agentsMdPath ? ctx.agentsMdPath() : null;
+  return ctx.fileContent('AGENTS.md') ? 'AGENTS.md' : null;
 }
 
 function agentsContent(ctx) {
-  return ctx.agentsMdContent ? (ctx.agentsMdContent() || '') : '';
+  return ctx.fileContent('AGENTS.md') || '';
 }
 
 function configFileName(ctx) {
@@ -262,17 +258,16 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeNoCoexistenceConflict: {
     id: 'OC-A05',
-    name: 'No CLAUDE.md coexistence conflict (AGENTS.md wins if both exist in same dir)',
+    name: 'Mixed AGENTS.md + CLAUDE.md repos keep OpenCode guidance in AGENTS.md',
     check: (ctx) => {
       if (!ctx.hasAgentsMdAndClaudeMd || !ctx.hasAgentsMdAndClaudeMd()) return true;
-      // Both exist: check that AGENTS.md is primary, warn about potential confusion
       const agentsMd = ctx.fileContent('AGENTS.md') || '';
       return agentsMd.length > 0;
     },
     impact: 'high',
     rating: 4,
     category: 'instructions',
-    fix: 'When both AGENTS.md and CLAUDE.md exist, AGENTS.md takes precedence in OpenCode. Keep CLAUDE.md for Claude Code and use AGENTS.md for OpenCode instructions.',
+    fix: 'Keep OpenCode instructions in `AGENTS.md` when both files exist. Current runtime evidence did not validate a clean `CLAUDE.md` fallback, so do not rely on `CLAUDE.md` as the primary OpenCode instruction surface.',
     template: 'opencode-agents-md',
     file: () => 'AGENTS.md',
     line: () => null,
@@ -291,7 +286,7 @@ const OPENCODE_TECHNIQUES = {
     category: 'instructions',
     fix: 'Remove generic filler ("Be helpful", "Write clean code") and replace with specific, actionable project instructions.',
     template: 'opencode-agents-md',
-    file: () => agentsPath,
+    file: (ctx) => agentsPath(ctx),
     line: (ctx) => findFillerLine(agentsContent(ctx)),
   },
 
@@ -571,7 +566,7 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeAllToolsCovered: {
     id: 'OC-C08',
-    name: 'All 15 permissioned tools have explicit state',
+    name: 'Critical tool permissions are explicit',
     check: (ctx) => {
       const perms = ctx.toolPermissions();
       if (!perms || Object.keys(perms).length === 0) return null;
@@ -582,7 +577,7 @@ const OPENCODE_TECHNIQUES = {
     impact: 'high',
     rating: 4,
     category: 'permissions',
-    fix: 'Set explicit permissions for at least the critical tools: bash, edit, read, task.',
+    fix: 'Set explicit permissions for at least the critical tools: bash, edit, read, and task. The old fixed "15 tools" framing no longer matches current CLI/runtime surfaces.',
     template: 'opencode-permissions',
     file: (ctx) => configFileName(ctx),
     line: () => null,
@@ -670,21 +665,17 @@ const OPENCODE_TECHNIQUES = {
 
   opencodePluginHookGapAware: {
     id: 'OC-D05',
-    name: 'No plugins relying on tool.execute.before for subagent/MCP coverage (broken: #5894, #2319)',
+    name: 'Plugin docs do not rely on stale hook-gap claims',
     check: (ctx) => {
       const pluginFiles = ctx.pluginFiles();
       if (pluginFiles.length === 0) return null;
       const docs = docsBundle(ctx);
-      // If plugins reference tool interception, check for gap awareness
-      if (/\btool\.execute\.before\b/i.test(docs) && !/\b(bypass|gap|limitation|bug|5894|2319)\b/i.test(docs)) {
-        return false;
-      }
-      return true;
+      return !/\btool\.execute\.before\b[\s\S]{0,80}\b(subagent|mcp)\b[\s\S]{0,80}\b(bypass|gap|broken|2319|5894)\b/i.test(docs);
     },
     impact: 'high',
     rating: 4,
     category: 'plugins',
-    fix: 'Document that tool.execute.before hooks do not intercept subagent/MCP calls (known bugs #5894, #2319).',
+    fix: 'Remove blanket claims that subagent or MCP calls bypass plugin visibility. On current runtime, hook coverage was observed for direct, subagent, and MCP paths, so any caveat should be version-specific and evidence-backed.',
     template: 'opencode-agents-md',
     file: () => 'AGENTS.md',
     line: () => null,
@@ -713,20 +704,17 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeToolInterceptionGap: {
     id: 'OC-E02',
-    name: 'tool.execute.before hook gap documented (#5894, #2319)',
+    name: 'Security docs do not overstate plugin hook bypass gaps',
     check: (ctx) => {
       const pluginFiles = ctx.pluginFiles();
       if (pluginFiles.length === 0) return null;
-      // Check if the project uses plugins and has documented the gap
       const docs = docsBundle(ctx);
-      const usesToolHooks = /\btool\.execute/i.test(docs);
-      if (!usesToolHooks) return true;
-      return /\b(bypass|gap|limitation|5894|2319)\b/i.test(docs);
+      return !/\b(subagent|mcp)\b[\s\S]{0,80}\b(bypass|gap|broken|2319|5894)\b/i.test(docs);
     },
     impact: 'high',
     rating: 4,
     category: 'security',
-    fix: 'Document that subagent and MCP tool calls bypass tool.execute.before hooks (bugs #5894, #2319).',
+    fix: 'Do not treat historical hook-gap bug reports as a current security guarantee. If you mention plugin coverage limits, mark them as version-sensitive and pair them with fresh runtime evidence.',
     template: 'opencode-agents-md',
     file: () => 'AGENTS.md',
     line: () => null,
@@ -734,19 +722,19 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeAgentDenyNotBypassable: {
     id: 'OC-E03',
-    name: 'Agent deny permissions not bypassable via SDK (#6396)',
+    name: 'Agent-permission docs do not rely on stale SDK bypass claims',
     check: (ctx) => {
       const agents = ctx.customAgents();
       if (!agents || Object.keys(agents).length === 0) return null;
       const docs = docsBundle(ctx);
       const usesAgentPerms = Object.values(agents).some(a => a && a.permissions);
       if (!usesAgentPerms) return true;
-      return /\b(bypass|gap|limitation|6396)\b/i.test(docs);
+      return !/\b6396\b|\bagent\b[\s\S]{0,80}\b(bypass|gap|broken)\b/i.test(docs);
     },
     impact: 'high',
     rating: 4,
     category: 'security',
-    fix: 'Document that agent deny permissions can be bypassed via SDK (bug #6396). Add compensating controls.',
+    fix: 'Remove blanket claims that agent deny permissions are bypassed via SDK unless you have fresh version-specific proof. The older `#6396` framing did not reproduce in the current CLI harness.',
     template: 'opencode-agents-md',
     file: () => 'AGENTS.md',
     line: () => null,
@@ -781,7 +769,7 @@ const OPENCODE_TECHNIQUES = {
     impact: 'critical',
     rating: 5,
     category: 'security',
-    fix: 'Use {env:VAR_NAME} substitution for secrets in opencode.json instead of hardcoded values.',
+    fix: 'Do not hardcode secrets in `opencode.json`, and do not assume `{env:VAR}` keeps values invisible. Current runtime exposed resolved env substitutions in `debug config`, so treat that surface as sensitive too.',
     template: 'opencode-config',
     file: (ctx) => configFileName(ctx),
     line: (ctx) => {
@@ -821,9 +809,7 @@ const OPENCODE_TECHNIQUES = {
       if (!mcp || Object.keys(mcp).length === 0) return null;
       for (const [id, server] of Object.entries(mcp)) {
         if (!server) continue;
-        // command should be an array in OpenCode MCP config
-        if (server.command && !Array.isArray(server.command) && typeof server.command !== 'string') return false;
-        // env is the wrong key — should be environment
+        if (server.command && !Array.isArray(server.command)) return false;
         if (server.env && !server.environment) return false;
       }
       return true;
@@ -831,7 +817,7 @@ const OPENCODE_TECHNIQUES = {
     impact: 'critical',
     rating: 5,
     category: 'mcp',
-    fix: 'Fix MCP config schema: use "command": ["npx", ...] (array) and "environment": {} (not "env").',
+    fix: 'Fix MCP config schema: use `command` as a string array and `environment` as the env-var object. Current runtime rejected string commands and the legacy `env` key.',
     template: 'opencode-config',
     file: (ctx) => configFileName(ctx),
     line: () => null,
@@ -843,17 +829,13 @@ const OPENCODE_TECHNIQUES = {
     check: (ctx) => {
       const mcp = ctx.mcpServers();
       if (!mcp || Object.keys(mcp).length === 0) return null;
-      // Check if any MCP servers have tool restrictions configured
-      const perms = ctx.toolPermissions();
-      if (!perms) return null;
-      // Look for MCP-related tool permission patterns
-      const hasMcpToolRestrictions = Object.keys(perms).some(key => key.includes('mcp') || key.includes('*'));
+      const hasMcpToolRestrictions = Object.values(mcp).some((server) => server && server.tools && Object.keys(server.tools).length > 0);
       return hasMcpToolRestrictions || Object.keys(mcp).length <= 2;
     },
     impact: 'high',
     rating: 4,
     category: 'mcp',
-    fix: 'Add tool whitelisting for MCP servers: { "tools": { "my-mcp*": false } } to limit tool access.',
+    fix: 'Add MCP tool restrictions with per-tool globs such as `{ "tools": { "my-mcp*": false } }`. This limits only those MCP tools; other available tools like `webfetch` may still satisfy the same intent unless you restrict them too.',
     template: 'opencode-config',
     file: (ctx) => configFileName(ctx),
     line: () => null,
@@ -886,19 +868,19 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeMcpHookLimitation: {
     id: 'OC-F04',
-    name: 'MCP tool calls do not trigger plugin hooks — documented limitation (#2319)',
+    name: 'MCP hook caveats are treated as version-sensitive',
     check: (ctx) => {
       const mcp = ctx.mcpServers();
       const pluginFiles = ctx.pluginFiles();
       if (!mcp || Object.keys(mcp).length === 0) return null;
       if (pluginFiles.length === 0) return null;
       const docs = docsBundle(ctx);
-      return /\b(mcp|2319|hook.*mcp|mcp.*hook)\b/i.test(docs);
+      return !/\bmcp\b[\s\S]{0,80}\b(hook|plugin)\b[\s\S]{0,80}\b(bypass|gap|broken|2319)\b/i.test(docs);
     },
     impact: 'medium',
     rating: 3,
     category: 'mcp',
-    fix: 'Document that MCP tool calls bypass plugin hooks (#2319). Ensure security does not rely on hook interception for MCP.',
+    fix: 'Do not hard-code an MCP hook-bypass warning as if it were universal. Current runtime showed MCP plugin events firing, so keep any caveat version-sensitive and backed by fresh evidence.',
     template: 'opencode-agents-md',
     file: () => 'AGENTS.md',
     line: () => null,
@@ -937,18 +919,17 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeCiPermissionsPreset: {
     id: 'OC-G01',
-    name: 'opencode run usage pre-configures all permissions to avoid hang (#10411)',
+    name: 'opencode run usage pre-configures permissions to avoid silent auto-rejects',
     check: (ctx) => {
       const workflows = workflowArtifacts(ctx);
       const hasOpencodeRun = workflows.some(w => /\bopencode\s+run\b/i.test(w.content));
       if (!hasOpencodeRun) return null;
-      // Check that permissions are pre-configured
       return workflows.some(w => /\bpermissions?\b.*\ballow\b|\b--yes\b|\b--no-prompt\b/i.test(w.content));
     },
     impact: 'critical',
     rating: 5,
     category: 'ci',
-    fix: 'Pre-configure all permissions when using `opencode run` in CI. Without this, the process hangs on permission prompts.',
+    fix: 'Pre-configure permissions when using `opencode run` in CI. In the current harness, permission requests auto-rejected instead of hanging, which still breaks tasks that expected tool access.',
     template: 'opencode-ci',
     file: () => '.github/workflows/',
     line: () => null,
@@ -984,7 +965,7 @@ const OPENCODE_TECHNIQUES = {
     impact: 'medium',
     rating: 3,
     category: 'ci',
-    fix: 'Use `--format json` when running OpenCode in CI for machine-readable output parsing.',
+    fix: 'Use `--format json` when running OpenCode in CI, and parse it as JSONL/event frames rather than expecting one monolithic JSON document.',
     template: 'opencode-ci',
     file: () => '.github/workflows/',
     line: () => null,
@@ -1036,19 +1017,16 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeNoDeprecatedPatterns: {
     id: 'OC-H02',
-    name: 'No deprecated OpenCode patterns (mode -> agent migration)',
+    name: 'Repo docs do not push the stale mode -> agent migration claim',
     check: (ctx) => {
-      const config = ctx.configJson();
-      if (!config.ok || !config.data) return null;
-      for (const { key } of DEPRECATED_CONFIG_KEYS) {
-        if (config.data[key] !== undefined) return false;
-      }
-      return true;
+      const docs = docsBundle(ctx);
+      if (!docs.trim()) return null;
+      return !/\bmode\b[\s\S]{0,60}\bdeprecated\b|\buse\b[\s\S]{0,40}\bagent\b[\s\S]{0,40}\binstead of\b[\s\S]{0,20}\bmode\b/i.test(docs);
     },
     impact: 'medium',
     rating: 3,
     category: 'quality-deep',
-    fix: 'Replace deprecated config keys: use "agent" instead of "mode".',
+    fix: 'Do not tell users that `mode` has been replaced by `agent` across the board. Current runtime still validated `mode` for markdown custom agents, so any migration guidance should be explicitly version-scoped.',
     template: 'opencode-config',
     file: (ctx) => configFileName(ctx),
     line: () => null,
@@ -1162,16 +1140,16 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeSkillKebabCase: {
     id: 'OC-I03',
-    name: 'Skill names use kebab-case (not PascalCase — 0% invocation rate)',
+    name: 'Skill names preferably use kebab-case',
     check: (ctx) => {
       const skillDirs = ctx.skillDirs();
       if (skillDirs.length === 0) return null;
       return skillDirs.every(name => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name));
     },
-    impact: 'high',
-    rating: 4,
+    impact: 'medium',
+    rating: 2,
     category: 'skills',
-    fix: 'Rename skill directories to kebab-case (e.g., code-review, not CodeReview). PascalCase has 0% implicit invocation.',
+    fix: 'Prefer kebab-case for skill names, but treat it as a style recommendation rather than a hard runtime requirement. Current runtime still discovered underscore-based names.',
     template: 'opencode-skills',
     file: () => '.opencode/commands/',
     line: () => null,
@@ -1201,20 +1179,17 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeSkillCompatPaths: {
     id: 'OC-I05',
-    name: '.claude/skills/ compatibility paths resolve correctly in OpenCode',
+    name: 'OpenCode skill discovery accepts either .opencode/commands or .claude/skills',
     check: (ctx) => {
       const hasClaudeSkills = ctx.hasDir('.claude/skills');
-      if (!hasClaudeSkills) return null;
       const hasOpencodeCommands = ctx.hasDir('.opencode/commands');
-      // If both exist, they should be consistent
-      if (hasOpencodeCommands) return true;
-      // Claude skills exist but no OpenCode commands — warn
-      return false;
+      if (!hasClaudeSkills && !hasOpencodeCommands) return null;
+      return hasClaudeSkills || hasOpencodeCommands;
     },
     impact: 'medium',
     rating: 3,
     category: 'skills',
-    fix: 'If using .claude/skills/, also create .opencode/commands/ for OpenCode compatibility.',
+    fix: 'Use `.opencode/commands/` for native OpenCode skills when you need them, but do not require a duplicate tree just to mirror `.claude/skills/`. Current runtime discovered `.claude/skills/` compatibility successfully.',
     template: 'opencode-skills',
     file: () => '.opencode/commands/',
     line: () => null,
@@ -1247,21 +1222,22 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeAgentModeValid: {
     id: 'OC-J02',
-    name: 'Agent mode field is valid: "primary", "subagent", or "all"',
+    name: 'Custom agent mode is valid when declared',
     check: (ctx) => {
       const agents = ctx.customAgents();
       if (!agents || Object.keys(agents).length === 0) return null;
       const validModes = new Set(['primary', 'subagent', 'all']);
       for (const [name, agent] of Object.entries(agents)) {
         if (!agent) continue;
-        if (agent.agent && !validModes.has(agent.agent)) return false;
+        const mode = agent.mode || agent.agent;
+        if (mode && !validModes.has(mode)) return false;
       }
       return true;
     },
     impact: 'medium',
     rating: 3,
     category: 'agents',
-    fix: 'Set agent "agent" field to one of: "primary", "subagent", or "all".',
+    fix: 'Use a valid mode value (`primary`, `subagent`, or `all`) when declaring custom agents. Current runtime still validated `mode` for markdown agents, so do not rename to `agent` solely because of stale docs.',
     template: 'opencode-config',
     file: (ctx) => configFileName(ctx),
     line: () => null,
@@ -1269,20 +1245,20 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeBuiltinAgentsProtected: {
     id: 'OC-J03',
-    name: 'Built-in agents (build, plan) not accidentally overridden',
+    name: 'Built-in agent overrides are intentional and documented',
     check: (ctx) => {
       const agents = ctx.customAgents();
       if (!agents || Object.keys(agents).length === 0) return null;
       const builtins = new Set(['build', 'plan', 'default']);
-      for (const name of Object.keys(agents)) {
-        if (builtins.has(name.toLowerCase())) return false;
-      }
-      return true;
+      const overriding = Object.keys(agents).filter((name) => builtins.has(name.toLowerCase()));
+      if (overriding.length === 0) return true;
+      const docs = docsBundle(ctx);
+      return /override|intentional|customized|replace/i.test(docs);
     },
     impact: 'medium',
     rating: 3,
     category: 'agents',
-    fix: 'Do not name custom agents "build", "plan", or "default" to avoid overriding built-in agents.',
+    fix: 'Built-in agents appear overrideable in current runtime. If you intentionally override `build`, `plan`, or `default`, document why; otherwise rename the custom agent to avoid surprising behavior.',
     template: 'opencode-config',
     file: (ctx) => configFileName(ctx),
     line: () => null,
@@ -1389,7 +1365,7 @@ const OPENCODE_TECHNIQUES = {
     impact: 'medium',
     rating: 3,
     category: 'tui',
-    fix: 'Fix JSONC syntax in tui.json. Ensure valid JSON with optional comments.',
+    fix: 'Fix JSONC syntax in `tui.json`, then validate the behavioral effect in the real TUI/UI. Headless CLI surfaces did not provide enough evidence for TUI behavior on their own.',
     template: 'opencode-config',
     file: () => 'tui.json',
     line: () => 1,
@@ -1415,7 +1391,7 @@ const OPENCODE_TECHNIQUES = {
     impact: 'low',
     rating: 2,
     category: 'tui',
-    fix: 'Fix JSON syntax errors in theme files under .opencode/themes/.',
+    fix: 'Fix JSON syntax errors in `.opencode/themes/`, then verify the theme in an actual UI/TUI session. Headless `run` did not give reliable theme evidence.',
     template: 'opencode-config',
     file: () => '.opencode/themes/',
     line: () => null,
@@ -1432,7 +1408,7 @@ const OPENCODE_TECHNIQUES = {
     impact: 'medium',
     rating: 3,
     category: 'tui',
-    fix: 'Remove any sensitive data from tui.json.',
+    fix: 'Remove any sensitive data from `tui.json`, and remember that `tui.json` was not meaningfully observable through headless `run` alone.',
     template: 'opencode-config',
     file: () => 'tui.json',
     line: (ctx) => {
@@ -1520,17 +1496,16 @@ const OPENCODE_TECHNIQUES = {
     id: 'OC-N02',
     name: 'Config references current OpenCode features (no removed or renamed keys)',
     check: (ctx) => {
-      const config = ctx.configJson();
-      if (!config.ok || !config.data) return null;
-      for (const { key } of DEPRECATED_CONFIG_KEYS) {
-        if (config.data[key] !== undefined) return false;
-      }
-      return true;
+      const docs = docsBundle(ctx);
+      const config = ctx.configContent();
+      if (!docs.trim() && !config) return null;
+      const combined = `${docs}\n${config || ''}`;
+      return !/\bconfig\.json\b|\.well-known\/opencode|mode\s*->\s*agent|CLAUDE\.md fallback/i.test(combined);
     },
     impact: 'medium',
     rating: 3,
     category: 'release-freshness',
-    fix: 'Update deprecated config keys to their current equivalents.',
+    fix: 'Update stale OpenCode references. Use `opencode.json`/`opencode.jsonc`, keep `mode` guidance version-scoped, and treat `.well-known/opencode` plus `CLAUDE.md` fallback claims as unvalidated until you have fresh runtime proof.',
     template: 'opencode-config',
     file: (ctx) => configFileName(ctx),
     line: () => null,
@@ -1596,15 +1571,13 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeInstructionsArrayResolvable: {
     id: 'OC-O02',
-    name: 'instructions array in opencode.json references valid paths',
+    name: 'instructions array uses validated local file paths',
     check: (ctx) => {
       const instructions = ctx.instructionsArray();
       if (!Array.isArray(instructions) || instructions.length === 0) return null;
       for (const instruction of instructions) {
         if (typeof instruction !== 'string') continue;
-        // Skip URLs and globs
-        if (instruction.startsWith('http') || instruction.includes('*')) continue;
-        // Check local file references
+        if (instruction.startsWith('http') || instruction.includes('*')) return false;
         if (!ctx.fileContent(instruction)) return false;
       }
       return true;
@@ -1612,7 +1585,7 @@ const OPENCODE_TECHNIQUES = {
     impact: 'high',
     rating: 4,
     category: 'mixed-agent',
-    fix: 'Ensure all paths in the "instructions" array of opencode.json point to existing files.',
+    fix: 'Prefer direct local file paths in the `instructions` array. Current runtime clearly validated direct files, but glob and URL sources were not visibly applied in `run`, so treat them as experimental until reproduced.',
     template: 'opencode-config',
     file: (ctx) => configFileName(ctx),
     line: () => null,
@@ -1620,18 +1593,16 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeGlobalAgentsNoConflict: {
     id: 'OC-O03',
-    name: 'Global AGENTS.md does not conflict with project AGENTS.md',
+    name: 'Project docs do not depend on global AGENTS.md behavior',
     check: (ctx) => {
-      const globalContent = ctx.globalAgentsMdContent ? ctx.globalAgentsMdContent() : null;
-      const projectContent = ctx.fileContent('AGENTS.md');
-      if (!globalContent || !projectContent) return null;
-      // Basic conflict check: same heading structure with different content
-      return true; // Soft pass; deep-review does thorough analysis
+      const docs = `${ctx.fileContent('AGENTS.md') || ''}\n${ctx.fileContent('README.md') || ''}`;
+      if (!docs.trim()) return null;
+      return !/~\/\.config\/opencode\/AGENTS\.md|global AGENTS/i.test(docs);
     },
     impact: 'medium',
     rating: 3,
     category: 'mixed-agent',
-    fix: 'Review global AGENTS.md (~/.config/opencode/AGENTS.md) for conflicts with project AGENTS.md.',
+    fix: 'Do not rely on `~/.config/opencode/AGENTS.md` as a guaranteed project behavior. Current Windows runtime did not show global AGENTS loading in `run`, so keep project-critical guidance in repo files.',
     template: 'opencode-agents-md',
     file: () => 'AGENTS.md',
     line: () => null,
@@ -1643,7 +1614,7 @@ const OPENCODE_TECHNIQUES = {
 
   opencodeConfigMergeConsistent: {
     id: 'OC-P01',
-    name: '6-level config merge hierarchy does not produce conflicting values',
+    name: 'Observed config merge hierarchy does not produce conflicting values',
     check: (ctx) => {
       const projectConfig = ctx.configJson();
       const globalConfig = ctx.globalConfigJson();
@@ -1658,7 +1629,7 @@ const OPENCODE_TECHNIQUES = {
     impact: 'high',
     rating: 4,
     category: 'propagation',
-    fix: 'Review 6-level config merge: .well-known > global > env > project > .opencode/ > env content.',
+    fix: 'Review the observed precedence chain: global `opencode.json` < `OPENCODE_CONFIG` < project `opencode.json` < `.opencode/opencode.json` < `OPENCODE_CONFIG_CONTENT`. Treat `.well-known/opencode` as remote-only until you have runtime proof.',
     template: 'opencode-config',
     file: (ctx) => configFileName(ctx),
     line: () => null,
