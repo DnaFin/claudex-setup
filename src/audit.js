@@ -461,7 +461,7 @@ function buildTopNextActions(failed, limit = 5, outcomeSummaryByKey = {}, option
       return scoreB - scoreA;
     })
     .slice(0, limit)
-    .map(({ key, id, name, impact, fix, category }) => {
+    .map(({ key, id, name, impact, fix, category, sourceUrl }) => {
       const feedback = outcomeSummaryByKey[key] || null;
       const rankingAdjustment = getRecommendationAdjustment(outcomeSummaryByKey, key);
       const signals = [
@@ -491,6 +491,7 @@ function buildTopNextActions(failed, limit = 5, outcomeSummaryByKey = {}, option
       name,
       impact,
       category,
+      sourceUrl,
       module: CATEGORY_MODULES[category] || category,
       fix,
       priorityScore,
@@ -810,7 +811,7 @@ async function audit(options) {
     stacks,
     results,
     categoryScores,
-    quickWins: quickWins.map(({ key, name, impact, fix, category }) => ({ key, name, impact, category, fix })),
+    quickWins: quickWins.map(({ key, name, impact, fix, category, sourceUrl }) => ({ key, name, impact, category, fix, sourceUrl })),
     topNextActions,
     recommendationOutcomes: {
       totalEntries: outcomeSummary.totalEntries,

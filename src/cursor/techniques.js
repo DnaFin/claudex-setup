@@ -15,6 +15,7 @@ const os = require('os');
 const path = require('path');
 const { CursorProjectContext } = require('./context');
 const { EMBEDDED_SECRET_PATTERNS, containsEmbeddedSecret } = require('../secret-patterns');
+const { attachSourceUrls } = require('../source-urls');
 const { validateMdcFrontmatter, validateMcpEnvVars } = require('./config-parser');
 
 // ─── Shared helpers ─────────────────────────────────────────────────────────
@@ -1860,6 +1861,8 @@ const CURSOR_TECHNIQUES = {
     line: () => null,
   },
 };
+
+attachSourceUrls('cursor', CURSOR_TECHNIQUES);
 
 module.exports = {
   CURSOR_TECHNIQUES,

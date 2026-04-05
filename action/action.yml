@@ -1,14 +1,29 @@
-name: 'claudex-setup Audit'
-description: 'Score your Claude Code setup against 84 checks'
+name: 'Nerviq Audit'
+description: 'Audit AI coding agent configuration — 673 checks across 8 platforms'
+branding:
+  icon: 'shield'
+  color: 'blue'
 inputs:
+  platform:
+    description: 'Platform to audit (claude, codex, gemini, copilot, cursor, windsurf, aider, opencode)'
+    required: false
+    default: 'claude'
   threshold:
-    description: 'Minimum passing score (0-100)'
+    description: 'Minimum passing score (0-100). Exit 1 if below.'
     required: false
     default: '0'
+  harmony:
+    description: 'Run cross-platform harmony audit (true/false)'
+    required: false
+    default: 'false'
   comment:
     description: 'Post score as PR comment (true/false)'
     required: false
     default: 'true'
+  format:
+    description: 'Output format (text, json, sarif)'
+    required: false
+    default: 'text'
 runs:
   using: 'composite'
   steps:
@@ -16,20 +31,31 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-    - name: Run claudex-setup audit
+    - name: Run Nerviq Audit
       id: audit
       shell: bash
       run: |
-        RESULT=$(npx -y claudex-setup --json 2>/dev/null)
-        SCORE=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).score)")
-        PASSED=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).passed)")
-        FAILED=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).failed)")
-        CHECK_COUNT=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).checkCount)")
-        echo "score=$SCORE" >> $GITHUB_OUTPUT
-        echo "passed=$PASSED" >> $GITHUB_OUTPUT
-        echo "failed=$FAILED" >> $GITHUB_OUTPUT
-        echo "check_count=$CHECK_COUNT" >> $GITHUB_OUTPUT
-        echo "Claude Code Setup Score: $SCORE/100 ($PASSED/$CHECK_COUNT checks passing)"
+        if [ "${{ inputs.harmony }}" = "true" ]; then
+          RESULT=$(npx -y @nerviq/cli@latest harmony-audit --json 2>/dev/null || echo '{"harmonyScore":0}')
+          SCORE=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).harmonyScore||0)")
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "harmony-score=$SCORE" >> $GITHUB_OUTPUT
+          echo "platform=harmony" >> $GITHUB_OUTPUT
+          echo "Nerviq Harmony Score: $SCORE/100"
+        else
+          RESULT=$(npx -y @nerviq/cli@latest audit --platform ${{ inputs.platform }} --json 2>/dev/null || echo '{"score":0}')
+          SCORE=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).score||0)")
+          PASSED=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).passed||0)")
+          TOTAL=$(echo "$RESULT" | node -e "const d=require('fs').readFileSync('/dev/stdin','utf8');console.log(JSON.parse(d).checkCount||0)")
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo "check_count=$TOTAL" >> $GITHUB_OUTPUT
+          echo "platform=${{ inputs.platform }}" >> $GITHUB_OUTPUT
+          echo "Nerviq Score (${{ inputs.platform }}): $SCORE/100 ($PASSED/$TOTAL checks passing)"
+          if [ "${{ inputs.format }}" = "sarif" ]; then
+            npx -y @nerviq/cli@latest audit --platform ${{ inputs.platform }} --format sarif > nerviq.sarif 2>/dev/null || true
+          fi
+        fi
     - name: Comment on PR
       if: inputs.comment == 'true' && github.event_name == 'pull_request'
       uses: actions/github-script@v7
@@ -37,30 +63,29 @@ runs:
         script: |
           const score = '${{ steps.audit.outputs.score }}';
           const passed = '${{ steps.audit.outputs.passed }}';
-          const checkCount = '${{ steps.audit.outputs.check_count }}';
+          const total = '${{ steps.audit.outputs.check_count }}';
+          const platform = '${{ steps.audit.outputs.platform }}';
           const emoji = score >= 70 ? '🟢' : score >= 40 ? '🟡' : '🔴';
-          const body = `## ${emoji} Claude Code Setup Score: ${score}/100\n\n${passed}/${checkCount} checks passing\n\n<sub>Audited by [claudex-setup](https://github.com/DnaFin/claudex-setup)</sub>`;
+          const label = platform === 'harmony' ? 'Harmony' : platform.charAt(0).toUpperCase() + platform.slice(1);
+          const detail = platform === 'harmony' ? '' : ` (${passed}/${total} checks)`;
+          const body = `## ${emoji} Nerviq ${label} Score: ${score}/100${detail}\n\n<sub>Audited by [Nerviq](https://github.com/nerviq/nerviq)</sub>`;
           const { data: comments } = await github.rest.issues.listComments({
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: context.issue.number,
           });
-          const existing = comments.find(c => c.body.includes('Claude Code Setup Score'));
+          const existing = comments.find(c => c.body.includes('Nerviq') && c.body.includes('Score'));
           if (existing) {
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: existing.id,
-              body,
-            });
+            await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: existing.id, body });
           } else {
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body,
-            });
+            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
           }
+    - name: Upload SARIF
+      if: inputs.format == 'sarif'
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: nerviq.sarif
+      continue-on-error: true
     - name: Check threshold
       if: inputs.threshold != '0'
       shell: bash
@@ -68,7 +93,7 @@ runs:
         SCORE=${{ steps.audit.outputs.score }}
         THRESHOLD=${{ inputs.threshold }}
         if [ "$SCORE" -lt "$THRESHOLD" ]; then
-          echo "::error::Claude Code setup score ($SCORE) is below threshold ($THRESHOLD)"
+          echo "::error::Nerviq score ($SCORE) is below threshold ($THRESHOLD)"
           exit 1
         fi
 outputs:
@@ -78,6 +103,6 @@ outputs:
   passed:
     description: 'Number of passing checks'
     value: ${{ steps.audit.outputs.passed }}
-  failed:
-    description: 'Number of failing checks'
-    value: ${{ steps.audit.outputs.failed }}
+  platform:
+    description: 'Platform audited'
+    value: ${{ steps.audit.outputs.platform }}

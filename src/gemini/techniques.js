@@ -14,6 +14,7 @@ const os = require('os');
 const path = require('path');
 const { GeminiProjectContext } = require('./context');
 const { EMBEDDED_SECRET_PATTERNS, containsEmbeddedSecret } = require('../secret-patterns');
+const { attachSourceUrls } = require('../source-urls');
 
 // ─── Shared helpers ─────────────────────────────────────────────────────────
 
@@ -2229,6 +2230,8 @@ const GEMINI_TECHNIQUES = {
     line: (ctx) => ctx.lineNumber('.gemini/settings.json', /"model"/),
   },
 };
+
+attachSourceUrls('gemini', GEMINI_TECHNIQUES);
 
 module.exports = {
   GEMINI_TECHNIQUES,

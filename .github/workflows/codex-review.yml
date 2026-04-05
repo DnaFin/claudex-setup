@@ -1,0 +1,21 @@
+name: Codex Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  codex-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Codex Review
+        uses: openai/codex-action@v1
+        with:
+          safety-strategy: review-only
+        env:
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}

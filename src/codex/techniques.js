@@ -1,6 +1,7 @@
 const os = require('os');
 const path = require('path');
 const { EMBEDDED_SECRET_PATTERNS, containsEmbeddedSecret } = require('../secret-patterns');
+const { attachSourceUrls } = require('../source-urls');
 
 const DEFAULT_PROJECT_DOC_MAX_BYTES = 32768;
 const SUPPORTED_HOOK_EVENTS = new Set(['SessionStart', 'PreToolUse', 'PostToolUse', 'UserPromptSubmit', 'Stop']);
@@ -3248,6 +3249,8 @@ const CODEX_TECHNIQUES = {
     },
   },
 };
+
+attachSourceUrls('codex', CODEX_TECHNIQUES);
 
 module.exports = {
   CODEX_TECHNIQUES,

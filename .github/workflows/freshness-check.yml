@@ -1,0 +1,221 @@
+name: Freshness Check
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Specific platform to check (leave empty for all)'
+        required: false
+        default: ''
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  freshness:
+    name: Check Platform Source Watchlists
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - { key: claude,    module: 'src/freshness.js',          label: 'Claude Code' }
+          - { key: codex,     module: 'src/codex/freshness.js',    label: 'Codex' }
+          - { key: cursor,    module: 'src/cursor/freshness.js',   label: 'Cursor' }
+          - { key: copilot,   module: 'src/copilot/freshness.js',  label: 'Copilot' }
+          - { key: gemini,    module: 'src/gemini/freshness.js',   label: 'Gemini CLI' }
+          - { key: windsurf,  module: 'src/windsurf/freshness.js', label: 'Windsurf' }
+          - { key: aider,     module: 'src/aider/freshness.js',    label: 'Aider' }
+          - { key: opencode,  module: 'src/opencode/freshness.js', label: 'OpenCode' }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run freshness gate — ${{ matrix.platform.label }}
+        id: gate
+        run: |
+          node - <<'EOF'
+          const { checkReleaseGate, formatReleaseGate, P0_SOURCES } = require('./${{ matrix.platform.module }}');
+          const gate = checkReleaseGate({});
+
+          console.log(formatReleaseGate(gate));
+          console.log('');
+
+          const staleKeys = gate.stale.map(s => s.key);
+          const staleDetails = gate.stale.map(s =>
+            `- **${s.label}**: ${s.status === 'unverified' ? 'never verified' : `${s.daysStale}d stale`} (threshold: ${s.stalenessThresholdDays}d)  \n  URL: ${s.url}`
+          ).join('\n');
+
+          // Write outputs for next steps
+          const core = { setOutput: (k, v) => process.stdout.write(`::set-output name=${k}::${v}\n`) };
+          core.setOutput('platform_key', '${{ matrix.platform.key }}');
+          core.setOutput('platform_label', '${{ matrix.platform.label }}');
+          core.setOutput('is_stale', gate.stale.length > 0 ? 'true' : 'false');
+          core.setOutput('stale_count', String(gate.stale.length));
+          core.setOutput('fresh_count', String(gate.fresh.length));
+          core.setOutput('total_count', String(gate.results.length));
+          core.setOutput('stale_keys', staleKeys.join(','));
+          core.setOutput('stale_details', staleDetails);
+
+          if (gate.stale.length > 0) {
+            console.log(`\n⚠ ${gate.stale.length} stale/unverified P0 source(s) for ${{ matrix.platform.label }}`);
+          } else {
+            console.log(`\n✓ All P0 sources fresh for ${{ matrix.platform.label }}`);
+          }
+          EOF
+
+      - name: Create GitHub Issue for stale sources
+        if: steps.gate.outputs.is_stale == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const platform = '${{ matrix.platform.label }}';
+            const platformKey = '${{ matrix.platform.key }}';
+            const staleCount = '${{ steps.gate.outputs.stale_count }}';
+            const totalCount = '${{ steps.gate.outputs.total_count }}';
+            const staleDetails = `${{ steps.gate.outputs.stale_details }}`;
+            const runUrl = `https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const today = new Date().toISOString().split('T')[0];
+
+            // Check for existing open [FRESHNESS] issue for this platform
+            const { data: existingIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'freshness,staleness',
+            });
+
+            const existingIssue = existingIssues.find(i =>
+              i.title.includes('[FRESHNESS]') && i.title.includes(platform)
+            );
+
+            const body = [
+              `## [FRESHNESS] ${platform} — Stale P0 Sources Detected`,
+              '',
+              `**Platform:** ${platform} (\`${platformKey}\`)`,
+              `**Date:** ${today}`,
+              `**Stale/Unverified:** ${staleCount}/${totalCount} P0 sources`,
+              `**Workflow Run:** [View details](${runUrl})`,
+              '',
+              '### Stale Sources',
+              '',
+              staleDetails || '_No details available_',
+              '',
+              '### Required Action',
+              '',
+              '1. Verify each stale source URL is still accurate and up-to-date',
+              '2. Update `verifiedAt` timestamps in the corresponding `freshness.js` file',
+              '3. Update any outdated technique checks or fix texts if the source content changed',
+              '4. Close this issue once all P0 sources are verified fresh',
+              '',
+              '### Propagation Checklist',
+              '',
+              'Run `node -e "const f = require(\'./src/' + platformKey + '/freshness.js\'); console.log(JSON.stringify(f.PROPAGATION_CHECKLIST, null, 2))"` to see which modules need updating.',
+              '',
+              '---',
+              '_Auto-generated by nerviq freshness-check workflow_',
+            ].join('\n');
+
+            if (existingIssue) {
+              // Update existing issue with fresh comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body: `### Update — ${today}\n\n${staleCount} P0 source(s) still stale. [View run](${runUrl})\n\n${staleDetails}`,
+              });
+              console.log(`Updated existing issue #${existingIssue.number}`);
+            } else {
+              // Create new issue
+              const { data: newIssue } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `[FRESHNESS] ${platform}: ${staleCount} stale P0 source(s) — ${today}`,
+                body,
+                labels: ['freshness', 'staleness', 'automated'],
+              });
+              console.log(`Created issue #${newIssue.number}: ${newIssue.html_url}`);
+            }
+
+  summary:
+    name: Freshness Summary
+    runs-on: ubuntu-latest
+    needs: freshness
+    if: always()
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Print all-platform freshness summary
+        run: |
+          node - <<'EOF'
+          const platforms = [
+            { key: 'claude',   module: './src/freshness.js',          label: 'Claude Code' },
+            { key: 'codex',    module: './src/codex/freshness.js',    label: 'Codex' },
+            { key: 'cursor',   module: './src/cursor/freshness.js',   label: 'Cursor' },
+            { key: 'copilot',  module: './src/copilot/freshness.js',  label: 'Copilot' },
+            { key: 'gemini',   module: './src/gemini/freshness.js',   label: 'Gemini CLI' },
+            { key: 'windsurf', module: './src/windsurf/freshness.js', label: 'Windsurf' },
+            { key: 'aider',    module: './src/aider/freshness.js',    label: 'Aider' },
+            { key: 'opencode', module: './src/opencode/freshness.js', label: 'OpenCode' },
+          ];
+
+          let allFresh = true;
+          const rows = [];
+
+          for (const p of platforms) {
+            try {
+              const { checkReleaseGate } = require(p.module);
+              const gate = checkReleaseGate({});
+              const status = gate.stale.length === 0 ? '✓' : '✗';
+              rows.push({ label: p.label, status, fresh: gate.fresh.length, stale: gate.stale.length, total: gate.results.length });
+              if (gate.stale.length > 0) allFresh = false;
+            } catch (e) {
+              rows.push({ label: p.label, status: '?', fresh: 0, stale: 0, total: 0, error: e.message });
+              allFresh = false;
+            }
+          }
+
+          console.log('');
+          console.log('╔══════════════════════════════════════════════════╗');
+          console.log('║     nerviq Daily Freshness Summary               ║');
+          console.log('╠══════════════════════════════════════════════════╣');
+          for (const r of rows) {
+            const bar = `${r.fresh}/${r.total}`;
+            const label = r.label.padEnd(16);
+            const status = r.status === '✓' ? '\x1b[32m✓\x1b[0m' : r.status === '✗' ? '\x1b[31m✗\x1b[0m' : '?';
+            console.log(`║  ${status}  ${label}  ${bar.padStart(5)} sources fresh          ║`);
+          }
+          console.log('╠══════════════════════════════════════════════════╣');
+          console.log(`║  Overall: ${allFresh ? '\x1b[32mALL FRESH\x1b[0m — no action needed    ' : '\x1b[31mSTALE DETECTED\x1b[0m — check issues above '}  ║`);
+          console.log('╚══════════════════════════════════════════════════╝');
+          console.log('');
+
+          if (!allFresh) {
+            process.exit(1);
+          }
+          EOF

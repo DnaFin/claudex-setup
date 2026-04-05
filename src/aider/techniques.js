@@ -20,6 +20,7 @@
  */
 
 const { containsEmbeddedSecret } = require('../secret-patterns');
+const { attachSourceUrls } = require('../source-urls');
 
 const FILLER_PATTERNS = [
   /\bbe helpful\b/i,
@@ -1388,6 +1389,8 @@ const AIDER_TECHNIQUES = {
     line: () => null,
   },
 };
+
+attachSourceUrls('aider', AIDER_TECHNIQUES);
 
 module.exports = {
   AIDER_TECHNIQUES,

@@ -23,6 +23,7 @@
 const os = require('os');
 const path = require('path');
 const { EMBEDDED_SECRET_PATTERNS, containsEmbeddedSecret } = require('../secret-patterns');
+const { attachSourceUrls } = require('../source-urls');
 
 const DEFAULT_PROJECT_DOC_MAX_BYTES = 32768;
 
@@ -1678,6 +1679,8 @@ const OPENCODE_TECHNIQUES = {
     line: () => null,
   },
 };
+
+attachSourceUrls('opencode', OPENCODE_TECHNIQUES);
 
 module.exports = {
   OPENCODE_TECHNIQUES,

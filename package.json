@@ -4,7 +4,8 @@
   "description": "The intelligent nervous system for AI coding agents — audit, align, and amplify every platform on every project.",
   "main": "src/index.js",
   "bin": {
-    "nerviq": "bin/cli.js"
+    "nerviq": "bin/cli.js",
+    "nerviq-mcp": "src/mcp-server.js"
   },
   "files": [
     "bin",

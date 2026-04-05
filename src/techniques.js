@@ -11,6 +11,7 @@ function hasFrontendSignals(ctx) {
 }
 
 const { containsEmbeddedSecret } = require('./secret-patterns');
+const { attachSourceUrls } = require('./source-urls');
 
 const TECHNIQUES = {
   // ============================================================
@@ -1442,5 +1443,7 @@ const STACKS = {
   laravel: { files: ['artisan'], content: {}, label: 'Laravel' },
   dotnet: { files: ['global.json', 'Directory.Build.props'], content: {}, label: '.NET' },
 };
+
+attachSourceUrls('claude', TECHNIQUES);
 
 module.exports = { TECHNIQUES, STACKS, containsEmbeddedSecret };

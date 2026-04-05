@@ -15,6 +15,7 @@ const os = require('os');
 const path = require('path');
 const { CopilotProjectContext } = require('./context');
 const { EMBEDDED_SECRET_PATTERNS, containsEmbeddedSecret } = require('../secret-patterns');
+const { attachSourceUrls } = require('../source-urls');
 const { extractFrontmatter, validateInstructionFrontmatter, validatePromptFrontmatter } = require('./config-parser');
 
 // ─── Shared helpers ─────────────────────────────────────────────────────────
@@ -1927,6 +1928,8 @@ const COPILOT_TECHNIQUES = {
     line: () => null,
   },
 };
+
+attachSourceUrls('copilot', COPILOT_TECHNIQUES);
 
 module.exports = {
   COPILOT_TECHNIQUES,

@@ -7,6 +7,7 @@ const { buildProposalBundle, printProposalBundle, writePlanFile, applyProposalBu
 const { getGovernanceSummary, printGovernanceSummary, ensureWritableProfile, renderGovernanceMarkdown } = require('../src/governance');
 const { runBenchmark, printBenchmark, writeBenchmarkReport } = require('../src/benchmark');
 const { writeSnapshotArtifact, recordRecommendationOutcome, formatRecommendationOutcomeSummary, getRecommendationOutcomeSummary } = require('../src/activity');
+const { collectFeedback } = require('../src/feedback');
 const { version } = require('../package.json');
 
 const args = process.argv.slice(2);
@@ -20,7 +21,7 @@ const COMMAND_ALIASES = {
   gov: 'governance',
   outcome: 'feedback',
 };
-const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -73,11 +74,15 @@ function parseArgs(rawArgs) {
   let format = null;
   let commandSet = false;
   let extraArgs = [];
+  let convertFrom = null;
+  let convertTo = null;
+  let migrateFrom = null;
+  let migrateTo = null;
 
   for (let i = 0; i < rawArgs.length; i++) {
     const arg = rawArgs[i];
 
-    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack' || arg === '--require' || arg === '--key' || arg === '--status' || arg === '--effect' || arg === '--notes' || arg === '--source' || arg === '--score-delta' || arg === '--platform' || arg === '--format') {
+    if (arg === '--threshold' || arg === '--out' || arg === '--plan' || arg === '--only' || arg === '--profile' || arg === '--mcp-pack' || arg === '--require' || arg === '--key' || arg === '--status' || arg === '--effect' || arg === '--notes' || arg === '--source' || arg === '--score-delta' || arg === '--platform' || arg === '--format' || arg === '--from' || arg === '--to') {
       const value = rawArgs[i + 1];
       if (!value || value.startsWith('--')) {
         throw new Error(`${arg} requires a value`);
@@ -97,6 +102,8 @@ function parseArgs(rawArgs) {
       if (arg === '--score-delta') feedbackScoreDelta = value.trim();
       if (arg === '--platform') platform = value.trim().toLowerCase();
       if (arg === '--format') format = value.trim().toLowerCase();
+      if (arg === '--from') { convertFrom = value.trim(); migrateFrom = value.trim(); }
+      if (arg === '--to') { convertTo = value.trim(); migrateTo = value.trim(); }
       i++;
       continue;
     }
@@ -191,7 +198,7 @@ function parseArgs(rawArgs) {
 
   const normalizedCommand = COMMAND_ALIASES[command] || command;
 
-  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks, feedbackKey, feedbackStatus, feedbackEffect, feedbackNotes, feedbackSource, feedbackScoreDelta, platform, format, extraArgs };
+  return { flags, command, normalizedCommand, threshold, out, planFile, only, profile, mcpPacks, requireChecks, feedbackKey, feedbackStatus, feedbackEffect, feedbackNotes, feedbackSource, feedbackScoreDelta, platform, format, extraArgs, convertFrom, convertTo, migrateFrom, migrateTo };
 }
 
 const HELP = `
@@ -230,6 +237,11 @@ const HELP = `
     npx nerviq badge            Generate shields.io badge markdown
     npx nerviq feedback         Record recommendation outcomes or show local outcome summary
 
+  Utilities:
+    npx nerviq doctor           Self-diagnostics: Node version, deps, freshness gates, platform detection
+    npx nerviq convert --from claude --to codex   Convert config between platforms
+    npx nerviq migrate --platform cursor --from v2 --to v3   Migrate platform config to newer version
+
   Options:
     --threshold N   Exit with code 1 if score is below N (useful for CI)
     --require A,B   Exit with code 1 if named checks fail (e.g. --require secretsProtection,permissionDeny)
@@ -246,6 +258,7 @@ const HELP = `
     --score-delta N Optional observed score delta tied to the outcome
     --platform NAME Choose platform surface (claude default, codex advisory/build preview)
     --format NAME   Output format for audit results (json, sarif)
+    --feedback      After audit output, prompt "Was this helpful? (y/n)" for each displayed top action and save answers locally
     --snapshot      Save a normalized snapshot artifact under .claude/nerviq/snapshots/
     --lite          Show a short top-3 quick scan with one clear next command
     --dry-run       Preview apply without writing files
@@ -316,6 +329,7 @@ async function main() {
     auto: flags.includes('--auto'),
     lite: flags.includes('--lite'),
     snapshot: flags.includes('--snapshot'),
+    feedback: flags.includes('--feedback'),
     dryRun: flags.includes('--dry-run'),
     threshold: parsed.threshold !== null ? Number(parsed.threshold) : null,
     out: parsed.out,
@@ -699,6 +713,34 @@ async function main() {
     } else if (normalizedCommand === 'watch') {
       const { watch } = require('../src/watch');
       await watch(options);
+    } else if (normalizedCommand === 'doctor') {
+      const { runDoctor } = require('../src/doctor');
+      const output = await runDoctor({ dir: options.dir, json: options.json, verbose: options.verbose });
+      console.log(output);
+      process.exit(0);
+    } else if (normalizedCommand === 'convert') {
+      const { runConvert } = require('../src/convert');
+      const output = await runConvert({
+        dir: options.dir,
+        from: parsed.convertFrom,
+        to: parsed.convertTo,
+        dryRun: options.dryRun,
+        json: options.json,
+      });
+      console.log(output);
+      process.exit(0);
+    } else if (normalizedCommand === 'migrate') {
+      const { runMigrate } = require('../src/migrate');
+      const output = await runMigrate({
+        dir: options.dir,
+        platform: options.platform || parsed.platform || 'claude',
+        from: parsed.migrateFrom,
+        to: parsed.migrateTo,
+        dryRun: options.dryRun,
+        json: options.json,
+      });
+      console.log(output);
+      process.exit(0);
     } else if (normalizedCommand === 'setup') {
       await setup(options);
       if (options.snapshot) {
@@ -712,6 +754,25 @@ async function main() {
       }
     } else {
       const result = await audit(options);
+      if (options.feedback && !options.json && options.format === null) {
+        const feedbackTargets = options.lite
+          ? (result.liteSummary?.topNextActions || [])
+          : (result.topNextActions || []);
+        const feedbackResult = await collectFeedback(options.dir, {
+          findings: feedbackTargets,
+          platform: result.platform,
+          sourceCommand: normalizedCommand,
+          score: result.score,
+        });
+        if (feedbackResult.mode === 'skipped-noninteractive') {
+          console.log('  Feedback prompt skipped: interactive terminal required.');
+          console.log('');
+        } else if (feedbackResult.saved > 0) {
+          console.log(`  Feedback saved: ${feedbackResult.relativeDir}`);
+          console.log(`  Helpful: ${feedbackResult.helpful} | Not helpful: ${feedbackResult.unhelpful}`);
+          console.log('');
+        }
+      }
       const snapshot = options.snapshot ? writeSnapshotArtifact(options.dir, 'audit', result, {
         sourceCommand: normalizedCommand,
       }) : null;

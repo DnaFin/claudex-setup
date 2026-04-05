@@ -28,6 +28,7 @@ const os = require('os');
 const path = require('path');
 const { WindsurfProjectContext } = require('./context');
 const { EMBEDDED_SECRET_PATTERNS, containsEmbeddedSecret } = require('../secret-patterns');
+const { attachSourceUrls } = require('../source-urls');
 const { tryParseJson, validateMcpEnvVars } = require('./config-parser');
 
 // ─── Shared helpers ─────────────────────────────────────────────────────────
@@ -1825,6 +1826,8 @@ const WINDSURF_TECHNIQUES = {
     line: () => null,
   },
 };
+
+attachSourceUrls('windsurf', WINDSURF_TECHNIQUES);
 
 module.exports = {
   WINDSURF_TECHNIQUES,
