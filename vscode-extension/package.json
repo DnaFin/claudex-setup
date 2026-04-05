@@ -1,0 +1,126 @@
+{
+  "name": "nerviq",
+  "displayName": "Nerviq — AI Agent Config Auditor",
+  "description": "Score, audit, and fix your AI coding agent configuration. Supports Claude Code, Codex, Cursor, Copilot, Gemini, Windsurf, Aider, and OpenCode.",
+  "version": "0.9.4",
+  "publisher": "nerviq",
+  "license": "AGPL-3.0",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nerviq/nerviq.git"
+  },
+  "homepage": "https://nerviq.net",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "AI",
+    "agent",
+    "audit",
+    "Claude",
+    "Codex",
+    "Cursor",
+    "Copilot",
+    "Gemini",
+    "Windsurf",
+    "Aider",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "nerviq"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "workspaceContains:CLAUDE.md",
+    "workspaceContains:AGENTS.md",
+    "workspaceContains:.cursor/rules",
+    "workspaceContains:.gemini",
+    "workspaceContains:.windsurf",
+    "workspaceContains:.aider.conf.yml",
+    "workspaceContains:GEMINI.md"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "nerviq.audit",
+        "title": "Nerviq: Audit",
+        "category": "Nerviq",
+        "icon": "$(shield)"
+      },
+      {
+        "command": "nerviq.harmony",
+        "title": "Nerviq: Harmony Audit",
+        "category": "Nerviq",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "nerviq.showResults",
+        "title": "Nerviq: Show Last Results",
+        "category": "Nerviq",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "nerviq.openDocs",
+        "title": "Nerviq: Open Docs",
+        "category": "Nerviq",
+        "icon": "$(book)"
+      }
+    ],
+    "configuration": {
+      "title": "Nerviq",
+      "properties": {
+        "nerviq.autoAudit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically re-audit when AI config files change (CLAUDE.md, AGENTS.md, .cursor/rules/, etc.)"
+        },
+        "nerviq.autoAuditDebounceMs": {
+          "type": "number",
+          "default": 2000,
+          "description": "Milliseconds to wait after a file change before triggering auto-audit"
+        },
+        "nerviq.platform": {
+          "type": "string",
+          "default": "auto",
+          "enum": ["auto", "claude", "codex", "cursor", "copilot", "gemini", "windsurf", "aider", "opencode"],
+          "description": "Platform to audit. 'auto' detects based on files present."
+        },
+        "nerviq.cliPath": {
+          "type": "string",
+          "default": "",
+          "description": "Override path to nerviq CLI. Leave empty to use npx @nerviq/cli."
+        },
+        "nerviq.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show audit score in the VS Code status bar."
+        }
+      }
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "nerviq.audit",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "nerviq.harmony",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "echo 'No build step required'",
+    "lint": "eslint src",
+    "test": "echo 'Extension tests run via VS Code test runner'"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0"
+  }
+}

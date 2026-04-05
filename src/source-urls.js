@@ -1,10 +1,8 @@
 /**
- * Official source URL registry for platform technique catalogs.
+ * Official source URL + confidence registry for platform technique catalogs.
  *
- * These URLs intentionally point to the nearest authoritative official page for
- * a given category or check. Some advisory/internal heuristics do not have a
- * single line-item normative doc, so they fall back to the closest official
- * platform page that governs the surrounding feature area.
+ * We attach metadata at export time so the catalogs stay maintainable without
+ * hand-editing hundreds of technique literals.
  */
 
 const SOURCE_URLS = {
@@ -52,7 +50,7 @@ const SOURCE_URLS = {
       mcp: 'https://developers.openai.com/codex/mcp',
       skills: 'https://developers.openai.com/codex/skills',
       agents: 'https://developers.openai.com/codex/subagents',
-      automation: 'https://developers.openai.com/codex/cli',
+      automation: 'https://developers.openai.com/codex/app/automations',
       review: 'https://developers.openai.com/codex/cli',
       local: 'https://developers.openai.com/codex/app/local-environments',
       'quality-deep': 'https://developers.openai.com/codex/feature-maturity',
@@ -66,6 +64,7 @@ const SOURCE_URLS = {
       codexAutomationAppPrereqAcknowledged: 'https://developers.openai.com/codex/app/automations',
       codexGitHubActionSafeStrategy: 'https://developers.openai.com/codex/github-action',
       codexGitHubActionPromptSourceExclusive: 'https://developers.openai.com/codex/github-action',
+      codexGitHubActionSinglePromptSource: 'https://developers.openai.com/codex/github-action',
       codexGitHubActionTriggerAllowlistsExplicit: 'https://developers.openai.com/codex/github-action',
       codexCiAuthUsesManagedKey: 'https://developers.openai.com/codex/github-action',
       codexPluginConfigValid: 'https://developers.openai.com/codex/skills',
@@ -84,9 +83,9 @@ const SOURCE_URLS = {
       sandbox: 'https://geminicli.com/docs/cli/sandbox/',
       agents: 'https://geminicli.com/docs/core/subagents/',
       skills: 'https://geminicli.com/docs/cli/skills/',
-      automation: 'https://google-gemini.github.io/gemini-cli/docs/cli/headless.html',
+      automation: 'https://geminicli.com/docs/get-started/',
       extensions: 'https://geminicli.com/docs/extensions/',
-      review: 'https://ai.google.dev/gemini-api/docs/coding-agents',
+      review: 'https://geminicli.com/docs/get-started/',
       'quality-deep': 'https://geminicli.com/docs/get-started/',
       commands: 'https://geminicli.com/docs/cli/custom-commands/',
       advisory: 'https://geminicli.com/docs/get-started/',
@@ -96,60 +95,60 @@ const SOURCE_URLS = {
     },
   },
   copilot: {
-    defaultUrl: 'https://docs.github.com/copilot',
+    defaultUrl: 'https://docs.github.com/en/copilot',
     byCategory: {
-      instructions: 'https://docs.github.com/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
-      config: 'https://code.visualstudio.com/docs/copilot/customization/custom-instructions',
-      trust: 'https://code.visualstudio.com/docs/copilot/security',
-      mcp: 'https://code.visualstudio.com/docs/copilot/chat/mcp-servers',
+      instructions: 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+      config: 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+      trust: 'https://docs.github.com/en/copilot/responsible-use-of-github-copilot-features/github-copilot-data-handling',
+      mcp: 'https://docs.github.com/en/copilot/customizing-copilot/using-model-context-protocol/extending-copilot-chat-with-mcp',
       'cloud-agent': 'https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-coding-agent',
       organization: 'https://docs.github.com/en/copilot/how-tos/administer-copilot/manage-for-organization/manage-policies',
-      'prompt-files': 'https://code.visualstudio.com/docs/copilot/customization/prompt-files',
-      'skills-agents': 'https://code.visualstudio.com/docs/copilot/agents/overview',
+      'prompt-files': 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+      'skills-agents': 'https://docs.github.com/en/copilot/concepts/agents/coding-agent/about-coding-agent',
       'ci-automation': 'https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/customize-the-agent-environment',
       enterprise: 'https://docs.github.com/en/copilot/how-tos/administer-copilot/manage-for-enterprise',
       extensions: 'https://docs.github.com/en/copilot/building-copilot-extensions/about-building-copilot-extensions',
-      'quality-deep': 'https://docs.github.com/copilot',
-      advisory: 'https://docs.github.com/copilot',
-      freshness: 'https://github.blog/changelog/',
+      'quality-deep': 'https://docs.github.com/en/copilot',
+      advisory: 'https://docs.github.com/en/copilot',
+      freshness: 'https://docs.github.com/en/copilot',
     },
   },
   cursor: {
-    defaultUrl: 'https://cursor.com/docs',
+    defaultUrl: 'https://docs.cursor.com/',
     byCategory: {
-      rules: 'https://cursor.com/docs/context/rules',
-      config: 'https://cursor.com/docs',
-      trust: 'https://cursor.com/docs/enterprise/privacy-and-data-governance',
+      rules: 'https://docs.cursor.com/context/rules',
+      config: 'https://docs.cursor.com/',
+      trust: 'https://docs.cursor.com/enterprise/privacy-and-data-governance',
       'agent-mode': 'https://docs.cursor.com/en/chat/agent',
-      mcp: 'https://cursor.com/docs/cli/mcp',
+      mcp: 'https://docs.cursor.com/cli/mcp',
       'instructions-quality': 'https://docs.cursor.com/guides/working-with-context',
       'background-agents': 'https://docs.cursor.com/en/background-agents',
-      automations: 'https://cursor.com/docs/cloud-agent/automations',
-      enterprise: 'https://cursor.com/docs/enterprise',
-      bugbot: 'https://cursor.com/docs/bugbot',
-      'cross-surface': 'https://cursor.com/docs',
+      automations: 'https://docs.cursor.com/en/background-agents/automations',
+      enterprise: 'https://docs.cursor.com/enterprise',
+      bugbot: 'https://docs.cursor.com/bugbot',
+      'cross-surface': 'https://docs.cursor.com/',
       'quality-deep': 'https://docs.cursor.com/guides/working-with-context',
-      advisory: 'https://cursor.com/docs',
-      freshness: 'https://cursor.com/changelog',
+      advisory: 'https://docs.cursor.com/',
+      freshness: 'https://docs.cursor.com/',
     },
   },
   windsurf: {
-    defaultUrl: 'https://docs.windsurf.com/windsurf/cascade',
+    defaultUrl: 'https://docs.windsurf.com/windsurf/cascade/cascade',
     byCategory: {
-      rules: 'https://windsurf.com/university/general-education/intro-rules-memories',
+      rules: 'https://docs.windsurf.com/windsurf/cascade/cascade',
       config: 'https://docs.windsurf.com/windsurf/cascade/cascade',
-      trust: 'https://windsurf.com/security',
+      trust: 'https://docs.windsurf.com/windsurf/cascade/cascade',
       'cascade-agent': 'https://docs.windsurf.com/windsurf/cascade/agents-md',
       mcp: 'https://docs.windsurf.com/windsurf/cascade/mcp',
       'instructions-quality': 'https://docs.windsurf.com/windsurf/cascade/agents-md',
       workflows: 'https://docs.windsurf.com/windsurf/cascade/workflows',
       memories: 'https://docs.windsurf.com/windsurf/cascade/memories',
-      enterprise: 'https://windsurf.com/security',
+      enterprise: 'https://docs.windsurf.com/windsurf/cascade/cascade',
       cascadeignore: 'https://docs.windsurf.com/windsurf/cascade/cascade',
       'cross-surface': 'https://docs.windsurf.com/windsurf/cascade/cascade',
       'quality-deep': 'https://docs.windsurf.com/windsurf/cascade/cascade',
       advisory: 'https://docs.windsurf.com/windsurf/cascade/cascade',
-      freshness: 'https://windsurf.com/changelog',
+      freshness: 'https://docs.windsurf.com/windsurf/cascade/cascade',
     },
   },
   aider: {
@@ -162,35 +161,75 @@ const SOURCE_URLS = {
       conventions: 'https://aider.chat/docs/usage/conventions.html',
       architecture: 'https://aider.chat/docs/usage/modes.html',
       security: 'https://aider.chat/docs/config/dotenv.html',
-      ci: 'https://aider.chat/docs/scripting.html',
-      quality: 'https://aider.chat/docs/usage/lint-test.html',
+      ci: 'https://aider.chat/docs/usage/modes.html',
+      quality: 'https://aider.chat/docs/usage/modes.html',
       'workflow-patterns': 'https://aider.chat/docs/usage/modes.html',
-      'editor-integration': 'https://aider.chat/docs/config/editor.html',
+      'editor-integration': 'https://aider.chat/docs/config.html',
       'release-readiness': 'https://aider.chat/docs/',
     },
   },
   opencode: {
-    defaultUrl: 'https://opencode.ai/docs/',
+    defaultUrl: 'https://github.com/sst/opencode',
     byCategory: {
-      instructions: 'https://opencode.ai/docs/rules/',
-      config: 'https://opencode.ai/docs/config/',
-      permissions: 'https://opencode.ai/docs/permissions',
-      plugins: 'https://opencode.ai/docs/plugins/',
-      security: 'https://opencode.ai/docs/tools/',
-      mcp: 'https://opencode.ai/docs/mcp-servers/',
-      ci: 'https://opencode.ai/docs/github/',
-      'quality-deep': 'https://opencode.ai/docs/',
-      skills: 'https://opencode.ai/docs/skills/',
-      agents: 'https://opencode.ai/docs/agents/',
-      commands: 'https://opencode.ai/docs/commands/',
-      tui: 'https://opencode.ai/docs/themes/',
-      governance: 'https://opencode.ai/docs/github/',
-      'release-freshness': 'https://opencode.ai/docs/',
-      'mixed-agent': 'https://opencode.ai/docs/modes/',
-      propagation: 'https://opencode.ai/docs/config/',
+      instructions: 'https://github.com/sst/opencode/blob/dev/AGENTS.md',
+      config: 'https://github.com/sst/opencode/tree/dev/.opencode',
+      permissions: 'https://github.com/sst/opencode/tree/dev/.opencode',
+      plugins: 'https://github.com/sst/opencode/tree/dev/.opencode',
+      security: 'https://github.com/sst/opencode/blob/dev/SECURITY.md',
+      mcp: 'https://github.com/sst/opencode/tree/dev/.opencode',
+      ci: 'https://github.com/sst/opencode/tree/dev/.github',
+      'quality-deep': 'https://github.com/sst/opencode/blob/dev/README.md',
+      skills: 'https://github.com/sst/opencode/tree/dev/.opencode',
+      agents: 'https://github.com/sst/opencode/blob/dev/AGENTS.md',
+      commands: 'https://github.com/sst/opencode/tree/dev/.opencode',
+      tui: 'https://github.com/sst/opencode/blob/dev/README.md',
+      governance: 'https://github.com/sst/opencode/blob/dev/SECURITY.md',
+      'release-freshness': 'https://github.com/sst/opencode/releases',
+      'mixed-agent': 'https://github.com/sst/opencode/blob/dev/AGENTS.md',
+      propagation: 'https://github.com/sst/opencode/tree/dev/.opencode',
     },
   },
 };
+
+const STALE_CONFIDENCE_IDS = new Set([
+  'CX-B04',
+  'CX-B09',
+  'CX-C05',
+  'CX-C06',
+]);
+
+const RUNTIME_CONFIDENCE_IDS = {
+  codex: new Set([
+    'CX-B01',
+    'CX-C01',
+    'CX-C02',
+    'CX-C03',
+    'CX-D01',
+    'CX-E02',
+    'CX-H02',
+    'CX-H03',
+    'CX-I01',
+  ]),
+  gemini: new Set(['GM-Q01', 'GM-Q02', 'GM-Q03', 'GM-Q04', 'GM-Q05']),
+  copilot: new Set(['CP-Q01', 'CP-Q02', 'CP-Q03', 'CP-Q04', 'CP-Q05']),
+};
+
+function hasRuntimeVerificationSignal(technique) {
+  const haystack = `${technique.name || ''}\n${technique.fix || ''}`;
+  return /experiment(?:ally)? confirmed|confirmed by (?:live )?experiment|current runtime|runtime evidence|runtime-verified|validated in current runtime|observed in current runtime|measured in live experiment|reproduced in runtime|confirmed by experiment/i.test(haystack);
+}
+
+function resolveConfidence(platform, technique) {
+  if (STALE_CONFIDENCE_IDS.has(technique.id)) {
+    return 0.3;
+  }
+
+  if (RUNTIME_CONFIDENCE_IDS[platform]?.has(technique.id) || hasRuntimeVerificationSignal(technique)) {
+    return 0.9;
+  }
+
+  return 0.7;
+}
 
 function attachSourceUrls(platform, techniques) {
   const mapping = SOURCE_URLS[platform];
@@ -199,15 +238,17 @@ function attachSourceUrls(platform, techniques) {
   }
 
   for (const [key, technique] of Object.entries(techniques)) {
-    if (technique.sourceUrl) continue;
     const resolved =
       mapping.byKey?.[key] ||
       mapping.byCategory?.[technique.category] ||
       mapping.defaultUrl;
+
     if (!resolved) {
       throw new Error(`No sourceUrl mapping found for ${platform}:${key}`);
     }
+
     technique.sourceUrl = resolved;
+    technique.confidence = resolveConfidence(platform, technique);
   }
 
   return techniques;

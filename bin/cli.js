@@ -21,7 +21,7 @@ const COMMAND_ALIASES = {
   gov: 'governance',
   outcome: 'feedback',
 };
-const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -237,6 +237,11 @@ const HELP = `
     npx nerviq badge            Generate shields.io badge markdown
     npx nerviq feedback         Record recommendation outcomes or show local outcome summary
 
+  Catalog:
+    npx nerviq catalog          Show check catalog summary for all 8 platforms
+    npx nerviq catalog --json   Full catalog as JSON
+    npx nerviq catalog --out catalog.json  Write catalog to file
+
   Utilities:
     npx nerviq doctor           Self-diagnostics: Node version, deps, freshness gates, platform detection
     npx nerviq convert --from claude --to codex   Convert config between platforms
@@ -391,7 +396,7 @@ async function main() {
     const FULL_COMMAND_SET = new Set([
       'audit', 'scan', 'badge', 'augment', 'suggest-only', 'setup', 'plan', 'apply',
       'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'insights',
-      'history', 'compare', 'trend', 'feedback', 'help', 'version',
+      'history', 'compare', 'trend', 'feedback', 'catalog', 'help', 'version',
       // Harmony + Synergy (cross-platform)
       'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise',
       'harmony-watch', 'harmony-governance', 'synergy-report',
@@ -713,6 +718,39 @@ async function main() {
     } else if (normalizedCommand === 'watch') {
       const { watch } = require('../src/watch');
       await watch(options);
+    } else if (normalizedCommand === 'catalog') {
+      const { generateCatalog, writeCatalogJson } = require('../src/catalog');
+      if (options.out) {
+        const result = writeCatalogJson(options.out);
+        if (options.json) {
+          console.log(JSON.stringify({ path: result.path, count: result.count }));
+        } else {
+          console.log(`\n  Catalog written to ${result.path} (${result.count} checks)\n`);
+        }
+      } else {
+        const catalog = generateCatalog();
+        if (options.json) {
+          console.log(JSON.stringify(catalog, null, 2));
+        } else {
+          // Print summary table
+          const platforms = {};
+          for (const entry of catalog) {
+            platforms[entry.platform] = (platforms[entry.platform] || 0) + 1;
+          }
+          console.log('');
+          console.log('\x1b[1m  nerviq check catalog\x1b[0m');
+          console.log('\x1b[2m  ═══════════════════════════════════════\x1b[0m');
+          console.log(`  Total checks: \x1b[1m${catalog.length}\x1b[0m`);
+          console.log('');
+          for (const [plat, count] of Object.entries(platforms)) {
+            console.log(`    ${plat.padEnd(12)} ${count} checks`);
+          }
+          console.log('');
+          console.log('  Use --json for full output or --out catalog.json to write file.');
+          console.log('');
+        }
+      }
+      process.exit(0);
     } else if (normalizedCommand === 'doctor') {
       const { runDoctor } = require('../src/doctor');
       const output = await runDoctor({ dir: options.dir, json: options.json, verbose: options.verbose });

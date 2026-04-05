@@ -18,15 +18,30 @@ const PLATFORM_TECHNIQUES = {
   opencode: OPENCODE_TECHNIQUES,
 };
 
-describe('Official source URLs', () => {
-  test('all 673 techniques across 8 platforms expose a sourceUrl', () => {
+const PLATFORM_URL_RULES = {
+  claude: [/^https:\/\/code\.claude\.com\/docs\/en\//],
+  codex: [/^https:\/\/developers\.openai\.com\/codex\//],
+  gemini: [/^https:\/\/geminicli\.com\/docs\//],
+  copilot: [/^https:\/\/docs\.github\.com\/en\/copilot/],
+  cursor: [/^https:\/\/docs\.cursor\.com\//],
+  windsurf: [/^https:\/\/docs\.windsurf\.com\//, /^https:\/\/docs\.codeium\.com\//],
+  aider: [/^https:\/\/aider\.chat\/docs\//],
+  opencode: [/^https:\/\/github\.com\/sst\/opencode/],
+};
+
+describe('Official source URLs and confidence', () => {
+  test('all 673 techniques across 8 platforms expose sourceUrl and confidence', () => {
     let total = 0;
 
     for (const [platform, techniques] of Object.entries(PLATFORM_TECHNIQUES)) {
       for (const [key, technique] of Object.entries(techniques)) {
         total += 1;
         expect(technique.sourceUrl).toBeTruthy();
-        expect(technique.sourceUrl).toMatch(/^https:\/\//);
+        expect(
+          PLATFORM_URL_RULES[platform].some((pattern) => pattern.test(technique.sourceUrl))
+        ).toBe(true);
+        expect(technique.confidence).toBeTruthy();
+        expect([0.3, 0.7, 0.9]).toContain(technique.confidence);
       }
     }
 

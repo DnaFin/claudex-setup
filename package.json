@@ -20,7 +20,9 @@
     "test": "node test/run.js",
     "test:jest": "jest",
     "test:coverage": "jest --coverage",
-    "test:all": "node test/run.js && node test/check-matrix.js && node test/codex-check-matrix.js && node test/golden-matrix.js && node test/codex-golden-matrix.js && node test/security-tests.js && jest"
+    "test:all": "node test/run.js && node test/check-matrix.js && node test/codex-check-matrix.js && node test/golden-matrix.js && node test/codex-golden-matrix.js && node test/security-tests.js && jest",
+    "benchmark:perf": "node tools/benchmark.js",
+    "catalog": "node -e \"const {generateCatalog}=require('./src/catalog');console.log(JSON.stringify(generateCatalog(),null,2))\""
   },
   "keywords": [
     "nerviq",
