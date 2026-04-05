@@ -123,6 +123,12 @@ function isRustProject(ctx) {
   return ctx.__nerviqIsRust;
 }
 
+function isJavaProject(ctx) {
+  if (ctx.__nerviqIsJava !== undefined) return ctx.__nerviqIsJava;
+  ctx.__nerviqIsJava = hasProjectFile(ctx, /(^|\/)(pom\.xml|build\.gradle|build\.gradle\.kts)$/i);
+  return ctx.__nerviqIsJava;
+}
+
 function getPythonFiles(ctx) {
   if (ctx.__nerviqPythonFiles) return ctx.__nerviqPythonFiles;
   ctx.__nerviqPythonFiles = findProjectFiles(ctx, /\.py$/i);
@@ -170,6 +176,20 @@ function getMainRustFiles(ctx) {
   return ctx.__nerviqMainRustFiles;
 }
 
+function getJavaFiles(ctx) {
+  if (ctx.__nerviqJavaFiles) return ctx.__nerviqJavaFiles;
+  ctx.__nerviqJavaFiles = findProjectFiles(ctx, /\.java$/i);
+  return ctx.__nerviqJavaFiles;
+}
+
+function getMainJavaFiles(ctx) {
+  if (ctx.__nerviqMainJavaFiles) return ctx.__nerviqMainJavaFiles;
+  ctx.__nerviqMainJavaFiles = getJavaFiles(ctx)
+    .filter(file => !/(^|\/)(test|tests|src\/test)\//i.test(file))
+    .slice(0, 60);
+  return ctx.__nerviqMainJavaFiles;
+}
+
 function getMainGoFiles(ctx) {
   if (ctx.__nerviqMainGoFiles) return ctx.__nerviqMainGoFiles;
   ctx.__nerviqMainGoFiles = getGoFiles(ctx).filter(file => !/_test\.go$/i.test(file)).slice(0, 60);
@@ -210,6 +230,30 @@ function getRustProjectText(ctx) {
     getMainRustFiles(ctx).slice(0, 30).map(file => ctx.fileContent(file) || '').filter(Boolean).join('\n'),
   ].filter(Boolean).join('\n');
   return ctx.__nerviqRustProjectText;
+}
+
+function getJavaBuildText(ctx) {
+  if (ctx.__nerviqJavaBuildText) return ctx.__nerviqJavaBuildText;
+  ctx.__nerviqJavaBuildText = [
+    readProjectFiles(ctx, /(^|\/)pom\.xml$/i),
+    readProjectFiles(ctx, /(^|\/)build\.gradle$/i),
+    readProjectFiles(ctx, /(^|\/)build\.gradle\.kts$/i),
+    readProjectFiles(ctx, /(^|\/)settings\.gradle$/i),
+    readProjectFiles(ctx, /(^|\/)settings\.gradle\.kts$/i),
+  ].filter(Boolean).join('\n');
+  return ctx.__nerviqJavaBuildText;
+}
+
+function getJavaProjectText(ctx) {
+  if (ctx.__nerviqJavaProjectText) return ctx.__nerviqJavaProjectText;
+  ctx.__nerviqJavaProjectText = [
+    getJavaBuildText(ctx),
+    getWorkflowContent(ctx),
+    readProjectFiles(ctx, /(^|\/)\.editorconfig$/i),
+    readProjectFiles(ctx, /(^|\/)(application\.properties|application\.ya?ml|logback.*\.xml|log4j2?.*\.xml)$/i),
+    getMainJavaFiles(ctx).slice(0, 30).map(file => ctx.fileContent(file) || '').filter(Boolean).join('\n'),
+  ].filter(Boolean).join('\n');
+  return ctx.__nerviqJavaProjectText;
 }
 
 function getGoInterfaceBlocks(ctx) {
@@ -2649,222 +2693,294 @@ const TECHNIQUES = {
   // === JAVA/SPRING STACK CHECKS (category: 'java') ============
   // ============================================================
 
-  javaBuildFileExists: {
-    id: 'CL-JV01',
-    name: 'pom.xml or build.gradle exists',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return true; },
+  mavenOrGradle: {
+    id: 120301,
+    name: 'Maven or Gradle build file exists',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return true;
+    },
     impact: 'high',
     category: 'java',
-    fix: 'Ensure pom.xml or build.gradle exists for Java projects.',
+    fix: 'Add `pom.xml`, `build.gradle`, or `build.gradle.kts` so the Java build is defined in version control.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  javaVersionSpecified: {
-    id: 'CL-JV02',
+  javaVersion: {
+    id: 120302,
     name: 'Java version specified',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const pom = ctx.fileContent('pom.xml') || ''; const gradle = ctx.fileContent('build.gradle') || ctx.fileContent('build.gradle.kts') || ''; return /java\.version|maven\.compiler\.source|sourceCompatibility|JavaVersion/i.test(pom + gradle) || ctx.files.some(f => /\.java-version$/.test(f)); },
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /java\.version|maven\.compiler\.(source|target|release)|sourceCompatibility|targetCompatibility|JavaLanguageVersion|toolchain/i.test(getJavaBuildText(ctx)) ||
+        hasProjectFile(ctx, /(^|\/)\.java-version$/i);
+    },
     impact: 'high',
     category: 'java',
-    fix: 'Specify Java version in pom.xml properties, build.gradle, or .java-version file.',
+    fix: 'Specify the Java version in Maven or Gradle so compilation and runtime expectations stay explicit.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  javaWrapperCommitted: {
-    id: 'CL-JV03',
-    name: 'Maven/Gradle wrapper committed (mvnw or gradlew)',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return ctx.files.some(f => /mvnw$|gradlew$/.test(f)); },
-    impact: 'high',
-    category: 'java',
-    fix: 'Commit mvnw (Maven) or gradlew (Gradle) wrapper for reproducible builds.',
-    // sourceUrl assigned by attachSourceUrls via category mapping
-    confidence: 0.7,
-  },
-
-  javaSpringBootVersion: {
-    id: 'CL-JV04',
-    name: 'Spring Boot version documented if Spring project',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const pom = ctx.fileContent('pom.xml') || ''; const gradle = ctx.fileContent('build.gradle') || ctx.fileContent('build.gradle.kts') || ''; if (!/spring-boot/i.test(pom + gradle)) return null; return /spring-boot.*\d+\.\d+/i.test(pom + gradle); },
-    impact: 'high',
-    category: 'java',
-    fix: 'Document Spring Boot version in build configuration.',
-    // sourceUrl assigned by attachSourceUrls via category mapping
-    confidence: 0.7,
-  },
-
-  javaApplicationConfig: {
-    id: 'CL-JV05',
-    name: 'application.yml or application.properties exists',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return ctx.files.some(f => /application\.ya?ml$|application\.properties$/.test(f)); },
+  springBootDetected: {
+    id: 120303,
+    name: 'Spring Boot detected',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /spring-boot/i.test(getJavaBuildText(ctx));
+    },
     impact: 'medium',
     category: 'java',
-    fix: 'Create application.yml or application.properties for Spring configuration.',
+    fix: 'Use Spring Boot dependencies when the Java service relies on Spring auto-configuration and conventions.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
   javaTestFramework: {
-    id: 'CL-JV06',
-    name: 'Test framework configured (JUnit/TestNG in deps)',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const pom = ctx.fileContent('pom.xml') || ''; const gradle = ctx.fileContent('build.gradle') || ctx.fileContent('build.gradle.kts') || ''; return /junit|testng|spring-boot-starter-test/i.test(pom + gradle); },
+    id: 120304,
+    name: 'Java test framework configured',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /junit|testng|spring-boot-starter-test/i.test(getJavaBuildText(ctx));
+    },
     impact: 'high',
     category: 'java',
-    fix: 'Configure JUnit or TestNG test framework in project dependencies.',
+    fix: 'Add JUnit, TestNG, or Spring Boot test dependencies so Java tests have a standard runner.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  javaCodeStyleConfigured: {
-    id: 'CL-JV07',
-    name: 'Code style configured (checkstyle.xml, spotbugs)',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return ctx.files.some(f => /checkstyle\.xml$|spotbugs.*\.xml$/.test(f)) || /checkstyle|spotbugs|google-java-format/i.test((ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || '')); },
+  javaLinter: {
+    id: 120305,
+    name: 'Java linter configured',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /checkstyle|spotbugs|pmd/i.test(getJavaProjectText(ctx)) ||
+        hasProjectFile(ctx, /(^|\/)(checkstyle\.xml|spotbugs.*\.xml|pmd\.xml)$/i);
+    },
     impact: 'medium',
     category: 'java',
-    fix: 'Configure checkstyle or spotbugs for code quality enforcement.',
+    fix: 'Configure Checkstyle, SpotBugs, or PMD so Java code quality rules run consistently.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  javaSpringProfilesDocumented: {
-    id: 'CL-JV08',
-    name: 'Spring profiles documented',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); if (!/spring/i.test(deps)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /spring[.]profiles|@Profile|SPRING_PROFILES_ACTIVE/i.test(docs); },
+  javaFormatter: {
+    id: 120306,
+    name: 'Java formatter configured',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /google-java-format|spotless/i.test(getJavaBuildText(ctx)) ||
+        hasProjectFile(ctx, /(^|\/)\.editorconfig$/i);
+    },
     impact: 'medium',
     category: 'java',
-    fix: 'Document Spring profiles and their configuration in project instructions.',
+    fix: 'Configure Spotless, google-java-format, or an `.editorconfig` so Java formatting stays consistent.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  javaDatabaseMigration: {
-    id: 'CL-JV09',
-    name: 'Database migration configured (flyway/liquibase)',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); return /flyway|liquibase/i.test(deps) || ctx.files.some(f => /db[/]migration|flyway|liquibase/i.test(f)); },
+  javaCIConfigured: {
+    id: 120307,
+    name: 'CI runs Java tests',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /(?:mvn|mvnw)\s+test|(?:gradle|gradlew)\s+test/i.test(getWorkflowContent(ctx));
+    },
+    impact: 'high',
+    category: 'java',
+    fix: 'Run `mvn test`, `mvnw test`, `gradle test`, or `gradlew test` in CI so Java changes are validated automatically.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  javaSecurityScanner: {
+    id: 120308,
+    name: 'Java security scanner configured',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /dependency-check|snyk|spotbugs-security|findsecbugs/i.test(getJavaProjectText(ctx));
+    },
     impact: 'medium',
     category: 'java',
-    fix: 'Configure database migration tool (Flyway or Liquibase) for schema management.',
+    fix: 'Configure OWASP Dependency-Check, Snyk, or SpotBugs security rules for Java dependency and code scanning.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  javaLombokDocumented: {
-    id: 'CL-JV10',
-    name: 'Lombok/MapStruct documented if used',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); if (!/lombok|mapstruct/i.test(deps)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /lombok|mapstruct/i.test(docs); },
+  javaDocumentation: {
+    id: 120309,
+    name: 'Java documentation configured',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      if (/javadoc/i.test(getJavaBuildText(ctx))) return true;
+      const files = getMainJavaFiles(ctx);
+      const publicTypes = files.some(file => /\bpublic\s+(class|interface|enum|record)\s+[A-Z]\w*/.test(ctx.fileContent(file) || ''));
+      if (!publicTypes) return null;
+      return files.some(file => /\/\*\*[\s\S]*?\*\/\s*public\s+(class|interface|enum|record)\s+[A-Z]\w*/.test(ctx.fileContent(file) || ''));
+    },
     impact: 'low',
     category: 'java',
-    fix: 'Document Lombok/MapStruct usage and IDE setup requirements.',
+    fix: 'Generate Javadocs or add doc comments on public Java types so the API remains understandable to contributors.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  javaApiDocsConfigured: {
-    id: 'CL-JV11',
-    name: 'API docs configured (springdoc/swagger deps)',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); return /springdoc|swagger|openapi/i.test(deps); },
+  javaProfiles: {
+    id: 120310,
+    name: 'Java profiles or build variants configured',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /<profiles>|spring\.profiles|@Profile|profiles\s*\{|buildTypes\s*\{|productFlavors\s*\{/i.test(getJavaProjectText(ctx));
+    },
+    impact: 'low',
+    category: 'java',
+    fix: 'Use Maven profiles, Spring profiles, or Gradle build variants when Java environments need explicit separation.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  javaContainerized: {
+    id: 120311,
+    name: 'Java Dockerfile references Java build/runtime',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /FROM\s+(?:maven|gradle|openjdk|eclipse-temurin|amazoncorretto)|\bjava\b|\bmvn\b|\bgradle\b/i.test(ctx.fileContent('Dockerfile') || '');
+    },
+    impact: 'low',
+    category: 'java',
+    fix: 'Use a Dockerfile or build image that references Java, Maven, or Gradle when the application is containerized.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  javaAPIFramework: {
+    id: 120312,
+    name: 'Java API framework detected',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /spring-web|spring-boot-starter-web|@RestController|@Controller|javax\.ws\.rs|jakarta\.ws\.rs|micronaut-http|io\.micronaut/i.test(getJavaProjectText(ctx));
+    },
+    impact: 'low',
+    category: 'java',
+    fix: 'Use Spring MVC, JAX-RS, or Micronaut conventions explicitly when the Java project exposes an API.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  javaMigrations: {
+    id: 120313,
+    name: 'Java database migration tooling present',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /flyway|liquibase/i.test(getJavaProjectText(ctx)) ||
+        hasProjectFile(ctx, /(^|\/)(db\/migration|db\/migrations|migrations)\//i) ||
+        hasProjectFile(ctx, /(^|\/)(schema|data)\.sql$/i);
+    },
     impact: 'medium',
     category: 'java',
-    fix: 'Configure API documentation with springdoc-openapi or Swagger.',
+    fix: 'Add Flyway, Liquibase, or repo-managed migration files so Java schema changes are repeatable and reviewable.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  javaSecurityConfigured: {
-    id: 'CL-JV12',
-    name: 'Security configuration documented',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); if (!/spring-security|spring-boot-starter-security/i.test(deps)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /security|authentication|authorization|SecurityConfig|@EnableWebSecurity/i.test(docs); },
-    impact: 'high',
+  javaMessageQueue: {
+    id: 120314,
+    name: 'Java message queue integration detected',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /kafka|rabbitmq|amqp|jms|spring-kafka|spring-rabbit/i.test(getJavaProjectText(ctx));
+    },
+    impact: 'low',
     category: 'java',
-    fix: 'Document Spring Security configuration and authentication setup.',
+    fix: 'Use explicit Kafka, RabbitMQ, or JMS integrations when the Java service relies on asynchronous messaging.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  javaActuatorConfigured: {
-    id: 'CL-JV13',
-    name: 'Actuator/health checks configured',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); return /actuator|spring-boot-starter-actuator/i.test(deps); },
+  javaCaching: {
+    id: 120315,
+    name: 'Java caching configured',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /redis|ehcache|spring-cache|@Cacheable|caffeine/i.test(getJavaProjectText(ctx));
+    },
+    impact: 'low',
+    category: 'java',
+    fix: 'Configure Redis, Ehcache, Caffeine, or Spring Cache when Java services benefit from explicit caching layers.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  javaMonitoring: {
+    id: 120316,
+    name: 'Java monitoring dependencies detected',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /actuator|micrometer|prometheus/i.test(getJavaProjectText(ctx));
+    },
     impact: 'medium',
     category: 'java',
-    fix: 'Configure Spring Boot Actuator for health checks and monitoring.',
+    fix: 'Add Actuator, Micrometer, or Prometheus integrations so Java services expose health and metrics data.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  javaLoggingConfigured: {
-    id: 'CL-JV14',
-    name: 'Logging configured (logback.xml or log4j2.xml)',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return ctx.files.some(f => /logback.*\.xml$|log4j2?.*\.xml$|logging\.properties$/.test(f)); },
+  javaLogging: {
+    id: 120317,
+    name: 'Java logging configured',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /slf4j|logback|log4j/i.test(getJavaProjectText(ctx)) ||
+        hasProjectFile(ctx, /(^|\/)(logback.*\.xml|log4j2?.*\.xml)$/i);
+    },
     impact: 'medium',
     category: 'java',
-    fix: 'Configure logging with logback.xml or log4j2.xml.',
+    fix: 'Use SLF4J, Logback, or Log4j so Java application logging is explicit and configurable.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  javaMultiModuleProject: {
-    id: 'CL-JV15',
-    name: 'Multi-module project configured if applicable',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const buildFiles = ctx.files.filter(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f)); if (buildFiles.length <= 1) return null; const rootPom = ctx.fileContent('pom.xml') || ''; const rootGradle = ctx.fileContent('settings.gradle') || ctx.fileContent('settings.gradle.kts') || ''; return /<modules>|include\s/i.test(rootPom + rootGradle); },
+  javaMultiModule: {
+    id: 120318,
+    name: 'Java multi-module structure configured',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      const buildFiles = findProjectFiles(ctx, /(^|\/)(pom\.xml|build\.gradle|build\.gradle\.kts)$/i);
+      if (buildFiles.length <= 1) return null;
+      return /<modules>|include\s*\(|include\s+['":]/i.test(getJavaBuildText(ctx));
+    },
     impact: 'medium',
     category: 'java',
-    fix: 'Configure multi-module project structure in root build file.',
+    fix: 'Configure a root Maven or Gradle multi-module definition when the Java repository contains multiple modules.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  javaDockerConfigured: {
-    id: 'CL-JV16',
-    name: 'Docker build configured (Dockerfile or Jib plugin)',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const df = ctx.fileContent('Dockerfile') || ''; const deps = (ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || ''); return /FROM.*(?:openjdk|eclipse-temurin|amazoncorretto)/i.test(df) || /jib/i.test(deps); },
+  javaDependencyInjection: {
+    id: 120319,
+    name: 'Java dependency injection pattern present',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return /spring-context|guice|dagger|@Autowired|@Inject|@Bean|@Component|@Service/i.test(getJavaProjectText(ctx));
+    },
     impact: 'medium',
     category: 'java',
-    fix: 'Configure Docker build with Dockerfile or Jib plugin.',
+    fix: 'Use Spring DI, Guice, or Dagger patterns so Java object graphs stay explicit and testable.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },
 
-  javaEnvConfigsSeparated: {
-    id: 'CL-JV17',
-    name: 'Environment-specific configs separated',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return ctx.files.some(f => /application-(?:dev|prod|staging|test|local)\.(?:ya?ml|properties)$/.test(f)); },
-    impact: 'medium',
+  javaPropertyFiles: {
+    id: 120320,
+    name: 'Java application property files exist',
+    check: (ctx) => {
+      if (!isJavaProject(ctx)) return null;
+      return hasProjectFile(ctx, /(^|\/)application\.(properties|ya?ml)$/i);
+    },
+    impact: 'low',
     category: 'java',
-    fix: 'Separate environment configs (application-dev.yml, application-prod.yml, etc.).',
-    // sourceUrl assigned by attachSourceUrls via category mapping
-    confidence: 0.7,
-  },
-
-  javaNoSecretsInConfig: {
-    id: 'CL-JV18',
-    name: 'No secrets in application.yml/properties',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const appYml = ctx.files.filter(f => /application.*\.ya?ml$|application.*\.properties$/.test(f)).map(f => ctx.fileContent(f) || '').join(''); if (!appYml) return null; return !/password\s*[:=]\s*[^$\{\s][^\s]{8,}|secret\s*[:=]\s*[^$\{\s][^\s]{8,}/i.test(appYml); },
-    impact: 'critical',
-    category: 'java',
-    fix: 'Move secrets to environment variables or external secret management, not application config files.',
-    // sourceUrl assigned by attachSourceUrls via category mapping
-    confidence: 0.7,
-  },
-
-  javaIntegrationTestsSeparate: {
-    id: 'CL-JV19',
-    name: 'Integration tests separate from unit tests',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; return ctx.files.some(f => /src[/](?:integration-?test|it)[/]|IT\.java$|Integration(?:Test)?\.java$/.test(f)) || /failsafe|integration-test/i.test((ctx.fileContent('pom.xml') || '') + (ctx.fileContent('build.gradle') || '') + (ctx.fileContent('build.gradle.kts') || '')); },
-    impact: 'medium',
-    category: 'java',
-    fix: 'Separate integration tests from unit tests using Maven Failsafe or dedicated source set.',
-    // sourceUrl assigned by attachSourceUrls via category mapping
-    confidence: 0.7,
-  },
-
-  javaBuildCommandDocumented: {
-    id: 'CL-JV20',
-    name: 'Build command documented in instructions',
-    check: (ctx) => { if (!ctx.files.some(f => /pom\.xml$|build\.gradle$|build\.gradle\.kts$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /mvn|gradle|mvnw|gradlew|maven|./i.test(docs) && /build|compile|package|install/i.test(docs); },
-    impact: 'high',
-    category: 'java',
-    fix: 'Document build command (mvnw package, gradlew build) in project instructions.',
+    fix: 'Add `application.properties` or `application.yml` when the Java service relies on conventional runtime configuration files.',
     // sourceUrl assigned by attachSourceUrls via category mapping
     confidence: 0.7,
   },

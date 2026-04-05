@@ -151,6 +151,33 @@ describe('Techniques', () => {
       cleanFixture(dir);
     }
   });
+
+  test('java stack checks return null for non-java projects', () => {
+    const dir = mkFixture('non-java');
+    try {
+      writeFile(dir, 'README.md', '# No Java here\n');
+      const ctx = new ProjectContext(dir);
+      expect(TECHNIQUES.mavenOrGradle.check(ctx)).toBe(null);
+      expect(TECHNIQUES.javaVersion.check(ctx)).toBe(null);
+    } finally {
+      cleanFixture(dir);
+    }
+  });
+
+  test('java stack checks detect nested build files', () => {
+    const dir = mkFixture('java-nested');
+    try {
+      writeFile(dir, 'backend/pom.xml', '<project><properties><java.version>21</java.version></properties><dependencies><dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency></dependencies></project>');
+      writeFile(dir, 'backend/src/main/resources/application.yml', 'spring:\n  application:\n    name: demo\n');
+      const ctx = new ProjectContext(dir);
+      expect(TECHNIQUES.mavenOrGradle.check(ctx)).toBe(true);
+      expect(TECHNIQUES.javaVersion.check(ctx)).toBe(true);
+      expect(TECHNIQUES.springBootDetected.check(ctx)).toBe(true);
+      expect(TECHNIQUES.javaPropertyFiles.check(ctx)).toBe(true);
+    } finally {
+      cleanFixture(dir);
+    }
+  });
 });
 
 describe('Stacks', () => {
