@@ -2880,6 +2880,56 @@ const TECHNIQUES = {
     confidence: 0.7,
   },
 
+  // --- ECC-inspired checks ---
+
+  hasLlmsTxt: {
+    id: 110001,
+    name: 'Has /llms.txt or llms.txt for LLM context',
+    check: (ctx) => {
+      return ctx.files.some(f => /^(public\/)?llms\.txt$/i.test(f) || /^llms-full\.txt$/i.test(f));
+    },
+    impact: 'low', rating: 3, category: 'features',
+    fix: 'Add llms.txt to provide LLM-friendly project context. See llmstxt.org for the standard.',
+    template: null,
+    confidence: 0.8,
+  },
+
+  mcpBudgetHealthy: {
+    id: 110002,
+    name: 'MCP budget not over-provisioned (≤10 servers, ≤80 tools)',
+    check: (ctx) => {
+      const settings = ctx.jsonFile('.claude/settings.json') || {};
+      const mcp = ctx.jsonFile('.mcp.json') || {};
+      const mcpServers = Object.keys(settings.mcpServers || {}).length + Object.keys(mcp.mcpServers || {}).length;
+      if (mcpServers === 0) return null;
+      return mcpServers <= 10;
+    },
+    impact: 'medium', rating: 4, category: 'tools',
+    fix: 'Too many MCP servers (>10) degrades performance. Remove unused servers or consolidate.',
+    template: null,
+    confidence: 0.9,
+  },
+
+  hookExitCodesDefined: {
+    id: 110003,
+    name: 'Hook scripts handle exit codes correctly',
+    check: (ctx) => {
+      const hooksDir = ctx.dirFiles('.claude/hooks');
+      if (!hooksDir || hooksDir.length === 0) return null;
+      const hookFiles = hooksDir.filter(f => /\.(js|sh|py)$/.test(f));
+      if (hookFiles.length === 0) return null;
+      const hasExitHandling = hookFiles.some(f => {
+        const content = ctx.fileContent('.claude/hooks/' + f) || '';
+        return /process\.exit|exit\s+[012]|sys\.exit|return\s+[012]/i.test(content);
+      });
+      return hasExitHandling;
+    },
+    impact: 'low', rating: 3, category: 'governance',
+    fix: 'Hooks should use explicit exit codes: 0=success, 1=warning, 2=block. See Claude Code docs.',
+    template: null,
+    confidence: 0.7,
+  },
+
 
 };
 
