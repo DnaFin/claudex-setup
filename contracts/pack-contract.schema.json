@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Nerviq Domain/MCP Pack",
+  "type": "object",
+  "required": ["key", "label"],
+  "properties": {
+    "key": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "label": { "type": "string" },
+    "description": { "type": "string" },
+    "useWhen": { "type": "string" },
+    "adoption": { "type": "string" },
+    "recommendedModules": { "type": "array", "items": { "type": "string" } },
+    "benchmarkFocus": { "type": "array", "items": { "type": "string" } }
+  }
+}

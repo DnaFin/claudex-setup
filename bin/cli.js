@@ -24,7 +24,7 @@ const COMMAND_ALIASES = {
   gov: 'governance',
   outcome: 'feedback',
 };
-const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise', 'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise', 'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'rules-export', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -333,6 +333,8 @@ const HELP = `
     nerviq deep-review            AI-powered config review (opt-in, uses API key)
     nerviq serve --port 3000      Start local Nerviq REST API server
     nerviq badge                  Generate shields.io badge markdown
+    nerviq rules-export           Export recommendation rules as JSON
+    nerviq rules-export --out F   Save rules to file
 
   OPTIONS
     --platform NAME   Platform: claude (default), codex, cursor, copilot, gemini, windsurf, aider, opencode
@@ -507,7 +509,7 @@ async function main() {
       'history', 'compare', 'trend', 'feedback', 'catalog', 'certify', 'serve', 'help', 'version',
       // Harmony + Synergy (cross-platform)
       'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise',
-      'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report',
+      'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'rules-export',
     ]);
 
     if (options.platform === 'codex') {
@@ -985,6 +987,21 @@ async function main() {
       } else {
         console.log(`\n  \x1b[31m\u2717\x1b[0m ${result.error}\n`);
         process.exit(1);
+      }
+      process.exit(0);
+    } else if (normalizedCommand === 'rules-export') {
+      const { generateRecommendationRules } = require('../src/recommendation-rules');
+      const rules = generateRecommendationRules();
+      const output = JSON.stringify(rules, null, 2);
+      if (options.out) {
+        require('fs').writeFileSync(options.out, output, 'utf8');
+        if (!options.json) {
+          console.log(`\n  Rules exported to ${options.out} (${rules.totalRules} rules)\n`);
+        } else {
+          console.log(output);
+        }
+      } else {
+        console.log(output);
       }
       process.exit(0);
     } else if (normalizedCommand === 'synergy-report') {
