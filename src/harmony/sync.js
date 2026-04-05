@@ -3,7 +3,8 @@
  *
  * Generates aligned configs for ALL active platforms from a shared canonical
  * understanding. Ensures instructions, MCP servers, and trust posture are
- * consistent across Claude, Codex, Gemini, Copilot, and Cursor.
+ * consistent across Claude, Codex, Gemini, Copilot, Cursor, Windsurf,
+ * Aider, and OpenCode.
  *
  * Uses managed blocks from each platform's patch module so hand-authored
  * content is always preserved.
@@ -37,6 +38,12 @@ const MANAGED_MARKERS = {
     start: '<!-- nerviq:managed:start -->',
     end: '<!-- nerviq:managed:end -->',
   },
+  windsurf: {
+    start: '<!-- nerviq:managed:start -->',
+    end: '<!-- nerviq:managed:end -->',
+  },
+  // aider: uses .aider.conf.yml (YAML) — managed HTML-comment blocks not supported
+  // opencode: uses opencode.json (JSON) — managed HTML-comment blocks not supported
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -144,6 +151,9 @@ function getInstructionPath(platform) {
     case 'gemini': return 'GEMINI.md';
     case 'copilot': return '.github/copilot-instructions.md';
     case 'cursor': return '.cursorrules';
+    case 'windsurf': return '.windsurfrules';
+    // aider: .aider.conf.yml is YAML config — no managed block support, skip instruction sync
+    // opencode: opencode.json is JSON config — no managed block support, skip instruction sync
     default: return null;
   }
 }
@@ -178,6 +188,11 @@ function buildMcpConfig(platform, mcpServers) {
     return { mcpServers: servers };
   }
 
+  if (platform === 'windsurf') {
+    // Windsurf mcp.json format
+    return { mcpServers: servers };
+  }
+
   return null;
 }
 
@@ -190,6 +205,8 @@ function getMcpConfigPath(platform) {
     case 'gemini': return '.gemini/settings.json';
     case 'copilot': return '.vscode/mcp.json';
     case 'cursor': return '.cursor/mcp.json';
+    case 'windsurf': return '.windsurf/mcp.json';
+    // aider & opencode: no MCP config support
     default: return null;
   }
 }

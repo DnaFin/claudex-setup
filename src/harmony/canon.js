@@ -513,10 +513,33 @@ function buildCanonicalModel(dir) {
     governanceSummary[key] = platformDetails[key].governance;
   }
 
+  // SD2: Adaptive project signals — infrastructure & tooling detection
+  const projectSignals = {};
+  const signalChecks = [
+    { key: 'docker', label: 'Docker', files: ['Dockerfile', 'docker-compose.yml', 'docker-compose.yaml', '.dockerignore'] },
+    { key: 'terraform', label: 'Terraform', files: ['main.tf', 'terraform.tf', '.terraform.lock.hcl'] },
+    { key: 'kubernetes', label: 'Kubernetes', files: ['k8s/', 'kubernetes/', 'helm/', 'Chart.yaml'] },
+    { key: 'ci-github', label: 'GitHub Actions', files: ['.github/workflows/'] },
+    { key: 'ci-gitlab', label: 'GitLab CI', files: ['.gitlab-ci.yml'] },
+    { key: 'pytest', label: 'pytest', files: ['pytest.ini', 'conftest.py', 'pyproject.toml'] },
+    { key: 'jest', label: 'Jest', files: ['jest.config.js', 'jest.config.ts', 'jest.config.mjs'] },
+    { key: 'migrations', label: 'DB Migrations', files: ['migrations/', 'alembic/', 'prisma/migrations/', 'db/migrate/'] },
+    { key: 'monorepo', label: 'Monorepo', files: ['pnpm-workspace.yaml', 'lerna.json', 'nx.json', 'turbo.json'] },
+    { key: 'openapi', label: 'OpenAPI', files: ['openapi.yaml', 'openapi.json', 'swagger.yaml', 'swagger.json'] },
+  ];
+  for (const signal of signalChecks) {
+    const detected = signal.files.some(f => {
+      const full = path.join(dir, f);
+      try { return fs.existsSync(full); } catch { return false; }
+    });
+    if (detected) projectSignals[signal.key] = signal.label;
+  }
+
   return {
     projectName,
     dir,
     stacks: stacks.map(s => s.key),
+    projectSignals,
     activePlatforms: platformKeys.map(key => ({
       platform: key,
       label: platformDetails[key].label,
