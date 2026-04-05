@@ -4211,6 +4211,513 @@ const CODEX_TECHNIQUES = {
     confidence: 0.7,
   },
 
+  // ============================================================
+  // === RUBY/RAILS STACK CHECKS (category: 'ruby') =============
+  // ============================================================
+
+  codexrubyGemfileExists: {
+    id: 'CX-RB01',
+    name: 'Gemfile exists',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; return true; },
+    impact: 'high',
+    category: 'ruby',
+    fix: 'Create a Gemfile to manage Ruby dependencies.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyGemfileLockCommitted: {
+    id: 'CX-RB02',
+    name: 'Gemfile.lock committed',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; return ctx.files.some(f => /Gemfile\.lock$/.test(f)); },
+    impact: 'high',
+    category: 'ruby',
+    fix: 'Commit Gemfile.lock to version control for reproducible builds.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyVersionSpecified: {
+    id: 'CX-RB03',
+    name: 'Ruby version specified (.ruby-version)',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; return ctx.files.some(f => /\.ruby-version$/.test(f)) || /ruby ['"]~?\d/i.test(ctx.fileContent('Gemfile') || ''); },
+    impact: 'medium',
+    category: 'ruby',
+    fix: 'Create .ruby-version or specify ruby version in Gemfile.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyRubocopConfigured: {
+    id: 'CX-RB04',
+    name: 'RuboCop configured (.rubocop.yml)',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; return ctx.files.some(f => /\.rubocop\.ya?ml$/.test(f)); },
+    impact: 'medium',
+    category: 'ruby',
+    fix: 'Add .rubocop.yml to configure Ruby style checking.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyTestFrameworkConfigured: {
+    id: 'CX-RB05',
+    name: 'RSpec or Minitest configured (spec/ or test/)',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; return ctx.files.some(f => /^spec\/|^test\/|spec_helper\.rb$|test_helper\.rb$/.test(f)); },
+    impact: 'high',
+    category: 'ruby',
+    fix: 'Configure RSpec (spec/) or Minitest (test/) for testing.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyRailsCredentialsDocumented: {
+    id: 'CX-RB06',
+    name: 'Rails credentials documented in instructions',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; if (!ctx.files.some(f => /config\/credentials/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /credentials|encrypted|master\.key|secret_key_base/i.test(docs); },
+    impact: 'high',
+    category: 'ruby',
+    fix: 'Document Rails credentials management (rails credentials:edit) in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyMigrationsDocumented: {
+    id: 'CX-RB07',
+    name: 'Database migrations documented (db/migrate/)',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; if (!ctx.files.some(f => /db\/migrate\//.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /migration|migrate|db:migrate|rails db/i.test(docs); },
+    impact: 'medium',
+    category: 'ruby',
+    fix: 'Document database migration workflow (rails db:migrate) in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyBundlerAuditConfigured: {
+    id: 'CX-RB08',
+    name: 'Bundler audit configured',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; const gf = ctx.fileContent('Gemfile') || ''; return /bundler-audit|bundle.audit/i.test(gf) || ctx.files.some(f => /\.bundler-audit/i.test(f)); },
+    impact: 'medium',
+    category: 'ruby',
+    fix: 'Add bundler-audit gem for dependency vulnerability scanning.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyTypeCheckingConfigured: {
+    id: 'CX-RB09',
+    name: 'Sorbet/RBS type checking configured (sorbet/ or sig/)',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; return ctx.files.some(f => /sorbet\/|sig\/|\.rbs$/.test(f)) || /sorbet|tapioca/i.test(ctx.fileContent('Gemfile') || ''); },
+    impact: 'low',
+    category: 'ruby',
+    fix: 'Configure Sorbet or RBS for type checking.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyRailsRoutesDocumented: {
+    id: 'CX-RB10',
+    name: 'Rails routes documented',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; if (!ctx.files.some(f => /config\/routes\.rb$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /routes|endpoints|api.*path|REST/i.test(docs); },
+    impact: 'medium',
+    category: 'ruby',
+    fix: 'Document key routes and API endpoints in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyBackgroundJobsDocumented: {
+    id: 'CX-RB11',
+    name: 'Background jobs documented (Sidekiq/GoodJob)',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; const gf = ctx.fileContent('Gemfile') || ''; if (!/sidekiq|good_job|delayed_job|resque/i.test(gf)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /sidekiq|good_job|delayed_job|resque|background.*job|worker|queue/i.test(docs); },
+    impact: 'medium',
+    category: 'ruby',
+    fix: 'Document background job framework and worker configuration.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyRailsEnvConfigsSeparated: {
+    id: 'CX-RB12',
+    name: 'Rails environment configs separated (config/environments/)',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; return ctx.files.some(f => /config\/environments\//.test(f)); },
+    impact: 'medium',
+    category: 'ruby',
+    fix: 'Ensure config/environments/ has separate files for development, test, and production.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyAssetPipelineDocumented: {
+    id: 'CX-RB13',
+    name: 'Asset pipeline documented',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; const gf = ctx.fileContent('Gemfile') || ''; if (!/sprockets|propshaft|webpacker|jsbundling|cssbundling/i.test(gf)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /asset|sprockets|propshaft|webpacker|jsbundling|cssbundling|esbuild|vite/i.test(docs); },
+    impact: 'low',
+    category: 'ruby',
+    fix: 'Document asset pipeline configuration (Sprockets, Propshaft, or JS/CSS bundling).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyMasterKeyInGitignore: {
+    id: 'CX-RB14',
+    name: 'Rails master.key in .gitignore',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; if (!ctx.files.some(f => /config\/credentials/.test(f))) return null; const gi = ctx.fileContent('.gitignore') || ''; return /master\.key/i.test(gi); },
+    impact: 'critical',
+    category: 'ruby',
+    fix: 'Add config/master.key to .gitignore to prevent secret leakage.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexrubyTestDataFactories: {
+    id: 'CX-RB15',
+    name: 'Factory Bot/fixtures for test data (spec/factories/)',
+    check: (ctx) => { if (!ctx.files.some(f => /Gemfile$/.test(f))) return null; return ctx.files.some(f => /spec\/factories\/|test\/fixtures\//.test(f)) || /factory_bot|fabrication/i.test(ctx.fileContent('Gemfile') || ''); },
+    impact: 'medium',
+    category: 'ruby',
+    fix: 'Configure Factory Bot (spec/factories/) or fixtures (test/fixtures/) for test data.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  // ============================================================
+  // === .NET/C# STACK CHECKS (category: 'dotnet') ==============
+  // ============================================================
+
+  codexdotnetProjectExists: {
+    id: 'CX-DN01',
+    name: '.csproj or .sln exists',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; return true; },
+    impact: 'high',
+    category: 'dotnet',
+    fix: 'Ensure .csproj or .sln file exists for .NET projects.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetVersionSpecified: {
+    id: 'CX-DN02',
+    name: '.NET version specified (global.json or TargetFramework)',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; return ctx.files.some(f => /global\.json$/.test(f)) || ctx.files.some(f => { if (!/\.csproj$/.test(f)) return false; const c = ctx.fileContent(f) || ''; return /TargetFramework/i.test(c); }); },
+    impact: 'medium',
+    category: 'dotnet',
+    fix: 'Create global.json or ensure TargetFramework is set in .csproj.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetPackagesLock: {
+    id: 'CX-DN03',
+    name: 'NuGet packages lock (packages.lock.json)',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; return ctx.files.some(f => /packages\.lock\.json$/.test(f)); },
+    impact: 'medium',
+    category: 'dotnet',
+    fix: 'Enable NuGet lock file (packages.lock.json) for reproducible restores.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetTestDocumented: {
+    id: 'CX-DN04',
+    name: 'dotnet test documented',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /dotnet test|xunit|nunit|mstest/i.test(docs); },
+    impact: 'high',
+    category: 'dotnet',
+    fix: 'Document how to run tests with dotnet test in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetEditorConfigExists: {
+    id: 'CX-DN05',
+    name: 'EditorConfig configured (.editorconfig)',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; return ctx.files.some(f => /\.editorconfig$/.test(f)); },
+    impact: 'medium',
+    category: 'dotnet',
+    fix: 'Add .editorconfig for consistent code style across the team.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetRoslynAnalyzers: {
+    id: 'CX-DN06',
+    name: 'Roslyn analyzers configured',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; return ctx.files.some(f => { if (!/\.csproj$/.test(f)) return false; const c = ctx.fileContent(f) || ''; return /Analyzer|StyleCop|SonarAnalyzer|Microsoft\.CodeAnalysis/i.test(c); }); },
+    impact: 'medium',
+    category: 'dotnet',
+    fix: 'Add Roslyn analyzers (StyleCop.Analyzers, Microsoft.CodeAnalysis) to the project.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetAppsettingsExists: {
+    id: 'CX-DN07',
+    name: 'appsettings.json exists',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; return ctx.files.some(f => /appsettings\.json$/.test(f)); },
+    impact: 'medium',
+    category: 'dotnet',
+    fix: 'Create appsettings.json for application configuration.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetUserSecretsDocumented: {
+    id: 'CX-DN08',
+    name: 'User secrets configured in instructions',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /user.?secrets|dotnet secrets|Secret Manager/i.test(docs); },
+    impact: 'high',
+    category: 'dotnet',
+    fix: 'Document user secrets management (dotnet user-secrets) in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetEfMigrations: {
+    id: 'CX-DN09',
+    name: 'Entity Framework migrations (Migrations/ directory)',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; return ctx.files.some(f => /Migrations\//.test(f)); },
+    impact: 'medium',
+    category: 'dotnet',
+    fix: 'Document Entity Framework migration workflow (dotnet ef migrations).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetHealthChecks: {
+    id: 'CX-DN10',
+    name: 'Health checks configured',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; return ctx.files.some(f => { if (!/\.cs$/.test(f)) return false; const c = ctx.fileContent(f) || ''; return /AddHealthChecks|MapHealthChecks|IHealthCheck/i.test(c); }); },
+    impact: 'medium',
+    category: 'dotnet',
+    fix: 'Configure health checks with AddHealthChecks() and MapHealthChecks().',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetSwaggerConfigured: {
+    id: 'CX-DN11',
+    name: 'Swagger/OpenAPI configured',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; return ctx.files.some(f => { if (!/\.cs$|.csproj$/.test(f)) return false; const c = ctx.fileContent(f) || ''; return /Swashbuckle|AddSwaggerGen|UseSwagger|NSwag|AddOpenApi/i.test(c); }); },
+    impact: 'medium',
+    category: 'dotnet',
+    fix: 'Configure Swagger/OpenAPI with Swashbuckle or NSwag.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetNoConnectionStringsInConfig: {
+    id: 'CX-DN12',
+    name: 'No connection strings in appsettings.json',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; const settings = ctx.fileContent('appsettings.json') || ''; if (!settings) return null; return !/Server=.*Password=|Data Source=.*Password=/i.test(settings); },
+    impact: 'critical',
+    category: 'dotnet',
+    fix: 'Move connection strings with passwords to user secrets or environment variables.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetDockerSupport: {
+    id: 'CX-DN13',
+    name: 'Docker support configured',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; const df = ctx.fileContent('Dockerfile') || ''; return /dotnet|aspnet|sdk/i.test(df); },
+    impact: 'medium',
+    category: 'dotnet',
+    fix: 'Add Dockerfile with official .NET SDK/ASP.NET base images.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetTestProjectSeparate: {
+    id: 'CX-DN14',
+    name: 'Unit test project separate (.Tests.csproj)',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; return ctx.files.some(f => /\.Tests?\.csproj$|Tests?\/.*\.csproj$/.test(f)); },
+    impact: 'high',
+    category: 'dotnet',
+    fix: 'Create separate test project (e.g., MyApp.Tests.csproj) for unit tests.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexdotnetGlobalUsingsDocumented: {
+    id: 'CX-DN15',
+    name: 'GlobalUsings documented',
+    check: (ctx) => { if (!ctx.files.some(f => /\.csproj$|\.sln$/.test(f))) return null; return ctx.files.some(f => /GlobalUsings\.cs$|Usings\.cs$/.test(f)) || ctx.files.some(f => { if (!/\.csproj$/.test(f)) return false; const c = ctx.fileContent(f) || ''; return /ImplicitUsings/i.test(c); }); },
+    impact: 'low',
+    category: 'dotnet',
+    fix: 'Document global using directives in GlobalUsings.cs or enable ImplicitUsings in .csproj.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  // ============================================================
+  // === PHP/LARAVEL STACK CHECKS (category: 'php') ==============
+  // ============================================================
+
+  codexphpComposerJsonExists: {
+    id: 'CX-PHP01',
+    name: 'composer.json exists',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; return true; },
+    impact: 'high',
+    category: 'php',
+    fix: 'Create composer.json to manage PHP dependencies.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpComposerLockCommitted: {
+    id: 'CX-PHP02',
+    name: 'composer.lock committed',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; return ctx.files.some(f => /composer\.lock$/.test(f)); },
+    impact: 'high',
+    category: 'php',
+    fix: 'Commit composer.lock to version control for reproducible installs.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpVersionSpecified: {
+    id: 'CX-PHP03',
+    name: 'PHP version specified (composer.json require.php)',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; const cj = ctx.fileContent('composer.json') || ''; return /"php"s*:/i.test(cj); },
+    impact: 'medium',
+    category: 'php',
+    fix: 'Specify PHP version requirement in composer.json require section.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpStaticAnalysisConfigured: {
+    id: 'CX-PHP04',
+    name: 'PHPStan/Psalm configured (phpstan.neon)',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; return ctx.files.some(f => /phpstan\.neon$|phpstan\.neon\.dist$|psalm\.xml$/.test(f)); },
+    impact: 'medium',
+    category: 'php',
+    fix: 'Configure PHPStan (phpstan.neon) or Psalm (psalm.xml) for static analysis.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpCsFixerConfigured: {
+    id: 'CX-PHP05',
+    name: 'PHP CS Fixer configured (.php-cs-fixer.php)',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; return ctx.files.some(f => /\.php-cs-fixer\.php$|\.php-cs-fixer\.dist\.php$/.test(f)); },
+    impact: 'medium',
+    category: 'php',
+    fix: 'Add .php-cs-fixer.php for consistent code formatting.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpUnitConfigured: {
+    id: 'CX-PHP06',
+    name: 'PHPUnit configured (phpunit.xml)',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; return ctx.files.some(f => /phpunit\.xml$|phpunit\.xml\.dist$/.test(f)); },
+    impact: 'high',
+    category: 'php',
+    fix: 'Configure PHPUnit with phpunit.xml for testing.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpLaravelEnvExample: {
+    id: 'CX-PHP07',
+    name: 'Laravel .env.example exists',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; if (!ctx.files.some(f => /artisan$/.test(f))) return null; return ctx.files.some(f => /\.env\.example$/.test(f)); },
+    impact: 'high',
+    category: 'php',
+    fix: 'Create .env.example with all required environment variables documented.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpLaravelAppKeyNotCommitted: {
+    id: 'CX-PHP08',
+    name: 'Laravel APP_KEY not committed',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; if (!ctx.files.some(f => /artisan$/.test(f))) return null; const env = ctx.fileContent('.env') || ''; if (!env) return null; return !/APP_KEY=base64:[A-Za-z0-9+/=]{30,}/i.test(env); },
+    impact: 'critical',
+    category: 'php',
+    fix: 'Ensure .env with APP_KEY is in .gitignore — never commit application keys.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpLaravelMigrationsExist: {
+    id: 'CX-PHP09',
+    name: 'Laravel migrations exist (database/migrations/)',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; if (!ctx.files.some(f => /artisan$/.test(f))) return null; return ctx.files.some(f => /database\/migrations\//.test(f)); },
+    impact: 'medium',
+    category: 'php',
+    fix: 'Create database migrations in database/migrations/ directory.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpArtisanCommandsDocumented: {
+    id: 'CX-PHP10',
+    name: 'Artisan commands documented',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; if (!ctx.files.some(f => /artisan$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /artisan|php artisan|make:model|make:controller|migrate/i.test(docs); },
+    impact: 'medium',
+    category: 'php',
+    fix: 'Document key Artisan commands (migrate, seed, make:*) in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpQueueWorkerDocumented: {
+    id: 'CX-PHP11',
+    name: 'Queue worker documented',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; const cj = ctx.fileContent('composer.json') || ''; if (!/horizon|queue/i.test(cj) && !ctx.files.some(f => /artisan$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /queue|horizon|worker|job|dispatch/i.test(docs); },
+    impact: 'medium',
+    category: 'php',
+    fix: 'Document queue worker setup (php artisan queue:work, Horizon).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpLaravelPintConfigured: {
+    id: 'CX-PHP12',
+    name: 'Laravel Pint configured (pint.json)',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; return ctx.files.some(f => /pint\.json$/.test(f)) || /laravel\/pint/i.test(ctx.fileContent('composer.json') || ''); },
+    impact: 'low',
+    category: 'php',
+    fix: 'Configure Laravel Pint (pint.json) for code style enforcement.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpAssetBundlingDocumented: {
+    id: 'CX-PHP13',
+    name: 'Vite/Mix asset bundling documented',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; if (!ctx.files.some(f => /vite\.config\.|webpack\.mix\.js$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /vite|mix|asset|npm run dev|npm run build/i.test(docs); },
+    impact: 'low',
+    category: 'php',
+    fix: 'Document asset bundling setup (Vite or Mix) in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpConfigCachingDocumented: {
+    id: 'CX-PHP14',
+    name: 'Laravel config caching documented',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; if (!ctx.files.some(f => /artisan$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /config:cache|config:clear|route:cache|optimize/i.test(docs); },
+    impact: 'low',
+    category: 'php',
+    fix: 'Document config/route caching strategy (php artisan config:cache) for production.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  codexphpComposerScriptsDefined: {
+    id: 'CX-PHP15',
+    name: 'Composer scripts defined',
+    check: (ctx) => { if (!ctx.files.some(f => /composer\.json$/.test(f))) return null; const cj = ctx.fileContent('composer.json') || ''; return /"scripts"s*:/i.test(cj); },
+    impact: 'medium',
+    category: 'php',
+    fix: 'Define composer scripts for common tasks (test, lint, analyze) in composer.json.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
 
 };
 

@@ -23,8 +23,8 @@ function mkFixture(name) {
 }
 
 describe('Cursor audit + setup', () => {
-  test('cursor v1.0 exposes the full 221-check catalog after adding 25 Python + 20 Go + 20 Rust + 20 Java stack checks', () => {
-    expect(Object.keys(CURSOR_TECHNIQUES)).toHaveLength(221);
+  test('cursor v1.0 exposes the full 301-check catalog after adding Python/Go/Rust/Java + Ruby/DotNet/PHP + Flutter/Swift/Kotlin stack checks', () => {
+    expect(Object.keys(CURSOR_TECHNIQUES)).toHaveLength(301);
   });
 
   test('cursor audit identifies missing rules and config on empty repo', async () => {

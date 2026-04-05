@@ -23,8 +23,8 @@ describe('Techniques', () => {
     expect(names.length).toBe(unique.size);
   });
 
-  test('technique count is 223 after adding 48 supplemental + 25 Python + 20 Go + 20 Rust + 20 Java stack checks', () => {
-    expect(Object.keys(TECHNIQUES).length).toBe(223);
+  test('technique count is 268 after adding 48 supplemental + Python/Go/Rust/Java + Ruby/DotNet/PHP stack checks', () => {
+    expect(Object.keys(TECHNIQUES).length).toBe(268);
   });
 
   test('embedded secret detector catches Anthropic-style keys with dashes', () => {
