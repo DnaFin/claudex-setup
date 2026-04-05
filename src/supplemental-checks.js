@@ -150,6 +150,52 @@ function hasMonitoringSurface(surface) {
   return /logging|logger|sentry|bugsnag|rollbar|otel|opentelemetry|prometheus|health|alert|metric|apm/i.test(surface.project);
 }
 
+// --- Relevance skip helpers (prevent false positives on non-applicable projects) ---
+
+/**
+ * Returns true if the project looks like an API project.
+ * Skip API Design checks when project has no routes/, api/, controllers/, endpoints/.
+ */
+function isApiProject(ctx) {
+  if (!Array.isArray(ctx.files)) return false;
+  return ctx.files.some(f => /\b(routes|api|controllers|endpoints)\//i.test(f));
+}
+
+/**
+ * Returns true if the project looks like it uses a database.
+ * Skip Database checks when project has no prisma/, db/, migrations/ and no DB deps.
+ */
+function isDatabaseProject(ctx) {
+  if (!Array.isArray(ctx.files)) return false;
+  const hasDbDirs = ctx.files.some(f => /\b(prisma|db|migrations)\//i.test(f));
+  if (hasDbDirs) return true;
+  return hasAnyDependency(ctx, [/\bpg\b/i, /\bmysql\b/i, /\bmysql2\b/i, /\bmongoose\b/i, /\bprisma\b/i, /\btypeorm\b/i, /\bsequelize\b/i, /\bknex\b/i, /\bdrizzle\b/i, /\bbetter-sqlite3\b/i, /\bsqlite3\b/i]);
+}
+
+/**
+ * Returns true if the project looks like it uses authentication.
+ * Skip Auth checks when project has no auth/, login, no passport/auth0/clerk in deps.
+ */
+function isAuthProject(ctx) {
+  if (!Array.isArray(ctx.files)) return false;
+  const hasAuthDirs = ctx.files.some(f => /\b(auth)\//i.test(f) || /login/i.test(f));
+  if (hasAuthDirs) return true;
+  return hasAnyDependency(ctx, [/\bpassport\b/i, /\bauth0\b/i, /\bclerk\b/i, /\bnext-auth\b/i, /\b@auth\//i, /\bbcrypt\b/i, /\bjsonwebtoken\b/i, /\bjose\b/i]);
+}
+
+/**
+ * Returns true if the project is large enough or has monitoring deps.
+ * Skip Monitoring checks when project has no monitoring deps AND < 10 JS/TS files.
+ */
+function isMonitoringRelevant(ctx) {
+  if (hasAnyDependency(ctx, [/\bsentry\b/i, /\bdatadog\b/i, /\bnewrelic\b/i, /\bpino\b/i, /\bwinston\b/i, /\bbugsnag\b/i, /\brollbar\b/i, /\bopentelemetry\b/i, /\bprom-client\b/i])) {
+    return true;
+  }
+  if (!Array.isArray(ctx.files)) return false;
+  const jstsCount = ctx.files.filter(f => /\.(js|ts|jsx|tsx|mjs|cjs)$/i.test(f)).length;
+  return jstsCount >= 10;
+}
+
 function exactPinnedDependencies(ctx) {
   const deps = getDependencies(ctx);
   const versions = Object.values(deps);
@@ -325,7 +371,7 @@ const CHECK_DEFS = [
     category: 'api-design',
     impact: 'medium',
     fix: 'Document the main API endpoints or ship an OpenAPI/Swagger description so integrations stay reviewable.',
-    check: (ctx, surface) => hasApiSurface(surface)
+    check: (ctx, surface) => !isApiProject(ctx) ? null : hasApiSurface(surface)
       ? docMatches(surface.project, [/\bendpoint\b/i, /\bopenapi\b/i, /\bswagger\b/i, /\bgraphql\b/i, /\broute\b/i]) ||
         hasFile(ctx, 'openapi.yaml') ||
         hasFile(ctx, 'openapi.json') ||
@@ -339,7 +385,7 @@ const CHECK_DEFS = [
     category: 'api-design',
     impact: 'medium',
     fix: 'Document the API versioning strategy (`v1`, header-based, or explicit stability policy) so breaking changes are easier to govern.',
-    check: (_ctx, surface) => hasApiSurface(surface)
+    check: (ctx, surface) => !isApiProject(ctx) ? null : hasApiSurface(surface)
       ? docMatches(surface.project, [/\bapi version\b/i, /\/v[0-9]+\b/i, /\bversioning\b/i])
       : null,
   },
@@ -350,7 +396,7 @@ const CHECK_DEFS = [
     category: 'api-design',
     impact: 'high',
     fix: 'Document the API error handling shape (for example problem+json, error envelopes, or standard status mapping) so clients get predictable failures.',
-    check: (_ctx, surface) => hasApiSurface(surface)
+    check: (ctx, surface) => !isApiProject(ctx) ? null : hasApiSurface(surface)
       ? docMatches(surface.project, [/\berror handling\b/i, /\bproblem\+json\b/i, /\berror envelope\b/i, /\bstatus code\b/i])
       : null,
   },
@@ -361,7 +407,7 @@ const CHECK_DEFS = [
     category: 'api-design',
     impact: 'medium',
     fix: 'Mention rate limiting or throttling expectations so public and internal API surfaces have clear abuse boundaries.',
-    check: (ctx, surface) => hasApiSurface(surface)
+    check: (ctx, surface) => !isApiProject(ctx) ? null : hasApiSurface(surface)
       ? docMatches(surface.project, [/\brate limit\b/i, /\bthrottl/i]) ||
         hasAnyDependency(ctx, [/\bexpress-rate-limit\b/i, /\bbottleneck\b/i, /\bslowapi\b/i])
       : null,
@@ -373,7 +419,7 @@ const CHECK_DEFS = [
     category: 'api-design',
     impact: 'high',
     fix: 'Use and document request validation (Zod, Joi, class-validator, Pydantic, or equivalent) so invalid inputs fail early and consistently.',
-    check: (ctx, surface) => hasApiSurface(surface)
+    check: (ctx, surface) => !isApiProject(ctx) ? null : hasApiSurface(surface)
       ? docMatches(surface.project, [/\brequest validation\b/i, /\binput validation\b/i, /\bzod\b/i, /\bjoi\b/i, /\bpydantic\b/i]) ||
         hasAnyDependency(ctx, [/\bzod\b/i, /\bjoi\b/i, /\bclass-validator\b/i, /\bpydantic\b/i])
       : null,
@@ -385,7 +431,7 @@ const CHECK_DEFS = [
     category: 'api-design',
     impact: 'medium',
     fix: 'Describe the standard API response shape or schema conventions so consumers know what to expect from every endpoint.',
-    check: (_ctx, surface) => hasApiSurface(surface)
+    check: (ctx, surface) => !isApiProject(ctx) ? null : hasApiSurface(surface)
       ? docMatches(surface.project, [/\bresponse format\b/i, /\bresponse schema\b/i, /\bjson envelope\b/i, /\bconsistent response\b/i])
       : null,
   },
@@ -396,7 +442,7 @@ const CHECK_DEFS = [
     category: 'database',
     impact: 'high',
     fix: 'Document the migration workflow (`prisma migrate`, `alembic`, SQL migrations, or equivalent) so schema changes are repeatable and reviewable.',
-    check: (ctx, surface) => hasDatabaseSurface(surface)
+    check: (ctx, surface) => !isDatabaseProject(ctx) ? null : hasDatabaseSurface(surface)
       ? docMatches(surface.project, [/\bmigration\b/i, /\bprisma migrate\b/i, /\balembic\b/i, /\bdbmate\b/i]) ||
         hasDir(ctx, 'prisma/migrations') ||
         hasDir(ctx, 'migrations')
@@ -409,7 +455,7 @@ const CHECK_DEFS = [
     category: 'database',
     impact: 'medium',
     fix: 'Mention query optimization concerns such as indexes, N+1 prevention, pagination, or query plans so performance work has a shared baseline.',
-    check: (_ctx, surface) => hasDatabaseSurface(surface)
+    check: (ctx, surface) => !isDatabaseProject(ctx) ? null : hasDatabaseSurface(surface)
       ? docMatches(surface.project, [/\bquery optimization\b/i, /\bindex(es)?\b/i, /\bn\+1\b/i, /\bpagination\b/i, /\bquery plan\b/i])
       : null,
   },
@@ -420,7 +466,7 @@ const CHECK_DEFS = [
     category: 'database',
     impact: 'medium',
     fix: 'Document or configure connection pooling so the database layer does not rely on unbounded per-request connections.',
-    check: (ctx, surface) => hasDatabaseSurface(surface)
+    check: (ctx, surface) => !isDatabaseProject(ctx) ? null : hasDatabaseSurface(surface)
       ? docMatches(surface.project, [/\bconnection pool\b/i, /\bpooling\b/i]) ||
         hasAnyDependency(ctx, [/\bpg\b/i, /\bmysql2\b/i, /\bprisma\b/i])
       : null,
@@ -432,7 +478,7 @@ const CHECK_DEFS = [
     category: 'database',
     impact: 'high',
     fix: 'Reference backup and restore expectations so data durability is not left as tribal knowledge.',
-    check: (_ctx, surface) => hasDatabaseSurface(surface)
+    check: (ctx, surface) => !isDatabaseProject(ctx) ? null : hasDatabaseSurface(surface)
       ? docMatches(surface.project, [/\bbackup\b/i, /\brestore\b/i, /\bpoint-in-time\b/i, /\bsnapshot\b/i])
       : null,
   },
@@ -443,7 +489,7 @@ const CHECK_DEFS = [
     category: 'database',
     impact: 'medium',
     fix: 'Include schema documentation or schema files so contributors can understand the data model without guessing.',
-    check: (ctx, surface) => hasDatabaseSurface(surface)
+    check: (ctx, surface) => !isDatabaseProject(ctx) ? null : hasDatabaseSurface(surface)
       ? docMatches(surface.project, [/\bschema\b/i, /\berd\b/i, /\bdbml\b/i]) ||
         hasFile(ctx, 'schema.prisma') ||
         hasFile(ctx, 'dbml')
@@ -456,7 +502,7 @@ const CHECK_DEFS = [
     category: 'database',
     impact: 'low',
     fix: 'Document seed data or bootstrap fixtures so contributors can stand up realistic local environments quickly.',
-    check: (ctx, surface) => hasDatabaseSurface(surface)
+    check: (ctx, surface) => !isDatabaseProject(ctx) ? null : hasDatabaseSurface(surface)
       ? docMatches(surface.project, [/\bseed data\b/i, /\bseeding\b/i, /\bbootstrap data\b/i]) ||
         scriptMatches(ctx, [/\bseed\b/i])
       : null,
@@ -468,7 +514,7 @@ const CHECK_DEFS = [
     category: 'authentication',
     impact: 'high',
     fix: 'Document the authentication flow so login, signup, and trust boundaries are clear for contributors and agents.',
-    check: (_ctx, surface) => hasAuthSurface(surface)
+    check: (ctx, surface) => !isAuthProject(ctx) ? null : hasAuthSurface(surface)
       ? docMatches(surface.project, [/\bauth flow\b/i, /\blogin\b/i, /\bsign[- ]?in\b/i, /\bsign[- ]?up\b/i])
       : null,
   },
@@ -479,7 +525,7 @@ const CHECK_DEFS = [
     category: 'authentication',
     impact: 'high',
     fix: 'Describe how tokens are stored, refreshed, and protected so secrets do not leak into client storage or logs.',
-    check: (_ctx, surface) => hasAuthSurface(surface)
+    check: (ctx, surface) => !isAuthProject(ctx) ? null : hasAuthSurface(surface)
       ? docMatches(surface.project, [/\btoken\b/i, /\brefresh token\b/i, /\bhttpOnly\b/i, /\bbearer\b/i])
       : null,
   },
@@ -490,7 +536,7 @@ const CHECK_DEFS = [
     category: 'authentication',
     impact: 'medium',
     fix: 'Document session lifetime, revocation, and invalidation rules so auth behavior is predictable under change.',
-    check: (_ctx, surface) => hasAuthSurface(surface)
+    check: (ctx, surface) => !isAuthProject(ctx) ? null : hasAuthSurface(surface)
       ? docMatches(surface.project, [/\bsession\b/i, /\bcookie\b/i, /\bexpiration\b/i, /\brevocation\b/i])
       : null,
   },
@@ -501,7 +547,7 @@ const CHECK_DEFS = [
     category: 'authentication',
     impact: 'high',
     fix: 'Reference roles and permission boundaries so the repo has a shared model for authorization checks.',
-    check: (_ctx, surface) => hasAuthSurface(surface)
+    check: (ctx, surface) => !isAuthProject(ctx) ? null : hasAuthSurface(surface)
       ? docMatches(surface.project, [/\brbac\b/i, /\brole\b/i, /\bpermission\b/i, /\bauthorization\b/i])
       : null,
   },
@@ -512,7 +558,7 @@ const CHECK_DEFS = [
     category: 'authentication',
     impact: 'medium',
     fix: 'Document OAuth, OIDC, SSO, or SAML expectations if the project uses delegated authentication or enterprise identity.',
-    check: (_ctx, surface) => hasAuthSurface(surface)
+    check: (ctx, surface) => !isAuthProject(ctx) ? null : hasAuthSurface(surface)
       ? docMatches(surface.project, [/\boauth\b/i, /\boidc\b/i, /\bsso\b/i, /\bsaml\b/i])
       : null,
   },
@@ -523,7 +569,7 @@ const CHECK_DEFS = [
     category: 'authentication',
     impact: 'medium',
     fix: 'Mention credential rotation or secret rollover procedures so auth incidents do not require ad-hoc recovery.',
-    check: (_ctx, surface) => hasAuthSurface(surface)
+    check: (ctx, surface) => !isAuthProject(ctx) ? null : hasAuthSurface(surface)
       ? docMatches(surface.project, [/\brotate\b/i, /\brotation\b/i, /\bsecret rollover\b/i, /\bkey rollover\b/i])
       : null,
   },
@@ -534,7 +580,7 @@ const CHECK_DEFS = [
     category: 'monitoring',
     impact: 'medium',
     fix: 'Configure structured logging or document the logging approach so production diagnostics do not depend on ad-hoc console output.',
-    check: (ctx, surface) => hasRelevantProject(surface)
+    check: (ctx, surface) => !isMonitoringRelevant(ctx) ? null : hasRelevantProject(surface)
       ? hasAnyDependency(ctx, [/\bpino\b/i, /\bwinston\b/i, /\bstructured-log\b/i, /\bstructlog\b/i, /\bloguru\b/i]) ||
         docMatches(surface.project, [/\blogging\b/i, /\bstructured logs?\b/i, /\blogger\b/i])
       : null,
@@ -546,7 +592,7 @@ const CHECK_DEFS = [
     category: 'monitoring',
     impact: 'medium',
     fix: 'Wire error tracking such as Sentry, Bugsnag, or Rollbar, or document the equivalent crash-reporting path.',
-    check: (ctx, surface) => hasRelevantProject(surface)
+    check: (ctx, surface) => !isMonitoringRelevant(ctx) ? null : hasRelevantProject(surface)
       ? hasAnyDependency(ctx, [/\bsentry\b/i, /\bbugsnag\b/i, /\brollbar\b/i]) ||
         docMatches(surface.project, [/\bsentry\b/i, /\bbugsnag\b/i, /\brollbar\b/i, /\berror tracking\b/i])
       : null,
@@ -558,7 +604,7 @@ const CHECK_DEFS = [
     category: 'monitoring',
     impact: 'medium',
     fix: 'Mention metrics, tracing, or APM so performance and reliability signals are available before incidents escalate.',
-    check: (ctx, surface) => hasRelevantProject(surface)
+    check: (ctx, surface) => !isMonitoringRelevant(ctx) ? null : hasRelevantProject(surface)
       ? hasAnyDependency(ctx, [/\bprom-client\b/i, /\bopentelemetry\b/i, /\bdatadog\b/i, /\bnewrelic\b/i]) ||
         docMatches(surface.project, [/\bmetrics\b/i, /\bprometheus\b/i, /\bapm\b/i, /\bopentelemetry\b/i, /\btrace\b/i])
       : null,
@@ -570,7 +616,7 @@ const CHECK_DEFS = [
     category: 'monitoring',
     impact: 'medium',
     fix: 'Document or implement a health check endpoint (`/health`, `/ready`, `/live`) so uptime checks have a stable target.',
-    check: (_ctx, surface) => hasRelevantProject(surface)
+    check: (ctx, surface) => !isMonitoringRelevant(ctx) ? null : hasRelevantProject(surface)
       ? docMatches(surface.project, [/\bhealth check\b/i, /\bhealthz\b/i, /\bliveness\b/i, /\breadiness\b/i, /\/health\b/i])
       : null,
   },
@@ -581,7 +627,7 @@ const CHECK_DEFS = [
     category: 'monitoring',
     impact: 'medium',
     fix: 'Reference alerting or on-call expectations so incidents have an explicit escalation path.',
-    check: (_ctx, surface) => hasRelevantProject(surface)
+    check: (ctx, surface) => !isMonitoringRelevant(ctx) ? null : hasRelevantProject(surface)
       ? docMatches(surface.project, [/\balerting\b/i, /\bon-call\b/i, /\bpagerduty\b/i, /\balertmanager\b/i, /\bincident\b/i])
       : null,
   },
@@ -592,7 +638,7 @@ const CHECK_DEFS = [
     category: 'monitoring',
     impact: 'low',
     fix: 'Mention log retention or rotation so long-running services do not silently fill disks with unbounded logs.',
-    check: (_ctx, surface) => hasRelevantProject(surface)
+    check: (ctx, surface) => !isMonitoringRelevant(ctx) ? null : hasRelevantProject(surface)
       ? docMatches(surface.project, [/\blog rotation\b/i, /\blogrotate\b/i, /\bretention\b/i, /\bmax size\b/i])
       : null,
   },
@@ -764,4 +810,8 @@ function buildSupplementalChecks(options) {
 
 module.exports = {
   buildSupplementalChecks,
+  isApiProject,
+  isDatabaseProject,
+  isAuthProject,
+  isMonitoringRelevant,
 };

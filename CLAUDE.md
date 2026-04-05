@@ -88,6 +88,11 @@ Before completing any task, confirm:
 </constraints>
 <!-- claudex-setup:constraints:end -->
 
+<!-- claudex-setup:mcp-servers:start -->
+## MCP Servers
+- **context7**: Live documentation lookup via `@upstash/context7-mcp`. Use it to fetch current docs for any library, framework, or API instead of relying on training data. Configured in `.mcp.json`.
+<!-- claudex-setup:mcp-servers:end -->
+
 <!-- claudex-setup:context-management:start -->
 ## Context Management
 - Use /compact when context gets large (above 50% capacity)
