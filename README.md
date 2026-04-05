@@ -4,23 +4,24 @@
 
 [![npm version](https://img.shields.io/npm/v/@nerviq/cli)](https://www.npmjs.com/package/@nerviq/cli)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](LICENSE)
+[![Checks: 673](https://img.shields.io/badge/checks-673-brightgreen)](https://github.com/nerviq/nerviq)
 
 ---
 
-### ⚠️ Beta — Currently Claude Code only
+### 8 Platforms Supported
 
-Nerviq is in **beta**. The current release fully supports **Claude Code** (90 checks, audit, setup, governance, benchmark).
+Nerviq v1.0 ships with full audit, setup, governance, and benchmark support for **8 AI coding platforms**:
 
-**Coming soon:**
-- Codex (OpenAI)
-- Gemini CLI (Google)
-- GitHub Copilot
-- Cursor
-- Windsurf
-- Aider
-- OpenCode
-- **Harmony** — cross-platform drift detection
-- **Synergy** — multi-agent amplification
+| Platform | Checks | Status |
+|----------|--------|--------|
+| Claude Code | 90 | Full |
+| Codex (OpenAI) | 83 | Full |
+| Gemini CLI (Google) | 83 | Full |
+| GitHub Copilot | 83 | Full |
+| Cursor | 83 | Full |
+| Windsurf | 83 | Full |
+| Aider | 85 | Full |
+| OpenCode | 83 | Full |
 
 ---
 
@@ -61,7 +62,7 @@ npx @nerviq/cli benchmark          # Before/after in isolated copy
 
 No install required. Zero dependencies.
 
-## 90 Checks Across 14 Categories
+## 673 Checks Across 14 Categories
 
 | Category | Checks | Examples |
 |----------|--------|---------|
@@ -79,11 +80,126 @@ No install required. Zero dependencies.
 | Features | 2 | channels, worktrees |
 | Quality Deep | 9 | freshness, contradictions, deprecated patterns |
 
+## Harmony — Cross-Platform Alignment
+
+Harmony detects drift between your AI coding platforms and keeps them in sync.
+
+```bash
+npx @nerviq/cli harmony-audit      # Cross-platform DX audit (0-100 harmony score)
+npx @nerviq/cli harmony-sync       # Sync shared config across platforms
+npx @nerviq/cli harmony-drift      # Detect drift between platform configs
+npx @nerviq/cli harmony-advise     # Cross-platform improvement advice
+npx @nerviq/cli harmony-watch      # Live monitoring for config drift
+npx @nerviq/cli harmony-governance # Unified governance across platforms
+```
+
+## Synergy — Multi-Agent Amplification
+
+Synergy analyzes how your platforms work together and finds amplification opportunities.
+
+```bash
+npx @nerviq/cli synergy-report     # Multi-agent synergy analysis
+```
+
+Synergy evaluates compound audit results, discovers compensation patterns (where one platform covers another's gaps), and ranks recommendations by cross-platform impact.
+
+## SDK — `@nerviq/sdk`
+
+Programmatic access to all Nerviq capabilities:
+
+```js
+const { audit, harmonyAudit, synergyReport, detectPlatforms } = require('@nerviq/sdk');
+
+const result = await audit('.', 'claude');
+console.log(`Score: ${result.score}/100`);
+
+const platforms = detectPlatforms('.');
+console.log(`Active platforms: ${platforms.join(', ')}`);
+
+const harmony = await harmonyAudit('.');
+console.log(`Harmony score: ${harmony.harmonyScore}/100`);
+```
+
+## MCP Server — `nerviq serve`
+
+Nerviq ships with a built-in MCP-compatible HTTP server for integration with AI agents:
+
+```bash
+npx @nerviq/cli serve --port 3000
+```
+
+Endpoints:
+- `GET /api/health` — Server health check
+- `GET /api/catalog` — Full check catalog
+- `POST /api/audit` — Run audit on a directory
+- `GET /api/harmony` — Cross-platform harmony data
+
+## Plugin System — `nerviq.config.js`
+
+Extend Nerviq with custom checks via a config file in your project root:
+
+```js
+// nerviq.config.js
+module.exports = {
+  plugins: [
+    {
+      name: 'my-company-checks',
+      checks: {
+        internalDocs: {
+          id: 'internalDocs',
+          name: 'Internal docs present',
+          check: (dir) => require('fs').existsSync(`${dir}/docs/internal.md`),
+          impact: 'medium',
+          category: 'Quality',
+          fix: 'Add docs/internal.md with team-specific guidelines',
+        },
+      },
+    },
+  ],
+};
+```
+
+See [docs/plugins.md](docs/plugins.md) for full plugin API reference.
+
+## GitHub Action
+
+Add Nerviq to your CI pipeline:
+
+```yaml
+# .github/workflows/nerviq.yml
+name: Nerviq Audit
+on: [push, pull_request]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: nerviq/nerviq@v1
+        with:
+          threshold: 60
+```
+
+The action outputs `score`, `passed`, and `total` for use in downstream steps. Fails the workflow if the score is below the configured threshold.
+
+## Certification
+
+Earn a Nerviq certification badge for your project:
+
+```bash
+npx @nerviq/cli certify            # Run certification and display badge
+```
+
+Levels:
+- **Gold** — Harmony score >= 80, all platforms >= 70
+- **Silver** — Harmony score >= 60, all platforms >= 50
+- **Bronze** — Any platform >= 40
+
 ## All Commands
 
 | Command | What it does |
 |---------|-------------|
-| `nerviq audit` | Score 0-100 against 90 checks |
+| `nerviq audit` | Score 0-100 against 673 checks |
 | `nerviq audit --lite` | Quick top-3 scan |
 | `nerviq setup` | Generate starter-safe CLAUDE.md + hooks + commands |
 | `nerviq augment` | Repo-aware improvement plan (no writes) |
@@ -100,7 +216,20 @@ No install required. Zero dependencies.
 | `nerviq trend` | Export trend report |
 | `nerviq feedback` | Record recommendation outcomes |
 | `nerviq badge` | shields.io badge for README |
+| `nerviq certify` | Certification level + badge |
 | `nerviq scan dir1 dir2` | Compare multiple repos |
+| `nerviq harmony-audit` | Cross-platform DX audit |
+| `nerviq harmony-sync` | Sync config across platforms |
+| `nerviq harmony-drift` | Detect platform drift |
+| `nerviq harmony-advise` | Cross-platform advice |
+| `nerviq harmony-watch` | Live drift monitoring |
+| `nerviq harmony-governance` | Unified platform governance |
+| `nerviq synergy-report` | Multi-agent synergy analysis |
+| `nerviq catalog` | Show check catalog for all 8 platforms |
+| `nerviq doctor` | Self-diagnostics |
+| `nerviq convert` | Convert config between platforms |
+| `nerviq migrate` | Migrate platform config versions |
+| `nerviq serve` | Start local MCP-compatible HTTP API |
 
 ## Options
 
@@ -115,6 +244,17 @@ No install required. Zero dependencies.
 | `--auto` | Apply without prompts |
 | `--verbose` | Show all recommendations |
 | `--format sarif` | SARIF output for code scanning |
+| `--platform NAME` | Target platform (claude, codex, gemini, copilot, cursor, windsurf, aider, opencode) |
+
+## Backed by Research
+
+Nerviq is built on the CLAUDEX knowledge engine — the largest verified catalog of AI coding agent techniques:
+
+- **315 research documents** covering all 8 platforms
+- **100+ experiments** with tested, rated results
+- **673 checks** each with `sourceUrl` and `confidence` level (0.0-1.0)
+- Every check is traceable to primary documentation or verified experiment
+- 90-day freshness cycle: stale findings are re-verified or pruned
 
 ## Privacy
 

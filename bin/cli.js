@@ -22,7 +22,7 @@ const COMMAND_ALIASES = {
   gov: 'governance',
   outcome: 'feedback',
 };
-const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'serve', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -211,109 +211,99 @@ function parseArgs(rawArgs) {
 
 const HELP = `
   nerviq v${version}
-  Score your repo's Claude Code setup. Fix gaps safely. Benchmark the impact.
+  The intelligent nervous system for AI coding agents.
+  Audit, align, and amplify every platform on every project.
 
-  Start here (read-only, nothing changes):
-    npx nerviq                  Audit your project (10 seconds)
-    npx nerviq --lite           Quick scan: top 3 gaps + next command
-    npx nerviq --platform codex Audit your Codex repo setup
-    npx nerviq --platform codex augment      Codex-aware advisory pass, no writes
-    npx nerviq --platform codex suggest-only Structured Codex report, no writes
-    npx nerviq augment          Repo-aware analysis, no writes
-    npx nerviq suggest-only     Structured report, no writes
+  DISCOVER
+    nerviq audit                  Score your project (0-100)
+    nerviq audit --platform X     Audit specific platform (claude|codex|cursor|copilot|gemini|windsurf|aider|opencode)
+    nerviq audit --lite           Quick scan: top 3 gaps + next command
+    nerviq audit --json           Machine-readable JSON output (for CI)
+    nerviq scan dir1 dir2         Compare multiple repos side-by-side
+    nerviq catalog                Full check catalog (all 8 platforms)
+    nerviq catalog --json         Export full check catalog as JSON
 
-  Plan and apply (when you're ready to change things):
-    npx nerviq plan             Export proposal bundles with previews
-    npx nerviq apply            Apply proposals selectively with rollback
-    npx nerviq setup            Generate starter-safe baseline
-    npx nerviq setup --auto     Apply all generated files without prompts
+  SETUP
+    nerviq setup                  Generate starter-safe baseline config files
+    nerviq setup --auto           Apply all generated files without prompts
+    nerviq interactive            Step-by-step guided wizard
+    nerviq doctor                 Self-diagnostics: Node, deps, freshness, platform detection
 
-  Track progress over time:
-    npx nerviq history          Show score history from saved snapshots
-    npx nerviq compare          Compare latest vs previous snapshot
-    npx nerviq trend --out r.md Export trend report as markdown
+  IMPROVE
+    nerviq augment                Improvement plan (no writes)
+    nerviq suggest-only           Structured report for sharing (no writes)
+    nerviq plan                   Export proposal bundles with diffs
+    nerviq plan --out plan.json   Save plan to file
+    nerviq apply                  Apply proposals selectively with rollback
+    nerviq apply --dry-run        Preview changes without writing
 
-  Multi-repo:
-    npx nerviq scan dir1 dir2   Compare multiple repos side-by-side
+  GOVERN
+    nerviq governance             Permission profiles + hooks + policy packs
+    nerviq governance --json      Machine-readable governance summary
+    nerviq benchmark              Before/after score in isolated temp copy
+    nerviq certify                Generate certification badge for your project
 
-  Advanced:
-    npx nerviq governance       Permission profiles, hooks, policy packs
-    npx nerviq benchmark        Before/after in isolated temp copy
-    npx nerviq deep-review      AI-powered config review (opt-in, uses API)
-    npx nerviq interactive      Step-by-step guided wizard
-    npx nerviq watch            Live monitoring on config changes with cross-platform watch fallback
-    npx nerviq serve --port 3000 Start the local Nerviq HTTP API
-    npx nerviq badge            Generate shields.io badge markdown
-    npx nerviq feedback         Record recommendation outcomes or show local outcome summary
+  CROSS-PLATFORM
+    nerviq harmony-audit          Drift detection across all active platforms
+    nerviq synergy-report         Multi-agent amplification opportunities
+    nerviq convert --from X --to Y   Convert configs between platforms
+    nerviq migrate --platform X   Platform version migration helper
+    nerviq migrate --platform cursor --from v2 --to v3
 
-  Catalog:
-    npx nerviq catalog          Show check catalog summary for all 8 platforms
-    npx nerviq catalog --json   Full catalog as JSON
-    npx nerviq catalog --out catalog.json  Write catalog to file
+  MONITOR
+    nerviq watch                  Live config monitoring (re-audits on file change)
+    nerviq history                Score history from saved snapshots
+    nerviq compare                Latest vs previous snapshot diff
+    nerviq trend                  Score trend over time
+    nerviq trend --out report.md  Export trend report as markdown
+    nerviq feedback               Record recommendation outcomes
 
-  Utilities:
-    npx nerviq doctor           Self-diagnostics: Node version, deps, freshness gates, platform detection
-    npx nerviq convert --from claude --to codex   Convert config between platforms
-    npx nerviq migrate --platform cursor --from v2 --to v3   Migrate platform config to newer version
+  ADVANCED
+    nerviq deep-review            AI-powered config review (opt-in, uses API key)
+    nerviq serve --port 3000      Start local Nerviq REST API server
+    nerviq badge                  Generate shields.io badge markdown
 
-  Options:
-    --threshold N   Exit with code 1 if score is below N (useful for CI)
-    --require A,B   Exit with code 1 if named checks fail (e.g. --require secretsProtection,permissionDeny)
-    --out FILE      Write JSON or markdown output to a file
-    --plan FILE     Load a previously exported plan file
-    --only A,B      Limit plan/apply to selected proposal ids or technique keys
-    --profile NAME  Choose permission profile (read-only, suggest-only, safe-write, power-user, internal-research)
-    --mcp-pack A,B  Merge named MCP packs into generated settings (e.g. context7-docs,next-devtools)
-    --key NAME      Recommendation key for feedback logging (e.g. permissionDeny)
-    --status VALUE  Feedback status: accepted, rejected, deferred
-    --effect VALUE  Feedback effect: positive, neutral, negative
-    --notes TEXT    Short notes to store with a feedback event
-    --source NAME   Source label for feedback event (default: manual-cli)
-    --score-delta N Optional observed score delta tied to the outcome
-    --platform NAME Choose platform surface (claude default, codex advisory/build preview)
-    --format NAME   Output format for audit results (json, sarif)
-    --port N        Port for \`serve\` (default: 3000)
-    --feedback      After audit output, prompt "Was this helpful? (y/n)" for each displayed top action and save answers locally
-    --snapshot      Save a normalized snapshot artifact under .claude/nerviq/snapshots/
-    --lite          Show a short top-3 quick scan with one clear next command
-    --dry-run       Preview apply without writing files
-    --verbose       Show all recommendations (not just critical/high)
-    --json          Output as JSON (for CI pipelines)
-    --auto          Apply all generated setup files without prompting
-    --insights      Enable anonymous usage insights (off by default)
-    --help          Show this help
-    --version       Show version
+  OPTIONS
+    --platform NAME   Platform: claude (default), codex, cursor, copilot, gemini, windsurf, aider, opencode
+    --threshold N     Exit code 1 if score < N  (CI gate)
+    --require A,B     Exit code 1 if named checks fail
+    --out FILE        Write output to file (JSON or markdown)
+    --plan FILE       Load previously exported plan file
+    --only A,B        Limit plan/apply to selected proposal IDs
+    --profile NAME    Permission profile: read-only | suggest-only | safe-write | power-user
+    --mcp-pack A,B    Merge MCP packs into setup (e.g. context7-docs,next-devtools)
+    --format NAME     Output format: json | sarif
+    --port N          Port for \`serve\` (default: 3000)
+    --snapshot        Save snapshot artifact under .claude/nerviq/snapshots/
+    --lite            Short top-3 scan with one clear next step
+    --dry-run         Preview changes without writing files
+    --verbose         Show all checks (not just critical/high)
+    --json            Output as JSON
+    --auto            Apply all generated files without prompting
+    --key NAME        Feedback: recommendation key (e.g. permissionDeny)
+    --status VALUE    Feedback: accepted | rejected | deferred
+    --effect VALUE    Feedback: positive | neutral | negative
+    --score-delta N   Feedback: observed score delta
+    --help            Show this help
+    --version         Show version
 
-  Examples:
+  EXAMPLES
     npx nerviq
     npx nerviq --lite
-    npx nerviq --platform codex
+    npx nerviq --platform cursor
     npx nerviq --platform codex augment
-    npx nerviq --platform codex suggest-only --json
-    npx nerviq --platform codex setup
-    npx nerviq --platform codex plan --out codex-plan.json
-    npx nerviq --platform codex --format sarif
-    npx nerviq --snapshot
-    npx nerviq augment
-    npx nerviq augment --snapshot
-    npx nerviq suggest-only --json
-    npx nerviq governance --snapshot
-    npx nerviq plan --out claudex-plan.json
-    npx nerviq plan --profile safe-write
+    npx nerviq scan ./app ./api ./infra
+    npx nerviq harmony-audit
+    npx nerviq convert --from claude --to codex
+    npx nerviq migrate --platform cursor --from v2 --to v3
     npx nerviq setup --mcp-pack context7-docs
-    npx nerviq apply --plan claudex-plan.json --only hooks,commands
-    npx nerviq apply --mcp-pack context7-docs,next-devtools --only hooks
-    npx nerviq apply --profile power-user --only claude-md,hooks
-    npx nerviq governance --json
-    npx nerviq benchmark --out benchmark.md
-    npx nerviq feedback
-    npx nerviq feedback --key permissionDeny --status accepted --effect positive --score-delta 12
-    npx nerviq serve --port 3000
-    npx nerviq --json --threshold 60
-    npx nerviq setup --auto
-    npx nerviq interactive
+    npx nerviq apply --plan plan.json --only hooks,commands
+    npx nerviq serve --port 4000
+    npx nerviq --json --threshold 70
+    npx nerviq catalog --json --out catalog.json
+    npx nerviq feedback --key permissionDeny --status accepted --effect positive
 
-  Exit codes:
+  EXIT CODES
     0  Success
     1  Error, unknown command, or score below --threshold
 `;
@@ -413,7 +403,7 @@ async function main() {
     const FULL_COMMAND_SET = new Set([
       'audit', 'scan', 'badge', 'augment', 'suggest-only', 'setup', 'plan', 'apply',
       'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'insights',
-      'history', 'compare', 'trend', 'feedback', 'catalog', 'serve', 'help', 'version',
+      'history', 'compare', 'trend', 'feedback', 'catalog', 'certify', 'serve', 'help', 'version',
       // Harmony + Synergy (cross-platform)
       'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise',
       'harmony-watch', 'harmony-governance', 'synergy-report',
@@ -766,6 +756,34 @@ async function main() {
           console.log('  Use --json for full output or --out catalog.json to write file.');
           console.log('');
         }
+      }
+      process.exit(0);
+    } else if (normalizedCommand === 'certify') {
+      const { certifyProject, generateCertBadge } = require('../src/certification');
+      const certResult = await certifyProject(options.dir);
+      if (options.json) {
+        console.log(JSON.stringify(certResult, null, 2));
+      } else {
+        console.log('');
+        console.log('\x1b[1m  nerviq certification\x1b[0m');
+        console.log('\x1b[2m  ═══════════════════════════════════════\x1b[0m');
+        console.log('');
+        console.log(`  Level: \x1b[1m${certResult.level}\x1b[0m`);
+        console.log(`  Harmony Score: ${certResult.harmonyScore}/100`);
+        console.log('');
+        if (Object.keys(certResult.platformScores).length > 0) {
+          console.log('  Platform Scores:');
+          for (const [plat, score] of Object.entries(certResult.platformScores)) {
+            const scoreColor = score >= 70 ? '\x1b[32m' : score >= 40 ? '\x1b[33m' : '\x1b[31m';
+            console.log(`    ${plat.padEnd(12)} ${scoreColor}${score}/100\x1b[0m`);
+          }
+          console.log('');
+        }
+        console.log('  Badge:');
+        console.log(`  ${certResult.badge}`);
+        console.log('');
+        console.log('  Add the badge to your README.md');
+        console.log('');
       }
       process.exit(0);
     } else if (normalizedCommand === 'serve') {

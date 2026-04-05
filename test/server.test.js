@@ -4,6 +4,7 @@ const os = require('os');
 const path = require('path');
 
 const { createServer } = require('../src/server');
+const { version } = require('../package.json');
 
 function makeTempDir(name) {
   return fs.mkdtempSync(path.join(os.tmpdir(), `nerviq-server-${name}-`));
@@ -52,7 +53,7 @@ describe('HTTP server', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.body.status).toBe('ok');
-    expect(response.body.version).toBe('0.9.5');
+    expect(response.body.version).toBe(version);
     expect(response.body.checks).toBe(673);
   });
 

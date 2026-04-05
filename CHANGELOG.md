@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.0 — 2026-04-05
+### 🎉 First Stable Release
+- 8 platforms: Claude Code, Codex, Gemini CLI, GitHub Copilot, Cursor, Windsurf, Aider, OpenCode
+- 673 checks with sourceUrl and confidence on every check
+- Harmony: cross-platform drift detection and alignment
+- Synergy: multi-agent amplification and task routing
+- Plugin system: custom checks via nerviq.config.js
+- SDK: @nerviq/sdk with TypeScript types
+- REST API: nerviq serve --port 3000
+- MCP Server: nerviq as MCP tool provider
+- VS Code Extension
+- GitHub Action with SARIF support
+- Performance: 226ms total audit across 8 platforms
+- CLI commands: audit, setup, plan, apply, governance, benchmark, harmony-audit, synergy-report, deep-review, interactive, watch, history, compare, trend, feedback, catalog, certify, doctor, convert, migrate, serve
+- 213 tests across 21 test suites
+- AGPL-3.0 license
+
 ## [1.16.2] - 2026-04-03
 
 ### Changed
