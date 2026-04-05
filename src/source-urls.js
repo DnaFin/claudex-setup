@@ -31,6 +31,8 @@ const SOURCE_URLS = {
       monitoring: 'https://code.claude.com/docs/en/common-workflows',
       'dependency-management': 'https://code.claude.com/docs/en/best-practices',
       'cost-optimization': 'https://code.claude.com/docs/en/memory',
+      python: 'https://code.claude.com/docs/en/common-workflows',
+      go: 'https://code.claude.com/docs/en/common-workflows',
     },
     byKey: {
       customCommands: 'https://code.claude.com/docs/en/commands',
@@ -74,6 +76,8 @@ const SOURCE_URLS = {
       monitoring: 'https://developers.openai.com/codex/feature-maturity',
       'dependency-management': 'https://developers.openai.com/codex/config-reference',
       'cost-optimization': 'https://developers.openai.com/codex/guides/agents-md',
+      python: 'https://developers.openai.com/codex/cli',
+      go: 'https://developers.openai.com/codex/cli',
     },
     byKey: {
       codexAutomationManuallyTested: 'https://developers.openai.com/codex/app/automations',
@@ -116,6 +120,8 @@ const SOURCE_URLS = {
       monitoring: 'https://geminicli.com/docs/get-started/',
       'dependency-management': 'https://geminicli.com/docs/reference/configuration/',
       'cost-optimization': 'https://geminicli.com/docs/get-started/',
+      python: 'https://geminicli.com/docs/get-started/',
+      go: 'https://geminicli.com/docs/get-started/',
     },
   },
   copilot: {
@@ -143,6 +149,8 @@ const SOURCE_URLS = {
       monitoring: 'https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/customize-the-agent-environment',
       'dependency-management': 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
       'cost-optimization': 'https://docs.github.com/en/copilot',
+      python: 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
+      go: 'https://docs.github.com/en/copilot/customizing-copilot/adding-custom-instructions-for-github-copilot',
     },
   },
   cursor: {
@@ -170,6 +178,8 @@ const SOURCE_URLS = {
       monitoring: 'https://docs.cursor.com/guides/working-with-context',
       'dependency-management': 'https://docs.cursor.com/guides/working-with-context',
       'cost-optimization': 'https://docs.cursor.com/account',
+      python: 'https://docs.cursor.com/guides/working-with-context',
+      go: 'https://docs.cursor.com/guides/working-with-context',
     },
   },
   windsurf: {
@@ -197,6 +207,8 @@ const SOURCE_URLS = {
       monitoring: 'https://docs.windsurf.com/windsurf/cascade/cascade',
       'dependency-management': 'https://docs.windsurf.com/windsurf/cascade/cascade',
       'cost-optimization': 'https://docs.windsurf.com/windsurf/cascade/cascade',
+      python: 'https://docs.windsurf.com/windsurf/cascade/cascade',
+      go: 'https://docs.windsurf.com/windsurf/cascade/cascade',
     },
   },
   aider: {
@@ -222,6 +234,8 @@ const SOURCE_URLS = {
       monitoring: 'https://aider.chat/docs/',
       'dependency-management': 'https://aider.chat/docs/',
       'cost-optimization': 'https://aider.chat/docs/',
+      python: 'https://aider.chat/docs/',
+      go: 'https://aider.chat/docs/',
     },
   },
   opencode: {
@@ -251,6 +265,8 @@ const SOURCE_URLS = {
       monitoring: 'https://github.com/sst/opencode',
       'dependency-management': 'https://github.com/sst/opencode',
       'cost-optimization': 'https://github.com/sst/opencode',
+      python: 'https://github.com/sst/opencode',
+      go: 'https://github.com/sst/opencode',
     },
   },
 };

@@ -2216,6 +2216,510 @@ const CURSOR_TECHNIQUES = {
     fix: 'Document AI cost budget in README.md or Cursor rules to maintain spend awareness.',
     template: null, file: () => 'README.md', line: () => null,
   },
+
+  // ============================================================
+  // === PYTHON STACK CHECKS (category: 'python') ===============
+  // ============================================================
+
+  cursorPythonProjectExists: {
+    id: 'CU-PY01',
+    name: 'Python project detected (pyproject.toml / setup.py / requirements.txt)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; return true; },
+    impact: 'high',
+    category: 'python',
+    fix: 'Ensure pyproject.toml, setup.py, or requirements.txt exists for Python projects.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonVersionSpecified: {
+    id: 'CU-PY02',
+    name: 'Python version specified (.python-version or requires-python)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; return ctx.files.some(f => /\.python-version$/.test(f)) || /requires-python/i.test(ctx.fileContent('pyproject.toml') || ''); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Create .python-version or add requires-python to pyproject.toml.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonVenvMentioned: {
+    id: 'CU-PY03',
+    name: 'Virtual environment mentioned in instructions',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /venv|virtualenv|conda|poetry shell|uv venv/i.test(docs); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Document virtual environment setup in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonLockfileExists: {
+    id: 'CU-PY04',
+    name: 'Python lockfile exists (poetry.lock / uv.lock / Pipfile.lock / pinned requirements)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; return ctx.files.some(f => /poetry\.lock$|uv\.lock$|Pipfile\.lock$/.test(f)) || /==/m.test(ctx.fileContent('requirements.txt') || ''); },
+    impact: 'high',
+    category: 'python',
+    fix: 'Add a lockfile (poetry.lock, uv.lock, Pipfile.lock) or pin versions with == in requirements.txt.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonPytestConfigured: {
+    id: 'CU-PY05',
+    name: 'pytest configured (pyproject.toml [tool.pytest] / pytest.ini / conftest.py)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; return /\[tool\.pytest/i.test(ctx.fileContent('pyproject.toml') || '') || ctx.files.some(f => /pytest\.ini$|conftest\.py$/.test(f)); },
+    impact: 'high',
+    category: 'python',
+    fix: 'Configure pytest in pyproject.toml [tool.pytest.ini_options] or create pytest.ini.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonLinterConfigured: {
+    id: 'CU-PY06',
+    name: 'Python linter configured (ruff / flake8 / pylint)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const pp = ctx.fileContent('pyproject.toml') || ''; return /\[tool\.ruff|\[tool\.flake8|\[tool\.pylint/i.test(pp) || ctx.files.some(f => /\.flake8$|pylintrc$|\.pylintrc$|ruff\.toml$/.test(f)); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Configure ruff, flake8, or pylint in pyproject.toml or dedicated config file.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonTypeCheckerConfigured: {
+    id: 'CU-PY07',
+    name: 'Type checker configured (mypy / pyright)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const pp = ctx.fileContent('pyproject.toml') || ''; return /\[tool\.mypy|\[tool\.pyright/i.test(pp) || ctx.files.some(f => /mypy\.ini$|pyrightconfig\.json$/.test(f)); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Configure mypy or pyright in pyproject.toml or dedicated config file.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonFormatterConfigured: {
+    id: 'CU-PY08',
+    name: 'Formatter configured (black / isort / ruff format)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const pp = ctx.fileContent('pyproject.toml') || ''; return /\[tool\.black|\[tool\.isort|\[tool\.ruff\.format/i.test(pp); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Configure black, isort, or ruff format in pyproject.toml.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonDjangoSettingsDocumented: {
+    id: 'CU-PY09',
+    name: 'Django settings documented if Django project',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; if (!ctx.files.some(f => /manage\.py$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /django|settings\.py|DJANGO_SETTINGS_MODULE/i.test(docs); },
+    impact: 'high',
+    category: 'python',
+    fix: 'Document Django settings module and configuration in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonFastapiEntryDocumented: {
+    id: 'CU-PY10',
+    name: 'FastAPI entry point documented if FastAPI project',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const deps = (ctx.fileContent('pyproject.toml') || '') + (ctx.fileContent('requirements.txt') || ''); if (!/fastapi/i.test(deps)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /fastapi|uvicorn|app\.py|main\.py/i.test(docs); },
+    impact: 'high',
+    category: 'python',
+    fix: 'Document FastAPI entry point and how to run the development server.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonMigrationsDocumented: {
+    id: 'CU-PY11',
+    name: 'Database migrations mentioned (alembic / Django migrations)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /alembic|migrate|makemigrations|django.{0,10}migration/i.test(docs) || ctx.files.some(f => /alembic[.]ini$|alembic[/]/.test(f)); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Document database migration workflow (alembic or Django migrations).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonEnvHandlingDocumented: {
+    id: 'CU-PY12',
+    name: '.env handling documented (python-dotenv)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const deps = (ctx.fileContent('pyproject.toml') || '') + (ctx.fileContent('requirements.txt') || ''); if (!/dotenv|python-dotenv|environs/i.test(deps)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /\.env|dotenv|environment.{0,10}variable/i.test(docs); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Document .env file usage and python-dotenv configuration.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonPreCommitConfigured: {
+    id: 'CU-PY13',
+    name: 'pre-commit hooks configured (.pre-commit-config.yaml)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; return ctx.files.some(f => /\.pre-commit-config\.yaml$/.test(f)); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Add .pre-commit-config.yaml with Python-specific hooks (ruff, mypy, etc.).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonDockerBaseImage: {
+    id: 'CU-PY14',
+    name: 'Docker uses Python base image correctly',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const df = ctx.fileContent('Dockerfile') || ''; if (!df) return null; return /FROM.*python:/i.test(df); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Use official Python base image in Dockerfile (e.g., FROM python:3.12-slim).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonTestMatrixConfigured: {
+    id: 'CU-PY15',
+    name: 'Test matrix configured (tox.ini / noxfile.py)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; return ctx.files.some(f => /tox\.ini$|noxfile\.py$/.test(f)); },
+    impact: 'low',
+    category: 'python',
+    fix: 'Configure tox or nox for multi-environment testing.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonValidationUsed: {
+    id: 'CU-PY16',
+    name: 'Pydantic or dataclass validation used',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const deps = (ctx.fileContent('pyproject.toml') || '') + (ctx.fileContent('requirements.txt') || ''); return /pydantic|dataclass/i.test(deps); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Use pydantic or dataclasses for data validation and type safety.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonAsyncDocumented: {
+    id: 'CU-PY17',
+    name: 'Async patterns documented if async project',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const deps = (ctx.fileContent('pyproject.toml') || '') + (ctx.fileContent('requirements.txt') || ''); if (!/asyncio|aiohttp|fastapi|starlette|httpx/i.test(deps)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /async|await|asyncio|event.{0,5}loop/i.test(docs); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Document async patterns and conventions used in the project.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonPinnedVersions: {
+    id: 'CU-PY18',
+    name: 'Requirements have pinned versions (== in requirements.txt)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const req = ctx.fileContent('requirements.txt') || ''; if (!req.trim()) return null; const lines = req.split('\n').filter(l => l.trim() && !l.startsWith('#')); return lines.length > 0 && lines.every(l => /==/.test(l) || /^-/.test(l.trim())); },
+    impact: 'high',
+    category: 'python',
+    fix: 'Pin all dependency versions with == in requirements.txt for reproducible builds.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonPackageStructure: {
+    id: 'CU-PY19',
+    name: 'Python package has proper structure (src/ layout or __init__.py)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; return ctx.files.some(f => /src[/].*[/]__init__\.py$|^[^/]+[/]__init__\.py$/.test(f)); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Use src/ layout or ensure packages have __init__.py files.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonDocsToolConfigured: {
+    id: 'CU-PY20',
+    name: 'Documentation tool configured (sphinx / mkdocs)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; return ctx.files.some(f => /mkdocs\.yml$|conf\.py$|docs[/]/.test(f)) || /sphinx|mkdocs/i.test(ctx.fileContent('pyproject.toml') || ''); },
+    impact: 'low',
+    category: 'python',
+    fix: 'Configure sphinx or mkdocs for project documentation.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonCoverageConfigured: {
+    id: 'CU-PY21',
+    name: 'Coverage configured (coverage / pytest-cov)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const pp = ctx.fileContent('pyproject.toml') || ''; return /\[tool\.coverage|pytest-cov|coverage/i.test(pp) || ctx.files.some(f => /\.coveragerc$/.test(f)); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Configure coverage reporting with pytest-cov or coverage.py.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonNoSecretsInSettings: {
+    id: 'CU-PY22',
+    name: 'No secrets in Django settings.py',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const settings = ctx.fileContent('settings.py') || ctx.files.filter(f => /settings\.py$/.test(f)).map(f => ctx.fileContent(f) || '').join(''); if (!settings) return null; return !/SECRET_KEY\s*=\s*['"][^'"]{10,}/i.test(settings); },
+    impact: 'critical',
+    category: 'python',
+    fix: 'Move SECRET_KEY and other secrets to environment variables, not hardcoded in settings.py.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonWsgiAsgiDocumented: {
+    id: 'CU-PY23',
+    name: 'WSGI/ASGI server documented (gunicorn / uvicorn)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const deps = (ctx.fileContent('pyproject.toml') || '') + (ctx.fileContent('requirements.txt') || ''); if (!/gunicorn|uvicorn|daphne|hypercorn/i.test(deps)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /gunicorn|uvicorn|daphne|hypercorn|wsgi|asgi/i.test(docs); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Document WSGI/ASGI server configuration (gunicorn, uvicorn).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonTaskQueueDocumented: {
+    id: 'CU-PY24',
+    name: 'Task queue documented if used (celery / rq)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const deps = (ctx.fileContent('pyproject.toml') || '') + (ctx.fileContent('requirements.txt') || ''); if (!/celery|rq|dramatiq|huey/i.test(deps)) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /celery|rq|dramatiq|huey|task.{0,10}queue|worker/i.test(docs); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Document task queue configuration and worker setup.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorPythonGitignore: {
+    id: 'CU-PY25',
+    name: 'Python-specific .gitignore (__pycache__, *.pyc, .venv)',
+    check: (ctx) => { const hasPy = ctx.files.some(f => /pyproject\.toml$|requirements\.txt$|setup\.py$|manage\.py$/.test(f)); if (!hasPy) return null; const gi = ctx.fileContent('.gitignore') || ''; return /__pycache__|\*\.pyc|\.venv/i.test(gi); },
+    impact: 'medium',
+    category: 'python',
+    fix: 'Add Python-specific entries to .gitignore (__pycache__, *.pyc, .venv, *.egg-info).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  // ============================================================
+  // === GO STACK CHECKS (category: 'go') =======================
+  // ============================================================
+
+  cursorGoModExists: {
+    id: 'CU-GO01',
+    name: 'go.mod exists',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; return true; },
+    impact: 'high',
+    category: 'go',
+    fix: 'Initialize Go module with go mod init.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoSumCommitted: {
+    id: 'CU-GO02',
+    name: 'go.sum committed',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; return ctx.files.some(f => /go\.sum$/.test(f)); },
+    impact: 'high',
+    category: 'go',
+    fix: 'Commit go.sum to version control for reproducible builds.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGolangciLintConfigured: {
+    id: 'CU-GO03',
+    name: 'golangci-lint configured (.golangci.yml)',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; return ctx.files.some(f => /\.golangci\.ya?ml$|\.golangci\.toml$/.test(f)); },
+    impact: 'medium',
+    category: 'go',
+    fix: 'Add .golangci.yml to configure linting rules.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoTestDocumented: {
+    id: 'CU-GO04',
+    name: 'go test documented in instructions',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /go test/i.test(docs); },
+    impact: 'high',
+    category: 'go',
+    fix: 'Document go test command in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoBuildDocumented: {
+    id: 'CU-GO05',
+    name: 'go build documented in instructions',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /go build|go install/i.test(docs); },
+    impact: 'high',
+    category: 'go',
+    fix: 'Document go build command in project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoStandardLayout: {
+    id: 'CU-GO06',
+    name: 'Standard Go layout (cmd/ / internal/ / pkg/)',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; return ctx.files.some(f => /^cmd[/]|^internal[/]|^pkg[/]/.test(f)); },
+    impact: 'medium',
+    category: 'go',
+    fix: 'Use standard Go project layout with cmd/, internal/, and/or pkg/ directories.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoErrorHandlingDocumented: {
+    id: 'CU-GO07',
+    name: 'Error handling patterns documented',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /error handling|errors?\.(?:New|Wrap|Is|As)|fmt\.Errorf/i.test(docs); },
+    impact: 'medium',
+    category: 'go',
+    fix: 'Document error handling conventions (error wrapping, sentinel errors, etc.).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoContextUsageDocumented: {
+    id: 'CU-GO08',
+    name: 'Context usage documented',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /context\.Context|ctx\.Done|context\.WithCancel|context\.WithTimeout/i.test(docs); },
+    impact: 'medium',
+    category: 'go',
+    fix: 'Document context.Context usage patterns for cancellation and timeouts.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoroutineSafetyDocumented: {
+    id: 'CU-GO09',
+    name: 'Goroutine safety documented',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /goroutine|sync\.Mutex|sync\.WaitGroup|channel|concurren/i.test(docs); },
+    impact: 'medium',
+    category: 'go',
+    fix: 'Document goroutine safety patterns, mutex usage, and channel conventions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoModTidyMentioned: {
+    id: 'CU-GO10',
+    name: 'go mod tidy mentioned in instructions',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /go mod tidy/i.test(docs); },
+    impact: 'low',
+    category: 'go',
+    fix: 'Document go mod tidy in project workflow instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoVetConfigured: {
+    id: 'CU-GO11',
+    name: 'go vet or staticcheck configured',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; const ci = ctx.fileContent('.github/workflows/ci.yml') || ctx.fileContent('.github/workflows/go.yml') || ''; return /go vet|staticcheck/i.test(docs + ci); },
+    impact: 'medium',
+    category: 'go',
+    fix: 'Configure go vet and/or staticcheck in CI or project instructions.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoMakefileExists: {
+    id: 'CU-GO12',
+    name: 'Makefile or Taskfile exists for Go project',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; return ctx.files.some(f => /^Makefile$|^Taskfile\.ya?ml$/.test(f)); },
+    impact: 'medium',
+    category: 'go',
+    fix: 'Add Makefile or Taskfile.yml with common Go targets (build, test, lint).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoDockerMultiStage: {
+    id: 'CU-GO13',
+    name: 'Docker multi-stage build for Go',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const df = ctx.fileContent('Dockerfile') || ''; if (!df) return null; return /FROM.*golang.*AS/i.test(df) && /FROM.*(?:alpine|scratch|distroless|gcr\.io)/i.test(df); },
+    impact: 'medium',
+    category: 'go',
+    fix: 'Use multi-stage Docker build: build in golang image, run in minimal image (alpine/scratch/distroless).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoCgoDocumented: {
+    id: 'CU-GO14',
+    name: 'CGO documented if used',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const goMod = ctx.fileContent('go.mod') || ''; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; if (!/CGO_ENABLED|import "C"/i.test(goMod + docs)) return null; return /CGO|cgo/i.test(docs); },
+    impact: 'low',
+    category: 'go',
+    fix: 'Document CGO usage, dependencies, and build requirements.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoWorkForMonorepo: {
+    id: 'CU-GO15',
+    name: 'go.work for monorepo',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const multiMod = ctx.files.filter(f => /go\.mod$/.test(f)).length > 1; if (!multiMod) return null; return ctx.files.some(f => /go\.work$/.test(f)); },
+    impact: 'medium',
+    category: 'go',
+    fix: 'Use go.work for Go workspace in monorepo with multiple modules.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoBenchmarkTests: {
+    id: 'CU-GO16',
+    name: 'Benchmark tests mentioned',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /go test.*-bench|Benchmark/i.test(docs); },
+    impact: 'low',
+    category: 'go',
+    fix: 'Document benchmark testing with go test -bench.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoRaceDetector: {
+    id: 'CU-GO17',
+    name: 'Race detector (-race) documented',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; const ci = ctx.fileContent('.github/workflows/ci.yml') || ctx.fileContent('.github/workflows/go.yml') || ''; return /-race/i.test(docs + ci); },
+    impact: 'medium',
+    category: 'go',
+    fix: 'Document and enable race detector with go test -race.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoGenerateDocumented: {
+    id: 'CU-GO18',
+    name: 'go generate documented',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /go generate/i.test(docs) || ctx.files.some(f => /generate\.go$/.test(f)); },
+    impact: 'low',
+    category: 'go',
+    fix: 'Document go generate usage and generated files.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoInterfaceDesignDocumented: {
+    id: 'CU-GO19',
+    name: 'Interface-based design documented',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const docs = (ctx.claudeMdContent ? ctx.claudeMdContent() : ctx.fileContent('CLAUDE.md')) || ctx.fileContent('README.md') || ''; return /interface|mock|stub|dependency injection/i.test(docs); },
+    impact: 'low',
+    category: 'go',
+    fix: 'Document interface-based design patterns for testability and dependency injection.',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
+  cursorGoGitignore: {
+    id: 'CU-GO20',
+    name: 'Go-specific .gitignore entries',
+    check: (ctx) => { if (!ctx.files.some(f => /go\.mod$/.test(f))) return null; const gi = ctx.fileContent('.gitignore') || ''; return /vendor[/]|\*\.exe|\*\.test|\*\.out|[/]bin[/]/i.test(gi); },
+    impact: 'low',
+    category: 'go',
+    fix: 'Add Go-specific entries to .gitignore (vendor/, *.exe, *.test, /bin/).',
+    // sourceUrl assigned by attachSourceUrls via category mapping
+    confidence: 0.7,
+  },
+
 };
 
 attachSourceUrls('cursor', CURSOR_TECHNIQUES);

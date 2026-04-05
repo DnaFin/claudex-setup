@@ -25,8 +25,8 @@ function mkFixture(name) {
 }
 
 describe('Copilot audit + setup', () => {
-  test('copilot v1.2 exposes the full 134-check catalog', () => {
-    expect(Object.keys(COPILOT_TECHNIQUES)).toHaveLength(134);
+  test('copilot v1.2 exposes the full 179-check catalog after adding 25 Python + 20 Go stack checks', () => {
+    expect(Object.keys(COPILOT_TECHNIQUES)).toHaveLength(179);
   });
 
   test('copilot audit identifies missing instructions and settings on empty repo', async () => {
