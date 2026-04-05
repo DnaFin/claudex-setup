@@ -24,7 +24,7 @@ const COMMAND_ALIASES = {
   gov: 'governance',
   outcome: 'feedback',
 };
-const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise', 'harmony-watch', 'harmony-governance', 'synergy-report', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise', 'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -315,6 +315,7 @@ const HELP = `
     nerviq harmony-sync           Preview cross-platform sync (dry run)
     nerviq harmony-sync --fix     Apply cross-platform sync (write files)
     nerviq harmony-sync --json    JSON output for CI/automation
+    nerviq harmony-add <platform>  Add a new platform to the project
     nerviq synergy-report         Multi-agent amplification opportunities
     nerviq convert --from X --to Y   Convert configs between platforms
     nerviq migrate --platform X   Platform version migration helper
@@ -506,7 +507,7 @@ async function main() {
       'history', 'compare', 'trend', 'feedback', 'catalog', 'certify', 'serve', 'help', 'version',
       // Harmony + Synergy (cross-platform)
       'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise',
-      'harmony-watch', 'harmony-governance', 'synergy-report',
+      'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report',
     ]);
 
     if (options.platform === 'codex') {
@@ -962,6 +963,29 @@ async function main() {
     } else if (normalizedCommand === 'harmony-governance') {
       const { runHarmonyGovernance } = require('../src/harmony/cli');
       await runHarmonyGovernance(options);
+      process.exit(0);
+    } else if (normalizedCommand === 'harmony-add') {
+      const { addPlatform } = require('../src/harmony/add');
+      const platformArg = parsed.extraArgs[0];
+      if (!platformArg) {
+        console.log('\n  Usage: nerviq harmony-add <platform>');
+        console.log('  Available: claude, codex, gemini, copilot, cursor, windsurf, aider, opencode\n');
+        process.exit(1);
+      }
+      const dir = options.dir || process.cwd();
+      const result = addPlatform(dir, platformArg.toLowerCase());
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else if (result.success) {
+        console.log(`\n  \x1b[32m\u2713\x1b[0m Added ${result.platform} to project`);
+        result.created.forEach(f => console.log(`     Created: ${f}`));
+        console.log(`     Platforms: ${result.beforeCount} \u2192 ${result.afterCount}`);
+        if (result.syncApplied > 0) console.log(`     Harmony sync: ${result.syncApplied} file(s) updated`);
+        console.log('');
+      } else {
+        console.log(`\n  \x1b[31m\u2717\x1b[0m ${result.error}\n`);
+        process.exit(1);
+      }
       process.exit(0);
     } else if (normalizedCommand === 'synergy-report') {
       // Placeholder — synergy report is referenced but may not be implemented yet
