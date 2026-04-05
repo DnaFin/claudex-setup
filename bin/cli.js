@@ -24,7 +24,7 @@ const COMMAND_ALIASES = {
   gov: 'governance',
   outcome: 'feedback',
 };
-const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise', 'harmony-watch', 'harmony-governance', 'synergy-report', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -312,6 +312,9 @@ const HELP = `
 
   CROSS-PLATFORM
     nerviq harmony-audit          Drift detection across all active platforms
+    nerviq harmony-sync           Preview cross-platform sync (dry run)
+    nerviq harmony-sync --fix     Apply cross-platform sync (write files)
+    nerviq harmony-sync --json    JSON output for CI/automation
     nerviq synergy-report         Multi-agent amplification opportunities
     nerviq convert --from X --to Y   Convert configs between platforms
     nerviq migrate --platform X   Platform version migration helper
@@ -408,6 +411,7 @@ async function main() {
     lite: flags.includes('--lite'),
     snapshot: flags.includes('--snapshot'),
     feedback: flags.includes('--feedback'),
+    fix: flags.includes('--fix'),
     dryRun: flags.includes('--dry-run'),
     threshold: parsed.threshold !== null ? Number(parsed.threshold) : null,
     out: parsed.out,
@@ -862,6 +866,106 @@ async function main() {
       process.on('SIGINT', closeServer);
       process.on('SIGTERM', closeServer);
       return;
+    } else if (normalizedCommand === 'harmony-audit') {
+      const { runHarmonyAudit } = require('../src/harmony/cli');
+      await runHarmonyAudit(options);
+      process.exit(0);
+    } else if (normalizedCommand === 'harmony-sync') {
+      const { previewHarmonySync, applyHarmonySync } = require('../src/harmony/sync');
+      const dir = options.dir || process.cwd();
+
+      if (options.fix) {
+        // Apply mode: write files
+        const result = applyHarmonySync(dir);
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          console.log('');
+          console.log('\x1b[1m  Harmony Sync — Apply\x1b[0m');
+          console.log('\x1b[2m  ═══════════════════════════════════════\x1b[0m');
+          console.log('');
+          if (result.applied.length === 0 && result.skipped.length === 0) {
+            console.log('  \x1b[32mAll platforms are already in sync. Nothing to apply.\x1b[0m');
+          } else {
+            for (const item of result.applied) {
+              console.log(`  \x1b[32m✓\x1b[0m ${item.action.padEnd(8)} ${item.platform.padEnd(12)} ${item.path}`);
+            }
+            for (const item of result.skipped) {
+              const reason = typeof item === 'string' ? item : (item.reason || item.path);
+              console.log(`  \x1b[33m⚠\x1b[0m skipped  ${reason}`);
+            }
+            console.log('');
+            if (result.summary) {
+              console.log(`  Files: ${result.summary.totalFiles} (${result.summary.creates} created, ${result.summary.patches} patched)`);
+              console.log(`  Platforms: ${result.summary.platforms.join(', ')}`);
+            }
+          }
+          if (result.warnings && result.warnings.length > 0) {
+            console.log('');
+            for (const w of result.warnings) {
+              console.log(`  \x1b[33m⚠\x1b[0m ${w}`);
+            }
+          }
+          console.log('');
+        }
+      } else {
+        // Preview mode (dry run)
+        const plan = previewHarmonySync(dir);
+        if (options.json) {
+          console.log(JSON.stringify(plan, null, 2));
+        } else {
+          console.log('');
+          console.log('\x1b[1m  Harmony Sync — Preview\x1b[0m');
+          console.log('\x1b[2m  ═══════════════════════════════════════\x1b[0m');
+          console.log('');
+          if (plan.files.length === 0) {
+            console.log('  \x1b[32mAll platforms are already in sync. No changes needed.\x1b[0m');
+          } else {
+            for (const file of plan.files) {
+              const actionColor = file.action === 'create' ? '\x1b[32m' : '\x1b[36m';
+              console.log(`  ${actionColor}${file.action.padEnd(8)}\x1b[0m ${file.platform.padEnd(12)} ${file.path}`);
+              if (file.preview) {
+                console.log(`           \x1b[2m${file.preview}\x1b[0m`);
+              }
+            }
+            console.log('');
+            console.log(`  Total: ${plan.summary.totalFiles} file(s) — ${plan.summary.creates} create, ${plan.summary.patches} patch`);
+            console.log(`  Platforms: ${plan.summary.platforms.join(', ')}`);
+            if (plan.summary.recommendedTrust) {
+              console.log(`  Recommended trust: ${plan.summary.recommendedTrust}`);
+            }
+            console.log('');
+            console.log('  Run \x1b[1mnerviq harmony-sync --fix\x1b[0m to apply these changes.');
+          }
+          if (plan.warnings && plan.warnings.length > 0) {
+            console.log('');
+            for (const w of plan.warnings) {
+              console.log(`  \x1b[33m⚠\x1b[0m ${w}`);
+            }
+          }
+          console.log('');
+        }
+      }
+      process.exit(0);
+    } else if (normalizedCommand === 'harmony-drift') {
+      const { runHarmonyDrift } = require('../src/harmony/cli');
+      await runHarmonyDrift(options);
+      process.exit(0);
+    } else if (normalizedCommand === 'harmony-advise') {
+      const { runHarmonyAdvise } = require('../src/harmony/cli');
+      await runHarmonyAdvise(options);
+      process.exit(0);
+    } else if (normalizedCommand === 'harmony-watch') {
+      const { runHarmonyWatch } = require('../src/harmony/cli');
+      await runHarmonyWatch(options);
+    } else if (normalizedCommand === 'harmony-governance') {
+      const { runHarmonyGovernance } = require('../src/harmony/cli');
+      await runHarmonyGovernance(options);
+      process.exit(0);
+    } else if (normalizedCommand === 'synergy-report') {
+      // Placeholder — synergy report is referenced but may not be implemented yet
+      console.log('\n  Synergy report: coming soon.\n');
+      process.exit(0);
     } else if (normalizedCommand === 'doctor') {
       const { runDoctor } = require('../src/doctor');
       const output = await runDoctor({ dir: options.dir, json: options.json, verbose: options.verbose });
