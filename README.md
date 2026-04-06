@@ -224,10 +224,12 @@ Levels:
 
 | Command | What it does |
 |---------|-------------|
-| `nerviq audit` | Score 0-100 against 2,431 checks |
-| `nerviq audit --lite` | Quick top-3 scan |
+| `nerviq audit` | Score 0-100 — quick scan with top 3 actions (default) |
+| `nerviq audit --full` | Full audit with all checks, weakest areas, confidence labels |
 | `nerviq fix <key>` | Auto-fix a specific check (shows score impact) |
 | `nerviq fix --all-critical` | Fix all critical issues at once |
+| `nerviq rollback` | Undo the most recent apply (delete created files) |
+| `nerviq rollback --list` | Show available rollback points |
 | `nerviq setup` | Generate starter-safe CLAUDE.md + hooks + commands |
 | `nerviq augment` | Repo-aware improvement plan (no writes) |
 | `nerviq suggest-only` | Structured report for sharing |
@@ -235,6 +237,7 @@ Levels:
 | `nerviq apply` | Apply proposals with rollback |
 | `nerviq governance` | Permission profiles, hooks, policy packs |
 | `nerviq benchmark` | Before/after in isolated temp copy |
+| `nerviq check-health` | Detect regressions between audit snapshots |
 | `nerviq deep-review` | AI-powered config review (opt-in) |
 | `nerviq interactive` | Step-by-step guided wizard |
 | `nerviq watch` | Live monitoring with score delta |
@@ -242,9 +245,13 @@ Levels:
 | `nerviq compare` | Compare latest vs previous |
 | `nerviq trend` | Export trend report |
 | `nerviq feedback` | Record recommendation outcomes |
+| `nerviq anti-patterns` | Detect anti-patterns in current project |
+| `nerviq freshness` | Show verification freshness for all checks |
+| `nerviq rules-export` | Export recommendation rules (human summary or --json) |
 | `nerviq badge` | shields.io badge for README |
 | `nerviq certify` | Certification level + badge |
 | `nerviq scan dir1 dir2` | Compare multiple repos |
+| `nerviq org scan dir1 dir2` | Aggregate multiple repos into one score table |
 | `nerviq harmony-audit` | Cross-platform DX audit |
 | `nerviq harmony-sync` | Sync config across platforms |
 | `nerviq harmony-drift` | Detect platform drift |
@@ -262,20 +269,24 @@ Levels:
 
 | Flag | Effect |
 |------|--------|
+| `--full` | Full audit output (all checks, weakest areas, confidence labels) |
+| `--verbose` | Full audit + medium-priority recommendations |
 | `--threshold N` | Exit 1 if score < N (for CI) |
 | `--json` | Machine-readable JSON output |
 | `--out FILE` | Write output to file |
 | `--snapshot` | Save audit snapshot for trending |
-| `--lite` | Compact top-3 quick scan |
-| `--dry-run` | Preview apply without writing |
+| `--dry-run` | Preview changes without writing files |
+| `--config-only` | Only write config files, never source code |
 | `--auto` | Apply without prompts |
-| `--verbose` | Show all recommendations |
+| `--only A,B` | Limit apply to selected proposal IDs |
 | `--format sarif` | SARIF output for code scanning |
 | `--platform NAME` | Target platform (claude, codex, gemini, copilot, cursor, windsurf, aider, opencode) |
+| `--workspace GLOB` | Audit workspaces separately (e.g. packages/*) |
+| `--external PATH` | Benchmark an external repo |
 
 ## Backed by Research
 
-Nerviq is built on the CLAUDEX knowledge engine — the largest verified catalog of AI coding agent techniques:
+Nerviq is built on the NERVIQ knowledge engine — the largest verified catalog of AI coding agent techniques:
 
 - **448+ research documents** covering all 8 platforms
 - **332+ experiments** with tested, rated results
