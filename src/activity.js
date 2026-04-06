@@ -283,11 +283,14 @@ function formatHistory(dir) {
 
   const lines = ['Score history (most recent first):', ''];
   for (const entry of history) {
-    const date = entry.createdAt?.split('T')[0] || 'unknown';
+    const dateStr = entry.createdAt || 'unknown';
+    const date = dateStr.split('T')[0] || 'unknown';
+    const time = dateStr.includes('T') ? dateStr.split('T')[1]?.substring(0, 5) || '' : '';
+    const dateDisplay = time ? `${date} ${time}` : date;
     const score = entry.summary?.score ?? '?';
     const passed = entry.summary?.passed ?? '?';
     const total = entry.summary?.checkCount ?? '?';
-    lines.push(`  ${date}  ${score}/100  (${passed}/${total} passing)`);
+    lines.push(`  ${dateDisplay}  ${score}/100  (${passed}/${total} passing)`);
   }
 
   const comparison = compareLatest(dir);

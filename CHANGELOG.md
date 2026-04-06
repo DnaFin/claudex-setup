@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.4] - 2026-04-07
+
+### Added — P2 UX improvements from UAT
+- **UAT-12**: Setup now lists every file created (`+ CLAUDE.md`, `+ .claude/settings.json`, ...)
+- **UAT-13**: Lite mode shows pass/fail count: `Score: 78/100  (62/86 checks passing)`
+- **UAT-15**: Audit header shows detected config files: `Found: CLAUDE.md, AGENTS.md, .cursorrules`
+- **UAT-17**: Suggested next command includes `--platform` for non-Claude platforms
+- **UAT-22**: History shows HH:MM timestamps when multiple snapshots share same date
+
 ## [1.6.3] - 2026-04-07
 
 ### Fixed — P1 from UAT

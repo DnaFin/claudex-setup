@@ -1242,7 +1242,10 @@ async function setup(options) {
     log(`  \x1b[2m  ${skipped} files already exist and were preserved.\x1b[0m`);
     log('  \x1b[2m  We never overwrite your existing config — your setup is kept.\x1b[0m');
   } else if (created > 0) {
-    log(`  \x1b[1m${created} files created.\x1b[0m`);
+    log(`  \x1b[1m${created} files created:\x1b[0m`);
+    for (const f of writtenFiles) {
+      log(`  \x1b[32m  + ${f}\x1b[0m`);
+    }
     if (skipped > 0) {
       log(`  \x1b[2m${skipped} existing files preserved (not overwritten).\x1b[0m`);
     }

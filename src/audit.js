@@ -769,9 +769,10 @@ function inferSuggestedNextCommand(result) {
   }
 
   const actionKeys = new Set((result.topNextActions || []).map(item => item.key));
+  const platFlag = result.platform && result.platform !== 'claude' ? ` --platform ${result.platform}` : '';
 
   if (result.failed === 0) {
-    return 'npx nerviq augment';
+    return `npx nerviq${platFlag} augment`;
   }
 
   if (
@@ -781,14 +782,14 @@ function inferSuggestedNextCommand(result) {
     actionKeys.has('settingsPermissions') ||
     actionKeys.has('permissionDeny')
   ) {
-    return 'npx nerviq setup';
+    return `npx nerviq${platFlag} setup`;
   }
 
   if (result.score < 80) {
-    return 'npx nerviq suggest-only';
+    return `npx nerviq${platFlag} suggest-only`;
   }
 
-  return 'npx nerviq augment';
+  return `npx nerviq${platFlag} augment`;
 }
 
 function getPlatformScopeNote(spec, ctx) {
@@ -876,7 +877,11 @@ function printLiteAudit(result, dir) {
   console.log(colorize('  ═══════════════════════════════════════', 'dim'));
   console.log(colorize(`  Scanning: ${dir}`, 'dim'));
   console.log('');
-  console.log(`  Score: ${colorize(`${result.score}/100`, 'bold')}`);
+  if (result.detectedConfigFiles && result.detectedConfigFiles.length > 0) {
+    console.log(colorize(`  Found: ${result.detectedConfigFiles.join(', ')}`, 'dim'));
+  }
+  console.log('');
+  console.log(`  Score: ${colorize(`${result.score}/100`, 'bold')}  (${result.passed}/${result.passed + result.failed} checks passing)`);
   if (result.platformScopeNote) {
     console.log(colorize(`  Scope: ${result.platformScopeNote.message}`, 'dim'));
   }
@@ -1128,6 +1133,22 @@ async function audit(options) {
     platformCaveats,
     recommendedDomainPacks,
   };
+  // Detect which AI config files are present
+  const configFiles = [];
+  const configChecks = [
+    ['CLAUDE.md', 'CLAUDE.md'], ['.claude/settings.json', '.claude/settings.json'],
+    ['AGENTS.md', 'AGENTS.md'], ['.cursorrules', '.cursorrules'],
+    ['.cursor/rules', '.cursor/rules/'], ['GEMINI.md', 'GEMINI.md'],
+    ['.windsurfrules', '.windsurfrules'], ['.aider.conf.yml', '.aider.conf.yml'],
+    ['opencode.json', 'opencode.json'], ['.mcp.json', '.mcp.json'],
+  ];
+  for (const [file, label] of configChecks) {
+    try {
+      if (require('fs').existsSync(require('path').join(options.dir, file))) configFiles.push(label);
+    } catch {}
+  }
+  result.detectedConfigFiles = configFiles;
+
   result.suggestedNextCommand = inferSuggestedNextCommand(result);
   result.liteSummary = {
     topNextActions: topNextActions.slice(0, 3),
