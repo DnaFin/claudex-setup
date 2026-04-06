@@ -3,7 +3,7 @@
  */
 
 const path = require('path');
-const { TECHNIQUES: CLAUDE_TECHNIQUES, STACKS } = require('./techniques');
+const { TECHNIQUES: CLAUDE_TECHNIQUES, STACKS, STACK_CATEGORY_DETECTORS } = require('./techniques');
 const { ProjectContext } = require('./context');
 const { CODEX_TECHNIQUES } = require('./codex/techniques');
 const { detectCodexDomainPacks } = require('./codex/domain-packs');
@@ -907,9 +907,9 @@ function printLiteAudit(result, dir) {
     return;
   }
 
-  // Urgency summary line
-  const criticalCount = (result.results || []).filter(r => !r.passed && r.impact === 'critical').length;
-  const highCount = (result.results || []).filter(r => !r.passed && r.impact === 'high').length;
+  // Urgency summary line (only count actual failures, not skipped/null)
+  const criticalCount = (result.results || []).filter(r => r.passed === false && r.impact === 'critical').length;
+  const highCount = (result.results || []).filter(r => r.passed === false && r.impact === 'high').length;
   const mediumCount = result.failed - criticalCount - highCount;
   const urgencyParts = [];
   if (criticalCount > 0) urgencyParts.push(colorize(`🔴 ${criticalCount} critical`, 'red'));
@@ -964,8 +964,40 @@ async function audit(options) {
     ? mergePluginChecks(spec.techniques, plugins)
     : spec.techniques;
 
+  // Pre-compute which stack categories are active for this project
+  const activeStackCategories = new Set();
+  for (const [category, detector] of Object.entries(STACK_CATEGORY_DETECTORS)) {
+    if (detector(ctx)) activeStackCategories.add(category);
+  }
+
+  // Generic quality categories that are NOT about AI agent configuration.
+  // These are only included with --verbose or --full --verbose (deep quality mode).
+  const GENERIC_QUALITY_CATEGORIES = new Set([
+    'observability', 'accessibility', 'i18n', 'privacy', 'error-tracking',
+    'supply-chain', 'api-versioning', 'caching', 'rate-limiting', 'feature-flags',
+    'docs-quality', 'monorepo', 'performance-budget', 'realtime', 'graphql',
+    'testing-strategy', 'code-quality', 'api-design', 'database', 'authentication',
+    'monitoring', 'dependency-management', 'cost-optimization',
+  ]);
+  const includeGenericQuality = options.verbose;
+
   // Run all technique checks
   for (const [key, technique] of Object.entries(techniques)) {
+    // Skip entire stack category if the stack is not detected at a core location
+    // Skip generic quality categories unless --verbose is set
+    const cat = technique.category;
+    if ((!includeGenericQuality && GENERIC_QUALITY_CATEGORIES.has(cat)) ||
+        (STACK_CATEGORY_DETECTORS[cat] && !activeStackCategories.has(cat))) {
+      results.push({
+        key,
+        ...technique,
+        file: null,
+        line: null,
+        passed: null, // not applicable
+      });
+      continue;
+    }
+
     const passed = technique.check(ctx);
     const file = typeof technique.file === 'function' ? (technique.file(ctx) ?? null) : (technique.file ?? null);
     const line = typeof technique.line === 'function' ? (technique.line(ctx) ?? null) : (technique.line ?? null);

@@ -95,6 +95,26 @@ function hasProjectFile(ctx, pattern) {
   return findProjectFiles(ctx, pattern).length > 0;
 }
 
+/**
+ * Check if a stack-indicator file exists at a "core" location (root, src/, lib/, app/, packages/)
+ * rather than inside examples/, docs/, test/, vendor/, or deeply nested paths.
+ * This prevents false stack detection from example/demo code.
+ */
+const EXCLUDED_STACK_DIRS = /^(examples?|docs?|test|tests|fixtures?|samples?|demo|vendor|third[_-]?party|\.github)\//i;
+
+function hasCoreProjectFile(ctx, pattern) {
+  return findProjectFiles(ctx, pattern).some(file => !EXCLUDED_STACK_DIRS.test(file));
+}
+
+function hasCoreRootFile(ctx, pattern) {
+  // Only match files at project root (no / in path) or one level deep (src/X, lib/X, app/X)
+  return findProjectFiles(ctx, pattern).some(file => {
+    if (EXCLUDED_STACK_DIRS.test(file)) return false;
+    const depth = (file.match(/\//g) || []).length;
+    return depth <= 1;
+  });
+}
+
 function readProjectFiles(ctx, pattern, limit = 60) {
   return findProjectFiles(ctx, pattern)
     .slice(0, limit)
@@ -105,40 +125,42 @@ function readProjectFiles(ctx, pattern, limit = 60) {
 
 function isPythonProject(ctx) {
   if (ctx.__nerviqIsPython !== undefined) return ctx.__nerviqIsPython;
+  // Require a Python config file (pyproject.toml, requirements.txt, setup.py) at a core location.
+  // Stray .py files in examples/ or docs/ don't make it a Python project.
   ctx.__nerviqIsPython =
-    hasProjectFile(ctx, /(^|\/)(pyproject\.toml|requirements[^/]*\.txt|setup\.py)$/i) ||
-    hasProjectFile(ctx, /\.py$/i);
+    hasCoreRootFile(ctx, /(^|\/)(pyproject\.toml|setup\.py|Pipfile)$/i) ||
+    hasCoreRootFile(ctx, /(^|\/)requirements\.txt$/i);
   return ctx.__nerviqIsPython;
 }
 
 function isGoProject(ctx) {
   if (ctx.__nerviqIsGo !== undefined) return ctx.__nerviqIsGo;
-  ctx.__nerviqIsGo = hasProjectFile(ctx, /(^|\/)go\.mod$/i);
+  ctx.__nerviqIsGo = hasCoreRootFile(ctx, /(^|\/)go\.mod$/i);
   return ctx.__nerviqIsGo;
 }
 
 function isRustProject(ctx) {
   if (ctx.__nerviqIsRust !== undefined) return ctx.__nerviqIsRust;
-  ctx.__nerviqIsRust = hasProjectFile(ctx, /(^|\/)Cargo\.toml$/i);
+  ctx.__nerviqIsRust = hasCoreRootFile(ctx, /(^|\/)Cargo\.toml$/i);
   return ctx.__nerviqIsRust;
 }
 
 function isJavaProject(ctx) {
   if (ctx.__nerviqIsJava !== undefined) return ctx.__nerviqIsJava;
-  ctx.__nerviqIsJava = hasProjectFile(ctx, /(^|\/)(pom\.xml|build\.gradle|build\.gradle\.kts)$/i);
+  ctx.__nerviqIsJava = hasCoreRootFile(ctx, /(^|\/)(pom\.xml|build\.gradle|build\.gradle\.kts)$/i);
   return ctx.__nerviqIsJava;
 }
 
 function isFlutterProject(ctx) {
   if (ctx.__nerviqIsFlutter !== undefined) return ctx.__nerviqIsFlutter;
-  ctx.__nerviqIsFlutter = hasProjectFile(ctx, /(^|\/)pubspec\.yaml$/i);
+  ctx.__nerviqIsFlutter = hasCoreRootFile(ctx, /(^|\/)pubspec\.yaml$/i);
   return ctx.__nerviqIsFlutter;
 }
 
 function isSwiftProject(ctx) {
   if (ctx.__nerviqIsSwift !== undefined) return ctx.__nerviqIsSwift;
-  ctx.__nerviqIsSwift = hasProjectFile(ctx, /(^|\/)Package\.swift$/i) ||
-    hasProjectFile(ctx, /\.xcodeproj/i);
+  ctx.__nerviqIsSwift = hasCoreRootFile(ctx, /(^|\/)Package\.swift$/i) ||
+    hasCoreProjectFile(ctx, /\.xcodeproj/i);
   return ctx.__nerviqIsSwift;
 }
 
@@ -148,6 +170,41 @@ function isKotlinProject(ctx) {
   ctx.__nerviqIsKotlin = /kotlin/i.test(gradle);
   return ctx.__nerviqIsKotlin;
 }
+
+function isRubyProject(ctx) {
+  if (ctx.__nerviqIsRuby !== undefined) return ctx.__nerviqIsRuby;
+  ctx.__nerviqIsRuby = hasCoreRootFile(ctx, /(^|\/)Gemfile$/i);
+  return ctx.__nerviqIsRuby;
+}
+
+function isPhpProject(ctx) {
+  if (ctx.__nerviqIsPhp !== undefined) return ctx.__nerviqIsPhp;
+  ctx.__nerviqIsPhp = hasCoreRootFile(ctx, /(^|\/)composer\.json$/i);
+  return ctx.__nerviqIsPhp;
+}
+
+function isDotnetProject(ctx) {
+  if (ctx.__nerviqIsDotnet !== undefined) return ctx.__nerviqIsDotnet;
+  ctx.__nerviqIsDotnet = hasCoreProjectFile(ctx, /(^|\/)(.*\.csproj|.*\.sln|global\.json)$/i);
+  return ctx.__nerviqIsDotnet;
+}
+
+/**
+ * Map category names to their project detection function.
+ * Used by the audit to skip entire categories when the stack isn't detected.
+ */
+const STACK_CATEGORY_DETECTORS = {
+  python: isPythonProject,
+  go: isGoProject,
+  rust: isRustProject,
+  java: isJavaProject,
+  flutter: isFlutterProject,
+  swift: isSwiftProject,
+  kotlin: isKotlinProject,
+  ruby: isRubyProject,
+  php: isPhpProject,
+  dotnet: isDotnetProject,
+};
 
 function getPythonFiles(ctx) {
   if (ctx.__nerviqPythonFiles) return ctx.__nerviqPythonFiles;
@@ -5434,4 +5491,4 @@ const STACKS = {
 
 attachSourceUrls('claude', TECHNIQUES);
 
-module.exports = { TECHNIQUES, STACKS, containsEmbeddedSecret };
+module.exports = { TECHNIQUES, STACKS, STACK_CATEGORY_DETECTORS, containsEmbeddedSecret };

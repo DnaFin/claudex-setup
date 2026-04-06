@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-04-07
+
+### Changed — ACCURACY OVERHAUL
+- **Stack detection accuracy**: Checks for Python, Go, Rust, Java, Ruby, PHP, .NET, Flutter, Swift, Kotlin now skip when the stack is only present in `examples/`, `docs/`, `test/`, `vendor/` directories — not at project root. Previously these fired false positives on monorepos and repos with example code.
+- **Generic quality checks scoped**: 132 checks (observability, caching, i18n, rate-limiting, etc.) are now skipped by default — they measure general software quality, not AI agent configuration. Use `--verbose` to include them.
+- **Urgency count fix**: Skipped (not-applicable) checks were incorrectly counted as critical/high in the lite output summary. Now only actual failures are counted.
+
+### Impact
+- supabase/supabase: Failed 120 → 55 (65 false positives eliminated)
+- Nerviq's own repo: Fake "🔴 3 critical" → accurate "🔵 19 recommended"
+- All failed checks are now relevant to AI agent configuration
+
 ## [1.5.3] - 2026-04-07
 
 ### Added
