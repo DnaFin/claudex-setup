@@ -120,15 +120,18 @@ function checkFreshnessGates() {
     try {
       const freshness = require(modulePath);
       const gate = freshness.checkReleaseGate({});
+      const staleCount = (gate.stale || []).length;
+      const freshCount = (gate.fresh || []).length;
+      const totalCount = (gate.results || []).length;
       results.push({
         platform,
-        status: gate.stale.length === 0 ? 'pass' : 'warn',
-        fresh: gate.fresh.length,
-        total: gate.results.length,
-        stale: gate.stale.length,
-        detail: gate.stale.length === 0
-          ? `All ${gate.results.length} P0 sources fresh`
-          : `${gate.stale.length}/${gate.results.length} P0 sources unverified/stale`,
+        status: staleCount === 0 ? 'pass' : 'warn',
+        fresh: freshCount,
+        total: totalCount,
+        stale: staleCount,
+        detail: staleCount === 0
+          ? `All ${totalCount} P0 sources fresh`
+          : `${staleCount}/${totalCount} P0 sources unverified/stale`,
       });
     } catch (e) {
       results.push({ platform, status: 'error', detail: e.message });

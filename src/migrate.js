@@ -248,7 +248,7 @@ async function runMigrate({ dir = process.cwd(), platform, from: fromVersion, to
 
   const platformMigrations = MIGRATIONS[platform];
   if (!platformMigrations) {
-    throw new Error(`No migrations available for platform '${platform}'. Supported: ${Object.keys(MIGRATIONS).join(', ')}`);
+    throw new Error(`No migrations available for platform '${platform}'. Supported: ${Object.keys(MIGRATIONS).join(', ')}.\nUsage: nerviq migrate --platform <platform> [--from <version> --to <version>]`);
   }
 
   // Determine migration key

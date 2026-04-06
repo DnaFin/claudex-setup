@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.3] - 2026-04-07
+
+### Fixed — P1 from UAT
+- **UAT-04**: Harmony only audits platforms with detected config files (was always 8/8)
+- **UAT-05**: `apply --rollback` now shows clear error instead of silently re-applying
+- **UAT-06**: Harmony drift now auto-recorded — compares scores to previous audit, records deltas ≥5 points
+- **UAT-07**: Migrate error message includes usage example
+- **UAT-08**: Doctor aider freshness gate no longer crashes (null safety)
+- **UAT-09**: `nerviq fix` now auto-fixes `gitIgnoreEnv` (.env to .gitignore) and `secretsProtection` (deny rules in settings.json) — the two most common critical findings
+- **UAT-10**: Rails/Laravel/.NET false positives in `fix` output eliminated (was caused by same null-inclusion bug as UAT-02)
+
 ## [1.6.2] - 2026-04-07
 
 ### Fixed — P0 from UAT (ship-stoppers)

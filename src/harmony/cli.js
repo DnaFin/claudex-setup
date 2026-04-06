@@ -10,7 +10,7 @@
 const path = require('path');
 const { generateStrategicAdvice, PLATFORM_STRENGTHS } = require('./advisor');
 const { startHarmonyWatch, buildHarmonyWatchPlan } = require('./watch');
-const { saveHarmonyState, loadHarmonyState, getHarmonyHistory, recordPlatformScore } = require('./memory');
+const { saveHarmonyState, loadHarmonyState, getHarmonyHistory, recordPlatformScore, recordDrift } = require('./memory');
 const { getHarmonyGovernanceSummary, formatHarmonyGovernanceReport } = require('./governance');
 
 const COLORS = {
@@ -30,9 +30,34 @@ function resolveDir(options) {
  * Collect audit results from all detectable platforms.
  * Runs audit() for each platform in sequence (audit is async).
  */
+/**
+ * Detect which platforms have config files present in the directory.
+ * Only these platforms will be audited in harmony commands.
+ */
+function detectPresentPlatforms(dir) {
+  const fs = require('fs');
+  const pathMod = require('path');
+  const exists = (f) => fs.existsSync(pathMod.join(dir, f));
+
+  const detected = [];
+  if (exists('CLAUDE.md') || exists('.claude/settings.json') || exists('.claude/CLAUDE.md')) detected.push('claude');
+  if (exists('AGENTS.md') || exists('.codex/config.toml')) detected.push('codex');
+  if (exists('GEMINI.md') || exists('.gemini/settings.json')) detected.push('gemini');
+  if (exists('.github/copilot-instructions.md')) detected.push('copilot');
+  if (exists('.cursorrules') || exists('.cursor/rules')) detected.push('cursor');
+  if (exists('.windsurfrules') || exists('.windsurf/rules')) detected.push('windsurf');
+  if (exists('.aider.conf.yml') || exists('.aiderignore')) detected.push('aider');
+  if (exists('opencode.json') || exists('.opencode')) detected.push('opencode');
+
+  // AGENTS.md is shared by codex, copilot, and opencode — only add if not already detected via platform-specific file
+  if (exists('AGENTS.md') && !detected.includes('codex')) detected.push('codex');
+
+  return detected.length > 0 ? detected : ['claude']; // default to claude if nothing found
+}
+
 async function collectPlatformAudits(dir) {
   const { audit } = require('../audit');
-  const platforms = ['claude', 'codex', 'gemini', 'copilot', 'cursor', 'windsurf', 'aider', 'opencode'];
+  const platforms = detectPresentPlatforms(dir);
   const results = [];
 
   for (const platform of platforms) {
@@ -83,6 +108,29 @@ async function runHarmonyAudit(options) {
       recordPlatformScore(dir, audit.platform, audit.score, { passed: audit.passed, failed: audit.failed });
     } catch (_e) { /* memory write optional */ }
   }
+
+  // Detect drift: compare current scores to last recorded scores
+  try {
+    const state = loadHarmonyState(dir);
+    const prevScores = state.platformScores || [];
+    for (const audit of platformAudits) {
+      const prevEntries = (prevScores || []).filter(e => e.platform === audit.platform);
+      if (prevEntries.length >= 2) {
+        // Compare to the second-to-last entry (last is what we just recorded)
+        const prev = prevEntries[prevEntries.length - 2];
+        const delta = audit.score - (prev.score || 0);
+        if (Math.abs(delta) >= 5) {
+          recordDrift(dir, {
+            platform: audit.platform,
+            driftScore: delta,
+            driftedFields: [`score: ${prev.score} → ${audit.score}`],
+          });
+          const sign = delta > 0 ? '+' : '';
+          console.log(c(`  ${audit.platform}: ${sign}${delta} since last audit`, delta > 0 ? 'green' : 'red'));
+        }
+      }
+    }
+  } catch (_e) { /* drift recording is optional */ }
 
   // Average score
   const avgScore = Math.round(platformAudits.reduce((sum, a) => sum + (a.score || 0), 0) / platformAudits.length);

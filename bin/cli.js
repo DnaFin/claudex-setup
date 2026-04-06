@@ -762,6 +762,13 @@ async function main() {
         console.log('');
       }
     } else if (normalizedCommand === 'apply') {
+      if (flags.includes('--rollback')) {
+        console.error('\n  Error: --rollback is not yet supported as a flag.');
+        console.error('  Why: Rollback artifacts are saved in .nerviq/rollbacks/ but automatic rollback is not implemented yet.');
+        console.error('  Fix: Manually delete the files listed in .nerviq/rollbacks/<latest>.json, or use `nerviq apply --dry-run` to preview before applying.');
+        console.error('  Docs: https://github.com/nerviq/nerviq#rollback\n');
+        process.exit(1);
+      }
       const result = await applyProposalBundle(options);
       printApplyResult(result, options);
     } else if (normalizedCommand === 'governance') {
@@ -1138,6 +1145,40 @@ async function main() {
 
       // Step 2: Determine which checks to fix
       const { TECHNIQUES } = require('../src/techniques');
+      const fs = require('fs');
+      const pathMod = require('path');
+
+      // Inline fixers for checks without templates but with trivial auto-fixes
+      const INLINE_FIXERS = {
+        gitIgnoreEnv: (dir) => {
+          const gitignorePath = pathMod.join(dir, '.gitignore');
+          const existing = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
+          if (!existing.includes('.env')) {
+            const lines = existing.endsWith('\n') || existing === '' ? '' : '\n';
+            fs.appendFileSync(gitignorePath, `${lines}.env\n.env.*\n`, 'utf8');
+            return true;
+          }
+          return false;
+        },
+        secretsProtection: (dir) => {
+          const settingsPath = pathMod.join(dir, '.claude', 'settings.json');
+          const settingsDir = pathMod.join(dir, '.claude');
+          if (!fs.existsSync(settingsDir)) fs.mkdirSync(settingsDir, { recursive: true });
+          let settings = {};
+          if (fs.existsSync(settingsPath)) {
+            try { settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8')); } catch { settings = {}; }
+          }
+          if (!settings.permissions) settings.permissions = {};
+          if (!settings.permissions.deny) settings.permissions.deny = [];
+          const denyEntries = ['.env', '.env.*', '**/.env', '**/*.pem', '**/secrets/**'];
+          for (const entry of denyEntries) {
+            if (!settings.permissions.deny.includes(entry)) settings.permissions.deny.push(entry);
+          }
+          fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2), 'utf8');
+          return true;
+        },
+      };
+
       let targetKeys = [];
 
       if (fixKey) {
@@ -1161,8 +1202,9 @@ async function main() {
         }
       } else {
         // No key specified — show fixable checks and exit
-        const fixable = failedResults.filter(r => TECHNIQUES[r.key] && TECHNIQUES[r.key].template);
-        const nonFixable = failedResults.filter(r => !TECHNIQUES[r.key] || !TECHNIQUES[r.key].template);
+        const INLINE_FIX_KEYS = new Set(Object.keys(INLINE_FIXERS));
+        const fixable = failedResults.filter(r => (TECHNIQUES[r.key] && TECHNIQUES[r.key].template) || INLINE_FIX_KEYS.has(r.key));
+        const nonFixable = failedResults.filter(r => !(TECHNIQUES[r.key] && TECHNIQUES[r.key].template) && !INLINE_FIX_KEYS.has(r.key));
         console.log('');
         console.log(`  nerviq fix — ${failedResults.length} failed checks\n`);
         if (fixable.length > 0) {
@@ -1193,7 +1235,7 @@ async function main() {
         process.exit(0);
       }
 
-      // Step 3: For each target, either use template or show manual instructions
+      // Step 3: For each target, either use template, inline fix, or show manual instructions
       const preScore = auditResult.score;
       let fixed = 0;
       let manual = 0;
@@ -1211,6 +1253,19 @@ async function main() {
             await setup({ ...options, only: [key], silent: true });
             console.log(`  ✅ Fixed: ${failedCheck.name}`);
             fixed++;
+          }
+        } else if (INLINE_FIXERS[key]) {
+          if (options.dryRun) {
+            console.log(`  [dry-run] Would fix: ${failedCheck.name} (${key})`);
+            fixed++;
+          } else {
+            const didFix = INLINE_FIXERS[key](options.dir);
+            if (didFix) {
+              console.log(`  ✅ Fixed: ${failedCheck.name}`);
+              fixed++;
+            } else {
+              console.log(`  ⏭️  Already fixed: ${failedCheck.name}`);
+            }
           }
         } else {
           console.log(`  📋 ${failedCheck.name} (manual fix needed)`);
