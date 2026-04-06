@@ -212,6 +212,8 @@ function setStatusBarError(msg) {
   statusBarItem.show();
 }
 
+let previousScore = null;
+
 function updateStatusBar(auditData, platform) {
   if (!statusBarItem) return;
   if (!vscode.workspace.getConfiguration('nerviq').get('showStatusBar', true)) {
@@ -225,18 +227,38 @@ function updateStatusBar(auditData, platform) {
     return;
   }
 
+  // Score delta from previous audit
+  let deltaText = '';
+  if (previousScore !== null && previousScore !== score) {
+    const sign = score > previousScore ? '+' : '';
+    deltaText = ` (${sign}${score - previousScore})`;
+  }
+  previousScore = score;
+
   const icon = score >= 70 ? '$(shield)' : score >= 40 ? '$(warning)' : '$(error)';
-  statusBarItem.text = `${icon} Nerviq ${score}/100`;
-  statusBarItem.tooltip = [
+  statusBarItem.text = `${icon} Nerviq ${score}${deltaText}`;
+
+  // Build tooltip with urgency counts
+  const criticalCount = (auditData.results || []).filter(r => r.passed === false && r.impact === 'critical').length;
+  const highCount = (auditData.results || []).filter(r => r.passed === false && r.impact === 'high').length;
+  const topAction = (auditData.topNextActions || [])[0];
+
+  const tooltipLines = [
     `Nerviq Audit — ${platform}`,
     `Score: ${score}/100`,
     `Pass: ${auditData.passed || 0}  Fail: ${auditData.failed || 0}`,
-    '',
-    'Click to view full results',
-  ].join('\n');
+  ];
+  if (criticalCount > 0 || highCount > 0) {
+    tooltipLines.push(`🔴 ${criticalCount} critical  🟡 ${highCount} high`);
+  }
+  if (topAction) {
+    tooltipLines.push('', `Top fix: ${topAction.name}`);
+  }
+  tooltipLines.push('', 'Click to view full results');
+  statusBarItem.tooltip = tooltipLines.join('\n');
 
   if (score >= 70) {
-    statusBarItem.backgroundColor = undefined; // green via default status bar success
+    statusBarItem.backgroundColor = undefined;
   } else if (score >= 40) {
     statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
   } else {

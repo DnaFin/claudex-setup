@@ -2,7 +2,7 @@
   "name": "nerviq",
   "displayName": "Nerviq — AI Agent Config Auditor",
   "description": "Score, audit, and fix your AI coding agent configuration. Supports Claude Code, Codex, Cursor, Copilot, Gemini, Windsurf, Aider, and OpenCode.",
-  "version": "0.9.4",
+  "version": "0.9.5",
   "publisher": "nerviq",
   "license": "AGPL-3.0",
   "icon": "icon.png",
