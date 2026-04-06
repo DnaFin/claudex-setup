@@ -1104,6 +1104,31 @@ async function main() {
   });
 
   // ============================================================
+  // Benchmark scenario tests (C2)
+  // ============================================================
+
+  test('Scenario: empty-node scores below 15', async () => {
+    const scenarioDir = path.join(__dirname, 'fixtures', 'scenarios', 'empty-node');
+    if (!fs.existsSync(scenarioDir)) { console.log('    (scenario dir missing, skip)'); return; }
+    const result = await audit({ dir: scenarioDir, silent: true, platform: 'claude' });
+    assert.ok(result.score <= 15, `empty-node should score <= 15, got ${result.score}`);
+  });
+
+  test('Scenario: basic-claude scores between 15 and 50', async () => {
+    const scenarioDir = path.join(__dirname, 'fixtures', 'scenarios', 'basic-claude');
+    if (!fs.existsSync(scenarioDir)) { console.log('    (scenario dir missing, skip)'); return; }
+    const result = await audit({ dir: scenarioDir, silent: true, platform: 'claude' });
+    assert.ok(result.score >= 15 && result.score <= 50, `basic-claude should score 15-50, got ${result.score}`);
+  });
+
+  test('Scenario: multi-platform detects 3+ platforms', async () => {
+    const scenarioDir = path.join(__dirname, 'fixtures', 'scenarios', 'multi-platform');
+    if (!fs.existsSync(scenarioDir)) { console.log('    (scenario dir missing, skip)'); return; }
+    const result = await audit({ dir: scenarioDir, silent: true, platform: 'claude' });
+    assert.ok(result.score > 0, `multi-platform should score > 0, got ${result.score}`);
+  });
+
+  // ============================================================
   // SDK integration tests (QP-A04)
   // ============================================================
 

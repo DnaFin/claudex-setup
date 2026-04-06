@@ -1,0 +1,9 @@
+{
+  "name": "empty-node-project",
+  "version": "1.0.0",
+  "description": "Bare Node.js project with no AI agent config",
+  "scripts": {
+    "test": "echo 'no tests'",
+    "build": "echo 'no build'"
+  }
+}
