@@ -609,7 +609,30 @@ async function main() {
       }
       process.exit(0);
     } else if (normalizedCommand === 'history') {
-      const { formatHistory } = require('../src/activity');
+      const { formatHistory, readSnapshotIndex } = require('../src/activity');
+      // Handle --prune N
+      const pruneIdx = flags.indexOf('--prune');
+      if (pruneIdx >= 0) {
+        const keepCount = parseInt(flags[pruneIdx + 1] || parsed.extraArgs[0], 10) || 10;
+        const fsMod = require('fs');
+        const pathMod = require('path');
+        const entries = readSnapshotIndex(options.dir);
+        if (entries.length <= keepCount) {
+          console.log(`\n  Nothing to prune (${entries.length} snapshots, keeping ${keepCount}).\n`);
+        } else {
+          const toRemove = entries.slice(0, entries.length - keepCount);
+          let removed = 0;
+          for (const entry of toRemove) {
+            const fp = pathMod.join(options.dir, entry.relativePath);
+            try { fsMod.unlinkSync(fp); removed++; } catch {}
+          }
+          const kept = entries.slice(entries.length - keepCount);
+          const indexPath = pathMod.join(options.dir, '.nerviq', 'snapshots', 'index.json');
+          try { fsMod.writeFileSync(indexPath, JSON.stringify(kept, null, 2), 'utf8'); } catch {}
+          console.log(`\n  Pruned ${removed} snapshots, kept ${kept.length}.\n`);
+        }
+        process.exit(0);
+      }
       console.log('');
       console.log(formatHistory(options.dir));
       console.log('');
@@ -1037,16 +1060,24 @@ async function main() {
     } else if (normalizedCommand === 'rules-export') {
       const { generateRecommendationRules } = require('../src/recommendation-rules');
       const rules = generateRecommendationRules();
-      const output = JSON.stringify(rules, null, 2);
-      if (options.out) {
-        require('fs').writeFileSync(options.out, output, 'utf8');
-        if (!options.json) {
-          console.log(`\n  Rules exported to ${options.out} (${rules.totalRules} rules)\n`);
-        } else {
-          console.log(output);
-        }
+      if (options.json) {
+        console.log(JSON.stringify(rules, null, 2));
+      } else if (options.out) {
+        require('fs').writeFileSync(options.out, JSON.stringify(rules, null, 2), 'utf8');
+        console.log(`\n  Rules exported to ${options.out} (${rules.totalRules} rules)\n`);
       } else {
-        console.log(output);
+        // Human-readable summary
+        console.log(`\n  Nerviq Recommendation Rules (${rules.totalRules} rules)\n`);
+        const byCategory = {};
+        for (const rule of (rules.rules || [])) {
+          const cat = rule.category || 'other';
+          if (!byCategory[cat]) byCategory[cat] = 0;
+          byCategory[cat]++;
+        }
+        for (const [cat, count] of Object.entries(byCategory).sort((a, b) => b[1] - a[1])) {
+          console.log(`  ${cat.padEnd(20)} ${count} rules`);
+        }
+        console.log(`\n  Use --json for full output or --out <file> to save.\n`);
       }
       process.exit(0);
     } else if (normalizedCommand === 'check-health') {

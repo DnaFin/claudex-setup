@@ -433,21 +433,34 @@ function printGovernanceSummary(summary, options = {}) {
   }
   console.log('');
 
-  console.log('  Domain Packs');
-  if ((summary.domainPacks || []).length === 0) {
+  const domainPacks = summary.domainPacks || [];
+  const mcpPacks = summary.mcpPacks || [];
+  const compact = !options.verbose;
+  const COMPACT_LIMIT = 5;
+
+  console.log(`  Domain Packs (${domainPacks.length})`);
+  if (domainPacks.length === 0) {
     console.log('  - none shipped yet for this platform');
   }
-  for (const pack of summary.domainPacks || []) {
+  const domainShow = compact ? domainPacks.slice(0, COMPACT_LIMIT) : domainPacks;
+  for (const pack of domainShow) {
     console.log(`  - ${pack.label}: ${pack.useWhen}`);
+  }
+  if (compact && domainPacks.length > COMPACT_LIMIT) {
+    console.log(`  ... and ${domainPacks.length - COMPACT_LIMIT} more (use --verbose to see all)`);
   }
   console.log('');
 
-  console.log('  MCP Packs');
-  if ((summary.mcpPacks || []).length === 0) {
+  console.log(`  MCP Packs (${mcpPacks.length})`);
+  if (mcpPacks.length === 0) {
     console.log('  - none shipped yet for this platform');
   }
-  for (const pack of summary.mcpPacks || []) {
+  const mcpShow = compact ? mcpPacks.slice(0, COMPACT_LIMIT) : mcpPacks;
+  for (const pack of mcpShow) {
     console.log(`  - ${pack.label}: ${Object.keys(pack.servers).join(', ')}`);
+  }
+  if (compact && mcpPacks.length > COMPACT_LIMIT) {
+    console.log(`  ... and ${mcpPacks.length - COMPACT_LIMIT} more (use --verbose to see all)`);
   }
   console.log('');
 

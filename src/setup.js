@@ -1022,7 +1022,7 @@ Prepare a release candidate for: $ARGUMENTS
     const hasTS = stacks.some(s => s.key === 'typescript');
     const hasPython = stacks.some(s => s.key === 'python');
     const hasFrontend = stacks.some(s => ['react', 'vue', 'angular', 'svelte', 'nextjs'].includes(s.key));
-    const hasBackend = stacks.some(s => ['go', 'python', 'django', 'fastapi', 'rust', 'java'].includes(s.key));
+    const hasBackend = stacks.some(s => ['go', 'python', 'django', 'fastapi', 'rust', 'java', 'node', 'nestjs'].includes(s.key));
 
     if (hasFrontend || (hasTS && !hasBackend)) {
       rules['frontend.md'] = `When editing JavaScript/TypeScript files (*.ts, *.tsx, *.js, *.jsx, *.vue):

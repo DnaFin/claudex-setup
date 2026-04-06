@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.5] - 2026-04-07
+
+### Added — More P2 UX from UAT
+- **UAT-14**: Governance shows top 5 domain/MCP packs by default, `--verbose` for all
+- **UAT-20**: Frontend.md rule no longer generated for backend-only projects (Express, NestJS)
+- **UAT-23**: `rules-export` shows human-readable summary by default, `--json` for full output
+- **UAT-24**: `history --prune N` to clean old snapshots (keeps last N)
+- **UAT-21**: Harmony task routing already dynamic (via UAT-04 phantom platform fix)
+
 ## [1.6.4] - 2026-04-07
 
 ### Added — P2 UX improvements from UAT
