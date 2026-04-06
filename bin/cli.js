@@ -1127,9 +1127,9 @@ async function main() {
       const fixKey = parsed.extraArgs[0] || null;
       const allCritical = flags.includes('--all-critical');
 
-      // Step 1: Run silent audit to find failed checks
+      // Step 1: Run silent audit to find failed checks (only actual failures, not skipped/null)
       const auditResult = await audit({ dir: options.dir, silent: true, platform: options.platform });
-      const failedResults = (auditResult.results || []).filter(r => !r.passed);
+      const failedResults = (auditResult.results || []).filter(r => r.passed === false);
 
       if (failedResults.length === 0) {
         console.log('\n  ✅ All checks passing — nothing to fix.\n');

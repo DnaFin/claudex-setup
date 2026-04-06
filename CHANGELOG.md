@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.2] - 2026-04-07
+
+### Fixed — P0 from UAT (ship-stoppers)
+- **UAT-01 BLOCKER**: `npx @nerviq/cli audit` now works — added `@nerviq/cli` bin alias
+- **UAT-02**: `nerviq fix` was showing 375 failed checks (including skipped) vs audit's 77. Fixed: now filters `r.passed === false` only, matching audit count exactly
+- **UAT-03**: Confidence label `[MEDIUM]` was shown on critical items (confusing). Changed threshold: 0.7 confidence now shows `[HIGH]` instead of `[MEDIUM]`
+
 ## [1.6.1] - 2026-04-07
 
 ### Added

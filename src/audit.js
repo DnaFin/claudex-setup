@@ -533,8 +533,8 @@ function confidenceFromImpact(impact) {
 }
 
 function confidenceLabel(confidence) {
-  if (confidence >= 0.8) return 'HIGH';
-  if (confidence >= 0.5) return 'MEDIUM';
+  if (confidence >= 0.6) return 'HIGH';
+  if (confidence >= 0.3) return 'MEDIUM';
   return 'HEURISTIC';
 }
 
