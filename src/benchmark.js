@@ -145,7 +145,9 @@ function buildExecutiveSummary(before, after, workflowEvidence) {
   const scoreDelta = after.score - before.score;
   const organicDelta = after.organicScore - before.organicScore;
   const workflowCoverage = workflowEvidence.summary.coverageScore;
-  let headline = 'Benchmark did not improve the score in this run.';
+  let headline = before.score >= 60
+    ? 'Setup is already applied — benchmark shows no additional improvement. Run benchmark on a project before running setup to see the full delta.'
+    : 'Benchmark did not improve the score in this run.';
 
   if (scoreDelta < 0) {
     headline = `Warning: score decreased by ${Math.abs(scoreDelta)} points. Setup may have introduced a regression.`;

@@ -26,7 +26,7 @@ const COMMAND_ALIASES = {
   gov: 'governance',
   outcome: 'feedback',
 };
-const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'fix', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'check-health', 'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise', 'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'anti-patterns', 'rules-export', 'freshness', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'fix', 'rollback', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'check-health', 'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise', 'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'anti-patterns', 'rules-export', 'freshness', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -313,6 +313,9 @@ const HELP = `
     nerviq fix <key>              Auto-fix a specific check (with score impact)
     nerviq fix --all-critical     Fix all critical issues at once
     nerviq fix --dry-run          Preview fixes without writing
+    nerviq rollback               Undo the most recent apply (delete created files)
+    nerviq rollback --list        Show available rollback points
+    nerviq rollback --dry-run     Preview what would be deleted
 
   IMPROVE
     nerviq augment                Improvement plan (no writes)
@@ -784,6 +787,88 @@ async function main() {
         }
         console.log('');
       }
+    } else if (normalizedCommand === 'rollback') {
+      const fsMod = require('fs');
+      const pathMod = require('path');
+      const rollbackDir = pathMod.join(options.dir, '.nerviq', 'rollbacks');
+
+      if (!fsMod.existsSync(rollbackDir)) {
+        console.log('\n  No rollback artifacts found. Run `nerviq apply` first to create rollback data.\n');
+        process.exit(0);
+      }
+
+      const rollbackFiles = fsMod.readdirSync(rollbackDir)
+        .filter(f => f.endsWith('.json'))
+        .sort()
+        .reverse();
+
+      if (rollbackFiles.length === 0) {
+        console.log('\n  No rollback artifacts found.\n');
+        process.exit(0);
+      }
+
+      // --list mode
+      if (flags.includes('--list')) {
+        console.log(`\n  Rollback points (${rollbackFiles.length}):\n`);
+        for (const f of rollbackFiles) {
+          try {
+            const data = JSON.parse(fsMod.readFileSync(pathMod.join(rollbackDir, f), 'utf8'));
+            const created = (data.createdFiles || []).length;
+            const patched = (data.patchedFiles || []).length;
+            console.log(`  ${f.replace('.json', '')}  (${created} created, ${patched} patched)`);
+          } catch {
+            console.log(`  ${f}  (unreadable)`);
+          }
+        }
+        console.log(`\n  Run \`nerviq rollback\` to undo the most recent.\n`);
+        process.exit(0);
+      }
+
+      // Execute rollback of most recent
+      const latestFile = rollbackFiles[0];
+      const latestPath = pathMod.join(rollbackDir, latestFile);
+      let rollbackData;
+      try {
+        rollbackData = JSON.parse(fsMod.readFileSync(latestPath, 'utf8'));
+      } catch (e) {
+        console.error(`\n  Error: Cannot parse rollback file: ${e.message}\n`);
+        process.exit(1);
+      }
+
+      const createdFiles = rollbackData.createdFiles || [];
+      if (createdFiles.length === 0) {
+        console.log('\n  Rollback artifact has no files to remove.\n');
+        process.exit(0);
+      }
+
+      if (options.dryRun) {
+        console.log(`\n  [dry-run] Would delete ${createdFiles.length} files:\n`);
+        for (const f of createdFiles) {
+          console.log(`    - ${f}`);
+        }
+        console.log('');
+        process.exit(0);
+      }
+
+      let deleted = 0;
+      let missing = 0;
+      console.log('');
+      for (const relPath of createdFiles) {
+        const fullPath = pathMod.join(options.dir, relPath);
+        if (fsMod.existsSync(fullPath)) {
+          fsMod.unlinkSync(fullPath);
+          console.log(`  🗑️  Deleted: ${relPath}`);
+          deleted++;
+        } else {
+          missing++;
+        }
+      }
+
+      // Remove rollback artifact after use
+      fsMod.unlinkSync(latestPath);
+
+      console.log(`\n  Rollback complete: ${deleted} files deleted${missing > 0 ? `, ${missing} already missing` : ''}.\n`);
+
     } else if (normalizedCommand === 'apply') {
       if (flags.includes('--rollback')) {
         console.error('\n  Error: --rollback is not yet supported as a flag.');

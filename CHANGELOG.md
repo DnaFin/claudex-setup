@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-04-07
+
+### Added — Final P2 batch
+- **UAT-11: `nerviq rollback`** — Undo the most recent apply by deleting all created files. Supports `--list` (show rollback points), `--dry-run` (preview), and auto-cleanup of rollback artifacts after use.
+- **UAT-18**: `apply --only hooks,commands` already worked (verified)
+- **UAT-19**: Benchmark messaging improved for post-setup runs
+
 ## [1.6.5] - 2026-04-07
 
 ### Added — More P2 UX from UAT
