@@ -533,6 +533,170 @@ function formatRecommendationOutcomeSummary(dir) {
   return lines.join('\n');
 }
 
+/**
+ * Load the full payload of a snapshot by its index entry.
+ * @param {string} dir - Project root directory.
+ * @param {Object} indexEntry - Snapshot index entry with relativePath.
+ * @returns {Object|null} Full snapshot envelope, or null if unreadable.
+ */
+function loadSnapshotPayload(dir, indexEntry) {
+  if (!indexEntry || !indexEntry.relativePath) return null;
+  const filePath = path.join(dir, indexEntry.relativePath);
+  try {
+    const envelope = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return envelope.payload || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Analyze check health by comparing the two most recent audit snapshots.
+ * Detects checks that regressed (passed → failed), improved (failed → passed),
+ * and flags sudden drops that may indicate platform format changes.
+ *
+ * @param {string} dir - Project root directory.
+ * @returns {Object|null} Health report, or null if fewer than 2 audit snapshots exist.
+ */
+function checkHealth(dir) {
+  const history = getHistory(dir, 2);
+  if (history.length < 2) return null;
+
+  const currentPayload = loadSnapshotPayload(dir, history[0]);
+  const previousPayload = loadSnapshotPayload(dir, history[1]);
+  if (!currentPayload || !previousPayload) return null;
+
+  const currentResults = currentPayload.results || [];
+  const previousResults = previousPayload.results || [];
+
+  // Build maps: key → passed (true/false/null)
+  const prevMap = {};
+  for (const r of previousResults) {
+    if (r.key) prevMap[r.key] = r.passed;
+  }
+  const currMap = {};
+  for (const r of currentResults) {
+    if (r.key) currMap[r.key] = r.passed;
+  }
+
+  const regressions = []; // was passing → now failing
+  const improvements = []; // was failing → now passing
+  const newChecks = []; // not in previous
+  const removedChecks = []; // not in current
+
+  for (const r of currentResults) {
+    if (!r.key) continue;
+    const prev = prevMap[r.key];
+    const curr = r.passed;
+    if (prev === undefined) {
+      if (curr !== null) newChecks.push({ key: r.key, name: r.name, impact: r.impact, passed: curr });
+      continue;
+    }
+    if (prev === true && curr === false) {
+      regressions.push({ key: r.key, name: r.name, impact: r.impact, category: r.category });
+    } else if (prev === false && curr === true) {
+      improvements.push({ key: r.key, name: r.name, impact: r.impact, category: r.category });
+    }
+  }
+
+  for (const r of previousResults) {
+    if (r.key && currMap[r.key] === undefined) {
+      removedChecks.push({ key: r.key, name: r.name });
+    }
+  }
+
+  // Detect potential platform format changes:
+  // If 3+ checks in the same category regressed, flag it
+  const regressionsByCategory = {};
+  for (const r of regressions) {
+    if (!regressionsByCategory[r.category]) regressionsByCategory[r.category] = [];
+    regressionsByCategory[r.category].push(r);
+  }
+  const platformAlerts = [];
+  for (const [cat, items] of Object.entries(regressionsByCategory)) {
+    if (items.length >= 3) {
+      platformAlerts.push({
+        category: cat,
+        regressionCount: items.length,
+        message: `${items.length} checks in '${cat}' regressed — possible platform format change`,
+        checks: items.map(i => i.key),
+      });
+    }
+  }
+
+  return {
+    currentDate: history[0].createdAt,
+    previousDate: history[1].createdAt,
+    scoreDelta: (currentPayload.score || 0) - (previousPayload.score || 0),
+    regressions,
+    improvements,
+    newChecks,
+    removedChecks,
+    platformAlerts,
+    summary: {
+      regressionsCount: regressions.length,
+      improvementsCount: improvements.length,
+      newChecksCount: newChecks.length,
+      removedChecksCount: removedChecks.length,
+      alertsCount: platformAlerts.length,
+    },
+  };
+}
+
+/**
+ * Format check-health report for CLI display.
+ */
+function formatCheckHealth(healthReport) {
+  if (!healthReport) return 'Need at least 2 audit snapshots. Run `nerviq audit --snapshot` twice.';
+
+  const lines = [];
+  const { scoreDelta, regressions, improvements, platformAlerts, newChecks, summary } = healthReport;
+  const sign = scoreDelta >= 0 ? '+' : '';
+
+  lines.push(`  Check Health Report`);
+  lines.push(`  ─────────────────────────────────────`);
+  lines.push(`  Period: ${healthReport.previousDate?.split('T')[0]} → ${healthReport.currentDate?.split('T')[0]}`);
+  lines.push(`  Score delta: ${sign}${scoreDelta}`);
+  lines.push('');
+
+  if (platformAlerts.length > 0) {
+    lines.push(`  ⚠️  PLATFORM ALERTS (${platformAlerts.length})`);
+    for (const alert of platformAlerts) {
+      lines.push(`     ${alert.message}`);
+      lines.push(`     Checks: ${alert.checks.join(', ')}`);
+    }
+    lines.push('');
+  }
+
+  if (regressions.length > 0) {
+    lines.push(`  🔴 Regressions (${regressions.length} checks now failing)`);
+    for (const r of regressions) {
+      lines.push(`     ${r.name} [${r.impact}]`);
+    }
+    lines.push('');
+  }
+
+  if (improvements.length > 0) {
+    lines.push(`  ✅ Improvements (${improvements.length} checks now passing)`);
+    for (const r of improvements) {
+      lines.push(`     ${r.name}`);
+    }
+    lines.push('');
+  }
+
+  if (newChecks.length > 0) {
+    lines.push(`  🆕 New checks (${newChecks.length})`);
+    lines.push('');
+  }
+
+  if (regressions.length === 0 && platformAlerts.length === 0) {
+    lines.push(`  ✅ All checks stable. No regressions detected.`);
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
 module.exports = {
   getUserId,
   ensureArtifactDirs,
@@ -550,4 +714,7 @@ module.exports = {
   getRecommendationOutcomeSummary,
   getRecommendationAdjustment,
   formatRecommendationOutcomeSummary,
+  checkHealth,
+  formatCheckHealth,
+  loadSnapshotPayload,
 };

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-04-07
+
+### Added
+- **F3-01: `nerviq check-health`** — Detects regressions between audit snapshots. Compares per-check pass/fail state and flags checks that went from passing to failing. When 3+ checks in the same category regress, alerts as "potential platform format change."
+- **F3-03: Regression tests** — 3 new tests for check-health: no-snapshots, stable state, and regression detection
+- Supports `--json` for CI integration
+
 ## [1.6.0] - 2026-04-07
 
 ### Changed — ACCURACY OVERHAUL

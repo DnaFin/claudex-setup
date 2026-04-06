@@ -26,7 +26,7 @@ const COMMAND_ALIASES = {
   gov: 'governance',
   outcome: 'feedback',
 };
-const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'fix', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise', 'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'anti-patterns', 'rules-export', 'freshness', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'fix', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'check-health', 'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise', 'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'anti-patterns', 'rules-export', 'freshness', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -305,6 +305,7 @@ const HELP = `
     nerviq setup                  Generate starter-safe baseline config files
     nerviq setup --auto           Apply all generated files without prompts
     nerviq interactive            Step-by-step guided wizard
+    nerviq check-health           Detect regressions + platform format changes between snapshots
     nerviq doctor                 Self-diagnostics: Node, deps, freshness, platform detection
 
   FIX
@@ -1039,6 +1040,16 @@ async function main() {
         }
       } else {
         console.log(output);
+      }
+      process.exit(0);
+    } else if (normalizedCommand === 'check-health') {
+      const { checkHealth, formatCheckHealth } = require('../src/activity');
+      const report = checkHealth(options.dir);
+      if (options.json) {
+        console.log(JSON.stringify(report, null, 2));
+      } else {
+        console.log('');
+        console.log(formatCheckHealth(report));
       }
       process.exit(0);
     } else if (normalizedCommand === 'freshness') {

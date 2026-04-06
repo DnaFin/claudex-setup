@@ -1104,6 +1104,55 @@ async function main() {
   });
 
   // ============================================================
+  // Check Health
+  // ============================================================
+
+  test('check-health returns null with no snapshots', () => {
+    const { checkHealth } = require('../src/activity');
+    const dir = mkFixture('check-health-none');
+    try {
+      const result = checkHealth(dir);
+      assert.strictEqual(result, null);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('check-health detects stable state between identical snapshots', () => {
+    const dir = mkFixture('check-health-stable');
+    try {
+      // Create two snapshots by running audit twice
+      const r1 = runCli(['audit', '--snapshot', '--json'], dir);
+      assert.equal(r1.status, 0);
+      const r2 = runCli(['audit', '--snapshot', '--json'], dir);
+      assert.equal(r2.status, 0);
+      const r3 = runCli(['check-health', '--json'], dir);
+      assert.equal(r3.status, 0);
+      const health = JSON.parse(r3.stdout);
+      assert.equal(health.summary.regressionsCount, 0);
+      assert.equal(health.summary.alertsCount, 0);
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('check-health detects regression when CLAUDE.md is deleted', () => {
+    const dir = mkFixture('check-health-regress');
+    try {
+      // Snapshot 1: with CLAUDE.md
+      fs.writeFileSync(path.join(dir, 'CLAUDE.md'), '# Project\n## Test\nRun `npm test`\n');
+      const r1 = runCli(['audit', '--snapshot', '--json'], dir);
+      assert.equal(r1.status, 0);
+      // Delete CLAUDE.md
+      fs.unlinkSync(path.join(dir, 'CLAUDE.md'));
+      // Snapshot 2: without CLAUDE.md
+      const r2 = runCli(['audit', '--snapshot', '--json'], dir);
+      assert.equal(r2.status, 0);
+      const r3 = runCli(['check-health', '--json'], dir);
+      assert.equal(r3.status, 0);
+      const health = JSON.parse(r3.stdout);
+      assert.ok(health.summary.regressionsCount > 0, 'should detect regressions when CLAUDE.md removed');
+      assert.ok(health.regressions.some(r => r.key === 'claudeMd'), 'should flag claudeMd regression');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  // ============================================================
   // Summary
   // ============================================================
   console.log(`\n  ─────────────────────────────────────`);
