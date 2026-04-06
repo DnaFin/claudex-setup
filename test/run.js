@@ -681,15 +681,26 @@ async function main() {
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 
-  test('CLI audit output includes Top 5 Next Actions by default', () => {
+  test('CLI audit --full output includes Top 5 Next Actions', () => {
     const dir = mkFixture('cli-audit-top5');
+    try {
+      writeJson(dir, 'package.json', { name: 'app' });
+      const result = runCli(['--full'], dir);
+      assert.equal(result.status, 0, 'full audit should succeed');
+      assert.ok(result.stdout.includes('Top 5 Next Actions'), 'full audit output should include Top 5 Next Actions');
+      assert.ok(result.stdout.includes('Trace:'), 'full audit output should include traceability');
+      assert.ok(result.stdout.includes('Next command:'), 'full audit output should suggest a next command');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('CLI audit default is lite mode (top 3 quick scan)', () => {
+    const dir = mkFixture('cli-audit-default-lite');
     try {
       writeJson(dir, 'package.json', { name: 'app' });
       const result = runCli([], dir);
       assert.equal(result.status, 0, 'default audit should succeed');
-      assert.ok(result.stdout.includes('Top 5 Next Actions'), 'audit output should include Top 5 Next Actions');
-      assert.ok(result.stdout.includes('Trace:'), 'audit output should include traceability');
-      assert.ok(result.stdout.includes('Next command:'), 'audit output should suggest a next command');
+      assert.ok(result.stdout.includes('Top 3 things to fix'), 'default audit should show top 3');
+      assert.ok(result.stdout.includes('--full'), 'default audit should hint about --full');
     } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   });
 

@@ -901,18 +901,32 @@ function printLiteAudit(result, dir) {
     return;
   }
 
+  // Urgency summary line
+  const criticalCount = (result.results || []).filter(r => !r.passed && r.impact === 'critical').length;
+  const highCount = (result.results || []).filter(r => !r.passed && r.impact === 'high').length;
+  const mediumCount = result.failed - criticalCount - highCount;
+  const urgencyParts = [];
+  if (criticalCount > 0) urgencyParts.push(colorize(`🔴 ${criticalCount} critical`, 'red'));
+  if (highCount > 0) urgencyParts.push(colorize(`🟡 ${highCount} high`, 'yellow'));
+  if (mediumCount > 0) urgencyParts.push(colorize(`🔵 ${mediumCount} recommended`, 'blue'));
+  if (urgencyParts.length > 0) {
+    console.log(`  ${urgencyParts.join('  ')}`);
+    console.log('');
+  }
+
   console.log(colorize('  Top 3 things to fix right now:', 'magenta'));
   console.log('');
   result.liteSummary.topNextActions.forEach((item, index) => {
-    console.log(`  ${index + 1}. ${colorize(item.name, 'bold')}`);
-    console.log(colorize(`     Why: ${item.why}`, 'dim'));
-    console.log(colorize(`     Fix: ${item.fix}`, 'dim'));
+    const tier = item.impact === 'critical' ? '🔴' : item.impact === 'high' ? '🟡' : '🔵';
+    console.log(`  ${index + 1}. ${tier} ${colorize(item.name, 'bold')}`);
+    console.log(colorize(`     ${item.fix}`, 'dim'));
   });
   console.log('');
   console.log(`  Ready? Run: ${colorize(result.suggestedNextCommand, 'bold')}`);
   if (result.platform === 'codex') {
     console.log(colorize('  Note: Codex now supports no-write advisory flows via augment and suggest-only before setup/apply.', 'dim'));
   }
+  console.log(colorize(`  See all ${result.failed} failed checks: ${colorize('nerviq audit --full', 'bold')}`, 'dim'));
   console.log('');
 }
 

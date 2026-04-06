@@ -67,8 +67,8 @@ Nerviq scores your AI coding agent setup from 0 to 100, finds what's missing, an
 ## Quick Start
 
 ```bash
-npx @nerviq/cli audit              # Score your project (10 seconds)
-npx @nerviq/cli audit --lite       # Quick top-3 scan
+npx @nerviq/cli audit              # Quick scan: score + top 3 actions
+npx @nerviq/cli audit --full       # Full audit with all checks + badge
 npx @nerviq/cli setup              # Generate starter-safe baseline
 npx @nerviq/cli augment            # Improvement plan, no writes
 npx @nerviq/cli governance         # Permission profiles + policy packs
@@ -226,6 +226,8 @@ Levels:
 |---------|-------------|
 | `nerviq audit` | Score 0-100 against 2,431 checks |
 | `nerviq audit --lite` | Quick top-3 scan |
+| `nerviq fix <key>` | Auto-fix a specific check (shows score impact) |
+| `nerviq fix --all-critical` | Fix all critical issues at once |
 | `nerviq setup` | Generate starter-safe CLAUDE.md + hooks + commands |
 | `nerviq augment` | Repo-aware improvement plan (no writes) |
 | `nerviq suggest-only` | Structured report for sharing |

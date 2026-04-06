@@ -26,7 +26,7 @@ const COMMAND_ALIASES = {
   gov: 'governance',
   outcome: 'feedback',
 };
-const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise', 'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'anti-patterns', 'rules-export', 'freshness', 'help', 'version'];
+const KNOWN_COMMANDS = ['audit', 'org', 'setup', 'augment', 'suggest-only', 'plan', 'apply', 'fix', 'governance', 'benchmark', 'deep-review', 'interactive', 'watch', 'badge', 'insights', 'history', 'compare', 'trend', 'scan', 'feedback', 'doctor', 'convert', 'migrate', 'catalog', 'certify', 'serve', 'harmony-audit', 'harmony-sync', 'harmony-drift', 'harmony-advise', 'harmony-watch', 'harmony-governance', 'harmony-add', 'synergy-report', 'anti-patterns', 'rules-export', 'freshness', 'help', 'version'];
 
 function levenshtein(a, b) {
   const matrix = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
@@ -289,9 +289,9 @@ const HELP = `
   Audit, align, and amplify every platform on every project.
 
   DISCOVER
-    nerviq audit                  Score your project (0-100)
+    nerviq audit                  Quick scan: score + top 3 gaps (default)
+    nerviq audit --full           Full audit with all checks, weakest areas, badge
     nerviq audit --platform X     Audit specific platform (claude|codex|cursor|copilot|gemini|windsurf|aider|opencode)
-    nerviq audit --lite           Quick scan: top 3 gaps + next command
     nerviq audit --json           Machine-readable JSON output (for CI)
     nerviq audit --workspace packages/*     Audit each workspace in a monorepo
     nerviq scan dir1 dir2         Compare multiple repos side-by-side
@@ -306,6 +306,12 @@ const HELP = `
     nerviq setup --auto           Apply all generated files without prompts
     nerviq interactive            Step-by-step guided wizard
     nerviq doctor                 Self-diagnostics: Node, deps, freshness, platform detection
+
+  FIX
+    nerviq fix                    Show fixable checks and manual-fix guidance
+    nerviq fix <key>              Auto-fix a specific check (with score impact)
+    nerviq fix --all-critical     Fix all critical issues at once
+    nerviq fix --dry-run          Preview fixes without writing
 
   IMPROVE
     nerviq augment                Improvement plan (no writes)
@@ -365,9 +371,10 @@ const HELP = `
     --port N          Port for \`serve\` (default: 3000)
     --workspace GLOBS Audit workspaces separately (e.g. packages/* or apps/web,apps/api)
     --snapshot        Save snapshot artifact under .claude/nerviq/snapshots/
-    --lite            Short top-3 scan with one clear next step
+    --full            Show full audit output (all checks, weakest areas, badge)
+    --lite            Short top-3 scan (default behavior since v1.5.2)
     --dry-run         Preview changes without writing files
-    --verbose         Show all checks (not just critical/high)
+    --verbose         Full audit + medium-priority recommendations
     --json            Output as JSON
     --auto            Apply all generated files without prompting
     --key NAME        Feedback: recommendation key (e.g. permissionDeny)
@@ -425,7 +432,8 @@ async function main() {
     verbose: flags.includes('--verbose'),
     json: flags.includes('--json'),
     auto: flags.includes('--auto'),
-    lite: flags.includes('--lite'),
+    lite: flags.includes('--full') || flags.includes('--verbose') ? false : true,
+    full: flags.includes('--full'),
     snapshot: flags.includes('--snapshot'),
     feedback: flags.includes('--feedback'),
     fix: flags.includes('--fix'),
@@ -1101,6 +1109,113 @@ async function main() {
       });
       console.log(output);
       process.exit(0);
+    } else if (normalizedCommand === 'fix') {
+      // nerviq fix [key] [--all-critical] [--dry-run]
+      const fixKey = parsed.extraArgs[0] || null;
+      const allCritical = flags.includes('--all-critical');
+
+      // Step 1: Run silent audit to find failed checks
+      const auditResult = await audit({ dir: options.dir, silent: true, platform: options.platform });
+      const failedResults = (auditResult.results || []).filter(r => !r.passed);
+
+      if (failedResults.length === 0) {
+        console.log('\n  ✅ All checks passing — nothing to fix.\n');
+        process.exit(0);
+      }
+
+      // Step 2: Determine which checks to fix
+      const { TECHNIQUES } = require('../src/techniques');
+      let targetKeys = [];
+
+      if (fixKey) {
+        // Fix a specific check
+        if (!failedResults.find(r => r.key === fixKey)) {
+          const passed = (auditResult.results || []).find(r => r.key === fixKey && r.passed);
+          if (passed) {
+            console.log(`\n  ✅ '${fixKey}' is already passing.\n`);
+          } else {
+            console.log(`\n  Error: Unknown check key '${fixKey}'.`);
+            console.log(`  Fix: Run 'nerviq audit --full' to see all check keys.\n`);
+          }
+          process.exit(1);
+        }
+        targetKeys = [fixKey];
+      } else if (allCritical) {
+        targetKeys = failedResults.filter(r => r.impact === 'critical').map(r => r.key);
+        if (targetKeys.length === 0) {
+          console.log('\n  ✅ No critical issues found.\n');
+          process.exit(0);
+        }
+      } else {
+        // No key specified — show fixable checks and exit
+        const fixable = failedResults.filter(r => TECHNIQUES[r.key] && TECHNIQUES[r.key].template);
+        const nonFixable = failedResults.filter(r => !TECHNIQUES[r.key] || !TECHNIQUES[r.key].template);
+        console.log('');
+        console.log(`  nerviq fix — ${failedResults.length} failed checks\n`);
+        if (fixable.length > 0) {
+          console.log(`  Auto-fixable (${fixable.length}):`);
+          for (const r of fixable) {
+            const tier = r.impact === 'critical' ? '🔴' : r.impact === 'high' ? '🟡' : '🔵';
+            console.log(`    ${tier} nerviq fix ${r.key}`);
+          }
+          console.log('');
+        }
+        if (nonFixable.length > 0) {
+          console.log(`  Manual fix needed (${nonFixable.length}):`);
+          for (const r of nonFixable.slice(0, 5)) {
+            const tier = r.impact === 'critical' ? '🔴' : r.impact === 'high' ? '🟡' : '🔵';
+            console.log(`    ${tier} ${r.key}: ${r.fix}`);
+          }
+          if (nonFixable.length > 5) {
+            console.log(`    ... and ${nonFixable.length - 5} more (use --full to see all)`);
+          }
+          console.log('');
+        }
+        if (fixable.length > 0) {
+          console.log(`  Quick actions:`);
+          console.log(`    nerviq fix ${fixable[0].key}        Fix the first auto-fixable check`);
+          console.log(`    nerviq fix --all-critical    Fix all critical issues at once`);
+        }
+        console.log('');
+        process.exit(0);
+      }
+
+      // Step 3: For each target, either use template or show manual instructions
+      const preScore = auditResult.score;
+      let fixed = 0;
+      let manual = 0;
+
+      for (const key of targetKeys) {
+        const technique = TECHNIQUES[key];
+        const failedCheck = failedResults.find(r => r.key === key);
+
+        if (technique && technique.template) {
+          if (options.dryRun) {
+            console.log(`\n  [dry-run] Would fix: ${failedCheck.name} (${key})`);
+            fixed++;
+          } else {
+            // Use setup with only this key
+            await setup({ ...options, only: [key], silent: true });
+            console.log(`  ✅ Fixed: ${failedCheck.name}`);
+            fixed++;
+          }
+        } else {
+          console.log(`  📋 ${failedCheck.name} (manual fix needed)`);
+          console.log(`     ${failedCheck.fix}`);
+          manual++;
+        }
+      }
+
+      // Step 4: Show score impact
+      if (fixed > 0 && !options.dryRun) {
+        const postResult = await audit({ dir: options.dir, silent: true, platform: options.platform });
+        const delta = postResult.score - preScore;
+        console.log('');
+        console.log(`  Score: ${preScore} → ${postResult.score} (${delta >= 0 ? '+' : ''}${delta})`);
+      }
+
+      console.log(`\n  ${fixed} fixed, ${manual} need manual action.\n`);
+
     } else if (normalizedCommand === 'setup') {
       await setup(options);
       if (options.snapshot) {

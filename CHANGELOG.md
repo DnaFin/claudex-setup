@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-04-07
+
+### Added
+- **F1-01: Lite-by-default** — `nerviq audit` now shows quick scan (score + top 3 actions). Use `--full` for complete output.
+- **F1-02: Urgency tiers** — Lite output shows `🔴 critical / 🟡 high / 🔵 recommended` summary and per-item tier icons
+- **F2-01: `nerviq fix` command** — Auto-fix checks with templates, show manual guidance for others, display score impact
+  - `nerviq fix` — List fixable and manual-fix checks
+  - `nerviq fix <key>` — Fix a specific check with before/after score
+  - `nerviq fix --all-critical` — Fix all critical issues at once
+  - `nerviq fix --dry-run` — Preview without writing
+
+### Changed
+- Default `nerviq audit` is now lite mode (previously showed full output)
+- `--full` flag added to restore previous full-output behavior
+- `--verbose` still shows full output plus medium-priority recommendations
+- Lite output streamlined: single fix line per item instead of redundant Why/Fix
+
 ## [1.5.1] - 2026-04-06
 
 ### Added
