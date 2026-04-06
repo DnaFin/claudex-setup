@@ -697,7 +697,7 @@ function printAnalysis(report, options = {}) {
  */
 function exportMarkdown(report) {
   const lines = [];
-  lines.push(`# Claudex Setup Analysis Report`);
+  lines.push(`# Nerviq Analysis Report`);
   lines.push(`## ${report.platformLabel} ${report.mode === 'suggest-only' ? 'Suggest-Only' : 'Augment'} Mode`);
   lines.push('');
   lines.push(`**Project:** ${report.projectSummary.name}${report.projectSummary.description ? ` — ${report.projectSummary.description}` : ''}`);

@@ -374,6 +374,7 @@ const HELP = `
     --full            Show full audit output (all checks, weakest areas, badge)
     --lite            Short top-3 scan (default behavior since v1.5.2)
     --dry-run         Preview changes without writing files
+    --config-only     Only write config files (.claude/, rules, hooks) — never source code
     --verbose         Full audit + medium-priority recommendations
     --json            Output as JSON
     --auto            Apply all generated files without prompting
@@ -439,6 +440,7 @@ async function main() {
     fix: flags.includes('--fix'),
     autoSync: flags.includes('--auto-sync'),
     dryRun: flags.includes('--dry-run'),
+    configOnly: flags.includes('--config-only'),
     threshold: parsed.threshold !== null ? Number(parsed.threshold) : null,
     out: parsed.out,
     planFile: parsed.planFile,

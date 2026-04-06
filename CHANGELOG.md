@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-04-07
+
+### Added
+- **T4-01:** Confidence labels (`[HIGH]` / `[MEDIUM]` / `[HEURISTIC]`) on every failed check in full audit
+- **T4-02:** Safety modes documented in README: read-only, suggest-only, dry-run, config-only, safe-write, power-user
+- **T4-02:** `--config-only` flag added — restricts writes to config files only
+- **B4:** Suggest-only markdown export verified working (`nerviq suggest-only --out report.md`)
+
+### Fixed
+- Report header rebranded from "Claudex" to "Nerviq" in markdown export
+
 ## [1.5.2] - 2026-04-07
 
 ### Added

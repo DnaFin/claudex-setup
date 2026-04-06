@@ -532,6 +532,12 @@ function confidenceFromImpact(impact) {
   return impact === 'critical' || impact === 'high' ? 'high' : 'medium';
 }
 
+function confidenceLabel(confidence) {
+  if (confidence >= 0.8) return 'HIGH';
+  if (confidence >= 0.5) return 'MEDIUM';
+  return 'HEURISTIC';
+}
+
 function getPrioritizedFailed(failed) {
   const prioritized = failed.filter(r => !(r.category === 'hygiene' && r.impact === 'low'));
   return prioritized.length > 0 ? prioritized : failed;
@@ -1209,7 +1215,8 @@ async function audit(options) {
   if (critical.length > 0) {
     console.log(colorize('  🔴 Critical (fix immediately)', 'red'));
     for (const r of critical) {
-      console.log(`     ${colorize(r.name, 'bold')}`);
+      const conf = r.confidence ? ` [${confidenceLabel(r.confidence)}]` : '';
+      console.log(`     ${colorize(r.name, 'bold')}${colorize(conf, 'dim')}`);
       if (r.file) {
         console.log(colorize(`     at ${formatLocation(r.file, r.line)}`, 'dim'));
       }
@@ -1221,7 +1228,8 @@ async function audit(options) {
   if (high.length > 0) {
     console.log(colorize('  🟡 High Impact', 'yellow'));
     for (const r of high) {
-      console.log(`     ${colorize(r.name, 'bold')}`);
+      const conf = r.confidence ? ` [${confidenceLabel(r.confidence)}]` : '';
+      console.log(`     ${colorize(r.name, 'bold')}${colorize(conf, 'dim')}`);
       if (r.file) {
         console.log(colorize(`     at ${formatLocation(r.file, r.line)}`, 'dim'));
       }
@@ -1233,7 +1241,8 @@ async function audit(options) {
   if (medium.length > 0 && options.verbose) {
     console.log(colorize('  🔵 Recommended', 'blue'));
     for (const r of medium) {
-      console.log(`     ${colorize(r.name, 'bold')}`);
+      const conf = r.confidence ? ` [${confidenceLabel(r.confidence)}]` : '';
+      console.log(`     ${colorize(r.name, 'bold')}${colorize(conf, 'dim')}`);
       if (r.file) {
         console.log(colorize(`     at ${formatLocation(r.file, r.line)}`, 'dim'));
       }

@@ -283,6 +283,21 @@ Nerviq is built on the CLAUDEX knowledge engine — the largest verified catalog
 - Every check is traceable to primary documentation or verified experiment
 - 90-day freshness cycle: stale findings are re-verified or pruned
 
+## Safety Modes
+
+Nerviq provides explicit safety controls so you decide what it can touch:
+
+| Mode | Flag | What it does |
+|------|------|-------------|
+| **Read-only** | `nerviq audit` | Reads files, writes nothing. Default command. |
+| **Suggest-only** | `nerviq suggest-only` | Generates markdown report, no file writes. |
+| **Dry-run** | `--dry-run` | Previews setup/fix/apply changes without writing. |
+| **Config-only** | `--config-only` | Only writes config files (.claude/, rules, hooks). Never touches source code. |
+| **Safe-write** | `--profile safe-write` | Default write profile. Creates new files, never overwrites existing ones. |
+| **Power-user** | `--profile power-user` | Overwrites existing files (use with `--snapshot` for rollback). |
+
+Every write command supports `--snapshot` for automatic backup before changes.
+
 ## Privacy
 
 - **Zero dependencies** — nothing to audit
