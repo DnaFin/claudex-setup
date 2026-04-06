@@ -28,66 +28,21 @@ function resolveDir(options) {
 
 /**
  * Collect audit results from all detectable platforms.
- * This is a lightweight aggregation - each platform module is loaded lazily.
+ * Runs audit() for each platform in sequence (audit is async).
  */
-function collectPlatformAudits(dir) {
+async function collectPlatformAudits(dir) {
+  const { audit } = require('../audit');
+  const platforms = ['claude', 'codex', 'gemini', 'copilot', 'cursor', 'windsurf', 'aider', 'opencode'];
   const results = [];
 
-  // Try Claude audit
-  try {
-    const { audit } = require('../audit');
-    const result = audit({ dir, silent: true, platform: 'claude' });
-    if (result) results.push({ platform: 'claude', ...result });
-  } catch (_e) { /* platform not available */ }
-
-  // Try Codex audit
-  try {
-    const { audit } = require('../audit');
-    const result = audit({ dir, silent: true, platform: 'codex' });
-    if (result) results.push({ platform: 'codex', ...result });
-  } catch (_e) { /* platform not available */ }
-
-  // Try Gemini audit
-  try {
-    const { audit } = require('../audit');
-    const result = audit({ dir, silent: true, platform: 'gemini' });
-    if (result) results.push({ platform: 'gemini', ...result });
-  } catch (_e) { /* platform not available */ }
-
-  // Try Copilot audit
-  try {
-    const { audit } = require('../audit');
-    const result = audit({ dir, silent: true, platform: 'copilot' });
-    if (result) results.push({ platform: 'copilot', ...result });
-  } catch (_e) { /* platform not available */ }
-
-  // Try Cursor audit
-  try {
-    const { audit } = require('../audit');
-    const result = audit({ dir, silent: true, platform: 'cursor' });
-    if (result) results.push({ platform: 'cursor', ...result });
-  } catch (_e) { /* platform not available */ }
-
-  // Try Windsurf audit
-  try {
-    const { audit } = require('../audit');
-    const result = audit({ dir, silent: true, platform: 'windsurf' });
-    if (result) results.push({ platform: 'windsurf', ...result });
-  } catch (_e) { /* platform not available */ }
-
-  // Try Aider audit
-  try {
-    const { audit } = require('../audit');
-    const result = audit({ dir, silent: true, platform: 'aider' });
-    if (result) results.push({ platform: 'aider', ...result });
-  } catch (_e) { /* platform not available */ }
-
-  // Try OpenCode audit
-  try {
-    const { audit } = require('../audit');
-    const result = audit({ dir, silent: true, platform: 'opencode' });
-    if (result) results.push({ platform: 'opencode', ...result });
-  } catch (_e) { /* platform not available */ }
+  for (const platform of platforms) {
+    try {
+      const result = await audit({ dir, silent: true, platform });
+      if (result && typeof result.score === 'number') {
+        results.push({ platform, ...result });
+      }
+    } catch (_e) { /* platform not available */ }
+  }
 
   return results;
 }
@@ -99,7 +54,7 @@ function collectPlatformAudits(dir) {
  */
 async function runHarmonyAudit(options) {
   const dir = resolveDir(options);
-  const platformAudits = collectPlatformAudits(dir);
+  const platformAudits = await collectPlatformAudits(dir);
 
   if (options.json) {
     console.log(JSON.stringify({ dir, platforms: platformAudits }, null, 2));
@@ -147,7 +102,7 @@ async function runHarmonyAudit(options) {
  */
 async function runHarmonySync(options) {
   const dir = resolveDir(options);
-  const platformAudits = collectPlatformAudits(dir);
+  const platformAudits = await collectPlatformAudits(dir);
 
   // Load or build canonical model from memory
   const state = loadHarmonyState(dir);
@@ -234,7 +189,7 @@ async function runHarmonyDrift(options) {
  */
 async function runHarmonyAdvise(options) {
   const dir = resolveDir(options);
-  const platformAudits = collectPlatformAudits(dir);
+  const platformAudits = await collectPlatformAudits(dir);
   const state = loadHarmonyState(dir);
   const canonicalModel = state.canon || null;
 
@@ -309,7 +264,7 @@ async function runHarmonyWatch(options) {
       // Logged by watch module itself
     },
     runAudit: options.noAudit ? null : async (auditDir) => {
-      const audits = collectPlatformAudits(auditDir);
+      const audits = await collectPlatformAudits(auditDir);
       const result = {};
       for (const audit of audits) {
         result[audit.platform] = audit;
@@ -326,7 +281,7 @@ async function runHarmonyWatch(options) {
  */
 async function runHarmonyGovernance(options) {
   const dir = resolveDir(options);
-  const platformAudits = collectPlatformAudits(dir);
+  const platformAudits = await collectPlatformAudits(dir);
   const state = loadHarmonyState(dir);
   const canonicalModel = state.canon || null;
 

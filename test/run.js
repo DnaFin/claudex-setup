@@ -1104,6 +1104,74 @@ async function main() {
   });
 
   // ============================================================
+  // SDK integration tests (QP-A04)
+  // ============================================================
+
+  test('SDK audit returns score and results', async () => {
+    const sdk = require('../sdk');
+    const dir = mkFixture('sdk-audit');
+    try {
+      writeJson(dir, 'package.json', { name: 'sdk-test' });
+      fs.writeFileSync(path.join(dir, 'CLAUDE.md'), '# Test\n## Commands\nRun `npm test`\n');
+      const result = await sdk.audit(dir);
+      assert.ok(typeof result.score === 'number', 'should return numeric score');
+      assert.ok(result.score >= 0 && result.score <= 100, 'score should be 0-100');
+      assert.ok(Array.isArray(result.results), 'should return results array');
+      assert.ok(result.results.length > 0, 'should have results');
+      const claude = result.results.find(r => r.key === 'claudeMd');
+      assert.ok(claude && claude.passed === true, 'CLAUDE.md should pass');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('SDK detectPlatforms returns array', () => {
+    const sdk = require('../sdk');
+    const dir = mkFixture('sdk-detect');
+    try {
+      fs.writeFileSync(path.join(dir, 'CLAUDE.md'), '# Test\n');
+      const platforms = sdk.detectPlatforms(dir);
+      assert.ok(Array.isArray(platforms), 'should return array');
+      assert.ok(platforms.includes('claude'), 'should detect claude');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test('SDK getCatalog returns checks', () => {
+    const sdk = require('../sdk');
+    const catalog = sdk.getCatalog();
+    assert.ok(Array.isArray(catalog) || typeof catalog === 'object', 'catalog should be array or object');
+    const keys = Array.isArray(catalog) ? catalog : Object.keys(catalog);
+    assert.ok(keys.length > 100, 'catalog should have 100+ checks');
+  });
+
+  // ============================================================
+  // Source URL validation (QP-A05)
+  // ============================================================
+
+  test('All techniques have valid sourceUrl format', () => {
+    const { TECHNIQUES } = require('../src/techniques');
+    let missing = 0;
+    let invalid = 0;
+    for (const [key, t] of Object.entries(TECHNIQUES)) {
+      if (!t.sourceUrl) { missing++; continue; }
+      if (!/^https?:\/\//.test(t.sourceUrl)) {
+        invalid++;
+        console.log(`    Invalid URL: ${key} → ${t.sourceUrl}`);
+      }
+    }
+    assert.ok(invalid === 0, `${invalid} techniques have invalid sourceUrl`);
+    assert.ok(missing < 10, `${missing} techniques missing sourceUrl (max 10 allowed)`);
+  });
+
+  test('All techniques have confidence between 0 and 1', () => {
+    const { TECHNIQUES } = require('../src/techniques');
+    for (const [key, t] of Object.entries(TECHNIQUES)) {
+      if (t.confidence !== undefined) {
+        assert.ok(t.confidence >= 0 && t.confidence <= 1,
+          `${key} confidence ${t.confidence} out of range`);
+      }
+    }
+  });
+
+  // ============================================================
   // Check Health
   // ============================================================
 
