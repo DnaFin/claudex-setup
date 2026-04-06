@@ -310,6 +310,7 @@ Every write command supports `--snapshot` for automatic backup before changes.
 - **npm**: [@nerviq/cli](https://www.npmjs.com/package/@nerviq/cli)
 - **GitHub**: [github.com/nerviq/nerviq](https://github.com/nerviq/nerviq)
 - **Website**: [nerviq.net](https://nerviq.net)
+- **Discord**: [Join the community](https://discord.gg/nerviq)
 
 ## What Nerviq Is — and Isn't
 

@@ -1,4 +1,4 @@
-# How Nerviq Verifies 673 Checks
+# How Nerviq Verifies 2,431 Checks
 
 Nerviq is an evidence-based audit engine for AI coding agent configurations. Every check we ship is traceable from official documentation through runtime verification to test coverage. This document explains how.
 
@@ -29,12 +29,12 @@ Each check starts with an official documentation reference. The `sourceUrl` fiel
 ### Layer 2: Research Memo
 Findings from official sources are documented in structured research memos stored in the CLAUDEX research corpus. These memos follow the Anthropic-recommended research methodology: explore from multiple angles, hypothesize, triangulate across independent sources, extract quotes before analyzing, identify gaps and contradictions, integrate with confidence levels, and self-critique.
 
-**315 research documents** feed the current check catalog.
+**448+ research documents** feed the current check catalog.
 
 ### Layer 3: Runtime Experiment
 Claims are tested in real project environments. Each experiment runs the actual check logic against controlled fixtures — real directory structures, real configuration files, real tool outputs. We do not mark anything as verified without executing it and observing the output.
 
-**100 experiments across 8 platforms** with real runtime evidence.
+**332+ experiments across 8 platforms** with real runtime evidence.
 
 ### Layer 4: Check Implementation
 The verified finding becomes a check function that inspects the `ProjectContext` — a normalized view of the project's files, configuration, and environment. Check functions return:
@@ -124,10 +124,12 @@ Every check has a `sourceUrl` pointing to official vendor documentation. This me
 
 | Metric | Value |
 |--------|-------|
-| Total checks | **673** |
+| Total checks | **2,431** |
 | Platforms covered | **8** (Claude, Codex, Gemini, Copilot, Cursor, Windsurf, Aider, OpenCode) |
-| Research documents | **315** |
-| Runtime experiments | **100** |
+| Stack-specific languages | **10** (Python, Go, Rust, Java, Ruby, PHP, .NET, Flutter, Swift, Kotlin) |
+| Research documents | **448+** |
+| Runtime experiments | **332+** |
+| Domain packs | **62** |
 | Impact levels | 4 (critical, high, medium, low) |
 | Feedback tracking | Per-check, per-project, with trend analysis |
 | Freshness window | 90 days before staleness flag |
