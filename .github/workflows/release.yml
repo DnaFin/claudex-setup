@@ -1,9 +1,12 @@
 name: Release
 
+# Disabled: we publish to npm manually. Re-enable when NPM_TOKEN secret is configured.
+# on:
+#   push:
+#     tags:
+#       - 'v*'
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: read

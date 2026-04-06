@@ -216,7 +216,8 @@ jobs:
           console.log('');
 
           if (!allFresh) {
-            process.exit(1);
+            console.log('Note: Stale sources detected. Issues will be created automatically.');
+            // Don't fail the workflow — staleness is tracked via issues, not CI failures.
           }
           EOF
 
