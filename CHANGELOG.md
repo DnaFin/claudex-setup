@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-04-07
+
+### Changed
+- README synced: added 8 missing commands (rollback, check-health, anti-patterns, freshness, rules-export, org scan), 4 missing options (--full, --config-only, --only, --workspace), fixed CLAUDEX→NERVIQ branding
+
 ## [1.7.0] - 2026-04-07
 
 ### Added — Final P2 batch
